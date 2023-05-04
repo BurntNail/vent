@@ -4,7 +4,7 @@ Calendar feed gets published from there, not from my proton.
 
 Simple login page then:
 ## look at existing events
-struct containing: event,date,location,teacher,student,students associated with it,description
+struct containing: name,date,location,teacher,prefects,students associated with it,description
 list of all current events
 
 ## modifiy events
