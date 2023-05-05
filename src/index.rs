@@ -1,4 +1,4 @@
-use std::{env::current_dir, sync::Arc};
+use std::sync::Arc;
 use sqlx::types::chrono::{NaiveDateTime};
 use axum::{extract::State, response::Html, Form};
 use liquid::ParserBuilder;
@@ -7,6 +7,21 @@ use sqlx::{Pool, Postgres};
 use tokio::fs::read_to_string;
 
 pub async fn root(State(pool): State<Arc<Pool<Postgres>>>) -> Html<String> {
+    let mut conn = pool.acquire().await.expect("error getting db conn");
+
+    #[derive(Serialize)]
+    struct Anon {
+        pub name: String
+    }
+
+    let events = sqlx::query_as!(
+        Anon,
+        "SELECT name FROM events"
+    ).fetch_all(&mut conn).await.expect("error getting stuff");
+
+    //MVP to see event names as can't serialise the date time.
+
+
     let liquid = read_to_string("www/templates/index.liquid").await.unwrap();
     let template = ParserBuilder::with_stdlib()
         .build()
@@ -14,13 +29,9 @@ pub async fn root(State(pool): State<Arc<Pool<Postgres>>>) -> Html<String> {
         .parse(&liquid)
         .unwrap();
 
-    let cd = current_dir()
-        .map(|cd| cd.to_str().map(|x| x.to_string()))
-        .unwrap_or(Some("failed to get cd".into()))
-        .unwrap();
-    let globals = liquid::object!({ "cd": cd });
+    let globals = liquid::object!({ "rows": events });
 
-    let output = template.render(&globals).unwrap();
+    let output = template.render(&globals).expect("error rendering");
 
     Html(output.to_string())
 }
@@ -41,7 +52,8 @@ pub struct DbEvent {
     pub location: String,
     pub teacher: String,
     pub prefects: String,
-    pub info: String,
+    pub participants: String,
+    pub other_info: String,
 }
 
 impl TryFrom<HtmlEvent> for DbEvent {
@@ -51,7 +63,7 @@ impl TryFrom<HtmlEvent> for DbEvent {
         let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M").map_err(|_e| ())?; //we love not exposing data types lol
 
         Ok(Self {
-            name, date, location, teacher, prefects, info
+            name, date, location, teacher, prefects, other_info: info, participants: String::new()
         })
     }
 }
@@ -60,7 +72,7 @@ pub async fn root_form(
     State(pool): State<Arc<Pool<Postgres>>>,
     Form(event): Form<HtmlEvent>,
 ) -> Html<String> {
-    let DbEvent { name, date, location, teacher, prefects, info } = DbEvent::try_from(event).expect("error parsing html event");
+    let DbEvent { name, date, location, teacher, prefects, other_info, participants } = DbEvent::try_from(event).expect("error parsing html event");
 
     let mut conn = pool.acquire().await.expect("error getting database connection");
 
@@ -72,9 +84,9 @@ pub async fn root_form(
         location,
         teacher,
         prefects,
-        "".into(),
-        info
+        participants,
+        other_info
     ).execute(&mut conn).await.expect("unable to add event");
 
-    root().await
+    root(State(pool)).await
 }

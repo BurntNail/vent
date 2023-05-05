@@ -17,7 +17,7 @@
         Welcome to Knot!
       </h1>
       <p>
-        The current directory is {{ cd }}!
+        The current directory is missing!
       </p>
 
       <form method="POST">
@@ -75,6 +75,11 @@
         <button type="submit" class="btn btn-primary">Add new Event.</button>
       </form>
     </div>
+
+    {% for row in rows %}
+      {{ row.name }}
+      <br>
+    {% endfor %}
 
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"
