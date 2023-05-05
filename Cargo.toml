@@ -11,7 +11,7 @@ axum = { version = "0.6.18", features = ["form"] }
 dotenvy = "0.15.7"
 icalendar = "0.15.4"
 liquid = "0.26.1"
-serde = "1.0.160"
+serde = "1.0.162"
 sqlx = { version = "0.6.3", features = ["runtime-tokio-rustls", "postgres", "macros", "offline", "chrono"] }
 tokio = { version = "1.28.0", features = ["full"] }
 tracing = "0.1.37"
