@@ -1,3 +1,39 @@
 {
-  "db": "PostgreSQL"
+  "db": "PostgreSQL",
+  "2c656116c2a06481376322ee5864b81c8c24fb7567d97164c2297c339bce6842": {
+    "describe": {
+      "columns": [
+        {
+          "name": "name",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT name FROM events"
+  },
+  "b09b84e04d69ccfe51ab5c62a953b513bf8317aa5582e936f577b6249939865a": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Timestamp",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO events (name, date, location, teacher, prefects, participants, other_info) \n        VALUES ($1, $2, $3, $4, $5, $6, $7)"
+  }
 }
