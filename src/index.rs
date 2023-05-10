@@ -1,94 +1,112 @@
-use std::sync::Arc;
-use sqlx::types::chrono::{NaiveDateTime};
-use axum::{extract::State, response::Html, Form};
+use axum::{extract::State, response::{Html, IntoResponse}, http::StatusCode};
+use chrono::NaiveDateTime;
 use liquid::ParserBuilder;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
+use std::{collections::HashMap, sync::Arc};
 use tokio::fs::read_to_string;
 
-pub async fn root(State(pool): State<Arc<Pool<Postgres>>>) -> Html<String> {
-    let mut conn = pool.acquire().await.expect("error getting db conn");
-
-    #[derive(Serialize)]
-    struct Anon {
-        pub event_name: String,
-        pub person_name: String,
-    }
-
-
-    let events = sqlx::query_as!(
-        Anon,
-        r#"
-        SELECT e.event_name, p.person_name 
-        FROM events e
-        INNER JOIN participant_events pe ON pe.event_id = e.id
-        INNER JOIN people p ON p.id = pe.participant_id
-        "#
-    ).fetch_all(&mut conn).await.expect("error getting stuff");
-
-    //MVP to see event names as can't serialise the date time.
-
-
-    let liquid = read_to_string("www/templates/index.liquid").await.unwrap();
-    let template = ParserBuilder::with_stdlib()
-        .build()
-        .unwrap()
-        .parse(&liquid)
-        .unwrap();
-
-    let globals = liquid::object!({ "rows": events });
-
-    let output = template.render(&globals).expect("error rendering");
-
-    Html(output)
-}
-
-#[derive(Deserialize, Debug)]
-pub struct HtmlEvent {
-    pub name: String,
-    pub date: String,
-    pub location: String,
-    pub teacher: String,
-    pub info: String,
-}
-
-pub struct DbEvent {
-    pub name: String,
+#[derive(Serialize, Deserialize, Hash, Eq, PartialEq)]
+struct Event {
+    pub event_name: String,
     pub date: NaiveDateTime,
     pub location: String,
     pub teacher: String,
     pub other_info: String,
 }
 
-impl TryFrom<HtmlEvent> for DbEvent {
-    type Error = ();
+#[derive(Serialize, Deserialize)]
+struct Person {
+    pub person_name: String,
+    pub person_email: String,
+}
 
-    fn try_from(HtmlEvent {name, date, location, teacher, info}: HtmlEvent) -> Result<Self, Self::Error> {
-        let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M").map_err(|_e| ())?; //we love not exposing data types lol
+#[derive(thiserror::Error, Debug)]
+pub enum RootError {
+    #[error("Database Error")]
+    Sqlx(#[from] sqlx::Error),
+    #[error("Liquid Error")]
+    Liquid(#[from] liquid::Error),
+    #[error("IO Error")]
+    IO(#[from] std::io::Error),
+}
 
-        Ok(Self {
-            name, date, location, teacher, other_info: info
-        })
+impl IntoResponse for RootError {
+    fn into_response(self) -> axum::response::Response {
+        (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("Internal Server Error: {self:?}"))).into_response()
     }
 }
 
-pub async fn root_form(
-    State(pool): State<Arc<Pool<Postgres>>>,
-    Form(event): Form<HtmlEvent>,
-) -> Html<String> {
-    let DbEvent { name, date, location, teacher, other_info } = DbEvent::try_from(event).expect("error parsing html event");
+pub async fn root(State(pool): State<Arc<Pool<Postgres>>>) -> Result<impl IntoResponse, RootError> {
+    let mut conn = pool.acquire().await?;
 
-    let mut conn = pool.acquire().await.expect("error getting database connection");
+    #[derive(Serialize, Deserialize)]
+    struct Anon {
+        pub event_name: String,
+        pub date: NaiveDateTime,
+        pub location: String,
+        pub teacher: String,
+        pub other_info: Option<String>,
+        pub person_name: String,
+        pub person_email: String,
+    }
+    #[derive(Serialize, Deserialize)]
+    struct WholeEvent {
+        pub event: Event,
+        pub people: Vec<Person>,
+        pub n_events: usize,
+    }
 
-    sqlx::query!(
-        "INSERT INTO events (event_name, date, location, teacher, other_info) 
-        VALUES ($1, $2, $3, $4, $5)",
-        name,
-        date,
-        location,
-        teacher,
-        other_info
-    ).execute(&mut conn).await.expect("unable to add event");
+    let mut events = HashMap::new();
+    for anon in sqlx::query_as!(
+        Anon,
+        r#"
+        SELECT e.event_name, e.date, e.location, e.teacher, e.other_info, p.person_name, p.person_email
+        FROM events e
+        INNER JOIN participant_events pe ON pe.event_id = e.id
+        INNER JOIN people p ON p.id = pe.participant_id
+        "#
+    ).fetch_all(&mut conn).await? {
+        let Anon { event_name, date, location, teacher, other_info, person_name, person_email } = anon;
+        let other_info = other_info.unwrap_or_default();
 
-    root(State(pool)).await
+        let event = Event {event_name, date, location, teacher, other_info};
+        let person = Person {person_name, person_email};
+
+        events.entry(event).or_insert(vec![]).push(person);
+    }
+    let mut events: Vec<WholeEvent> = events
+        .into_iter()
+        .map(|(event, people)| WholeEvent {
+            event,
+            n_events: people.len(), //n_events before people to borrow then own
+            people,
+        })
+        .collect();
+    events.sort_by_key(
+        |WholeEvent {
+             event:
+                 Event {
+                     event_name: _,
+                     date,
+                     location: _,
+                     teacher: _,
+                     other_info: _,
+                 },
+             people: _,
+             n_events: _,
+         }| { *date },
+    );
+
+    let globals = liquid::object!({ "events": events });
+    info!(?globals);
+
+    let liquid = read_to_string("www/templates/index.liquid").await?;
+    let template = ParserBuilder::with_stdlib()
+        .build()?
+        .parse(&liquid)?;
+
+    let output = template.render(&globals)?;
+
+    Ok(Html(output))
 }

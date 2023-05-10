@@ -9,7 +9,8 @@ CREATE TABLE events (
 
 CREATE TABLE people (
     id SERIAL PRIMARY KEY,
-    person_name TEXT NOT NULL
+    person_name TEXT NOT NULL,
+    person_email TEXT NOT NULL
 );
 
 CREATE TABLE prefect_events (
