@@ -16,7 +16,7 @@ use routes::{
         self, get_add_people_to_event, post_add_participants_to_event, post_add_prefects_to_event,
     },
     add_person::{self, get_add_person, post_add_person},
-    index::{self, get_index},
+    index::{self, get_index}, remove_stuff::{self, get_remove_stuff, post_remove_person, post_remove_event},
 };
 use sqlx::postgres::PgPoolOptions;
 use std::{net::SocketAddr, sync::Arc};
@@ -55,6 +55,12 @@ async fn main() {
             add_person::LOCATION,
             get(get_add_person).post(post_add_person),
         )
+        .route(
+            remove_stuff::LOCATION,
+            get(get_remove_stuff)
+        )
+        .route("/remove_person", post(post_remove_person))
+        .route("/remove_event", post(post_remove_event))
         .with_state(pool);
 
     axum::Server::bind(&SocketAddr::from(([127, 0, 0, 1], 8080)))

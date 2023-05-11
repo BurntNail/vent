@@ -1,0 +1,58 @@
+{% include "partials/header.liquid" %}
+
+<form method="POST" action="/remove_person">
+  <h2>Remove People</h2>
+
+  <div class="mb-3">
+    <label for="person_id" class="form-label">Remove People:</label>
+
+    {% for person in people %}
+      <div class="form-check">
+        <input
+          class="form-check-input"
+          type="radio"
+          name="person_id"
+          id="person_id"
+          value="{{person.id}}">
+        <label class="form-check-label" for="person_id">
+          {{ person.person_name }} -
+          {% unless person.is_prefect %}
+            Not a
+          {% endunless %}
+          Prefect
+        </label>
+      </div>
+    {% endfor %}
+  </div>
+
+  <button type="submit" class="btn btn-primary">Remove Person.</button>
+</form>
+
+<br><br><br>
+
+<form method="POST" action="/remove_event">
+  <h2>Remove People</h2>
+
+  <div class="mb-3">
+    <label for="event_id" class="form-label">Remove Event:</label>
+
+    {% for event in events %}
+      <div class="form-check">
+        <input
+          class="form-check-input"
+          type="radio"
+          name="event_id"
+          id="event_id"
+          value="{{event.id}}">
+        <label class="form-check-label" for="event">
+          {{ event.event_name }} - {{ event.date }}
+        </label>
+      </div>
+    {% endfor %}
+  </div>
+
+  <button type="submit" class="btn btn-primary">Remove Event.</button>
+</form>
+
+
+{% include "partials/footer.liquid" %}

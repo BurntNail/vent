@@ -17,22 +17,26 @@ CREATE TABLE prefect_events (
     prefect_id INT NOT NULL,
     CONSTRAINT fk_prefect_id 
         FOREIGN KEY (prefect_id)
-        REFERENCES people(id),
+        REFERENCES people(id)
+        ON DELETE CASCADE,
 
     event_id INT NOT NULL,
     CONSTRAINT fk_event_id
         FOREIGN KEY (event_id)
         REFERENCES events(id)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE participant_events (
     participant_id INT NOT NULL,
     CONSTRAINT fk_participant_id 
         FOREIGN KEY (participant_id)
-        REFERENCES people(id),
+        REFERENCES people(id)
+        ON DELETE CASCADE,
 
     event_id INT NOT NULL,
     CONSTRAINT fk_event_id
         FOREIGN KEY (event_id)
         REFERENCES events(id)
+        ON DELETE CASCADE
 );

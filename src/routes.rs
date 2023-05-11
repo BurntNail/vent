@@ -2,6 +2,7 @@ pub mod add_event;
 pub mod add_people_to_event;
 pub mod add_person;
 pub mod index;
+pub mod remove_stuff;
 
 use serde::{Deserialize, Serialize};
 

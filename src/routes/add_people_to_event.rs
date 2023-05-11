@@ -64,7 +64,6 @@ FROM events
 #[derive(Deserialize)]
 pub struct AddPrefects {
     pub event_id: i32,
-    #[serde(rename(deserialize = "prefects[]"))]
     pub prefects: Vec<String>,
 }
 
@@ -100,7 +99,6 @@ VALUES($2, $1);
 #[derive(Deserialize)]
 pub struct AddParticipants {
     pub event_id: i32,
-    #[serde(rename(deserialize = "prefects[]"))]
     pub people: Vec<String>,
 }
 

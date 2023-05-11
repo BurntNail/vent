@@ -9,10 +9,9 @@ use serde::Deserialize;
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
-use super::FormEvent;
+use super::{FormEvent};
 
 pub const LOCATION: &str = "/add_event";
-//TODO: just use this lol: https://docs.rs/axum-extra/latest/axum_extra/routing/struct.Resource.html
 
 pub async fn get_add_event_form(
     State(pool): State<Arc<Pool<Postgres>>>,
@@ -36,8 +35,9 @@ WHERE people.is_prefect = TRUE
 
     compile("www/add_event.liquid", globals).await
 }
+
 #[derive(Deserialize)]
-struct DbEvent {
+pub struct DbEvent {
     pub name: String,
     pub date: NaiveDateTime,
     pub location: String,
