@@ -63,7 +63,7 @@ async fn main() {
         .route("/remove_event", post(post_remove_event))
         .with_state(pool);
 
-    axum::Server::bind(&SocketAddr::from(([127, 0, 0, 1], 8080)))
+    axum::Server::bind(&SocketAddr::from(([127, 0, 0, 1], 443)))
         .serve(app.into_make_service())
         .await
         .unwrap();
