@@ -16,7 +16,7 @@ pub enum KnotError {
     #[error("Error Parsing Integer")]
     ParseInt(#[from] std::num::ParseIntError),
     #[error("Error Parsing Time")]
-    ParseTime(#[from] chrono::ParseError)
+    ParseTime(#[from] chrono::ParseError),
 }
 
 impl IntoResponse for KnotError {

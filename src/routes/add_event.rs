@@ -1,15 +1,15 @@
-use std::{fmt::Write, sync::Arc};
-
+use crate::{error::KnotError, liquid_utils::compile, routes::Person};
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
 };
-use chrono::NaiveDateTime;
-use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Postgres};
 use axum_extra::extract::Form;
+use chrono::NaiveDateTime;
+use serde::Deserialize;
+use sqlx::{Pool, Postgres};
+use std::sync::Arc;
 
-use crate::{error::KnotError, liquid_utils::compile};
+use super::FormEvent;
 
 pub const LOCATION: &str = "/add_event";
 //TODO: just use this lol: https://docs.rs/axum-extra/latest/axum_extra/routing/struct.Resource.html
@@ -19,18 +19,12 @@ pub async fn get_add_event_form(
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
 
-    #[derive(Serialize)]
-    struct Prefect {
-        pub person_name: String,
-        pub id: i32,
-    }
-
-    let prefects: Vec<Prefect> = sqlx::query_as!(
-        Prefect,
+    let prefects: Vec<Person> = sqlx::query_as!(
+        Person,
         r#"
-        SELECT person_name, id
-        FROM people
-        WHERE people.is_prefect = TRUE
+SELECT person_name, id, is_prefect
+FROM people
+WHERE people.is_prefect = TRUE
         "#
     )
     .fetch_all(&mut conn)
@@ -42,25 +36,13 @@ pub async fn get_add_event_form(
 
     compile("www/add_event.liquid", globals).await
 }
-
-#[derive(Debug, Deserialize)]
-pub struct DbEvent {
+#[derive(Deserialize)]
+struct DbEvent {
     pub name: String,
     pub date: NaiveDateTime,
     pub location: String,
     pub teacher: String,
     pub info: String,
-    pub prefects: Vec<i32>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct FormEvent {
-    pub name: String,
-    pub date: String,
-    pub location: String,
-    pub teacher: String,
-    pub info: String,
-    pub prefects: Vec<String>,
 }
 
 impl TryFrom<FormEvent> for DbEvent {
@@ -73,7 +55,6 @@ impl TryFrom<FormEvent> for DbEvent {
             location,
             teacher,
             info,
-            prefects,
         }: FormEvent,
     ) -> Result<Self, Self::Error> {
         let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M")?;
@@ -84,10 +65,6 @@ impl TryFrom<FormEvent> for DbEvent {
             location,
             teacher,
             info,
-            prefects: prefects
-                .into_iter()
-                .map(|s| s.parse())
-                .collect::<Result<_, _>>()?,
         })
     }
 }
@@ -98,16 +75,17 @@ pub async fn post_add_event_form(
 ) -> Result<impl IntoResponse, KnotError> {
     info!(?event);
     let mut conn = pool.acquire().await?;
+
     let DbEvent {
         name,
         date,
         location,
         teacher,
         info,
-        prefects,
-    } = DbEvent::try_from(event).unwrap(); //TODO: Fix error handling
+    } = DbEvent::try_from(event)?;
+    info!(?name, ?date, ?location, ?teacher, ?info);
 
-    let event_id: i32 = sqlx::query!(
+    sqlx::query!(
         r#"
 INSERT INTO public.events
 (event_name, "date", "location", teacher, other_info)
@@ -121,22 +99,7 @@ RETURNING id
         info
     )
     .fetch_one(&mut conn)
-    .await?
-    .id;
-
-    for prefect in prefects {
-        sqlx::query!(
-            r#"
-INSERT INTO public.prefect_events
-(prefect_id, event_id)
-VALUES($1, $2);            
-            "#,
-            prefect,
-            event_id
-        )
-        .execute(&mut conn)
-        .await?;
-    }
+    .await?;
 
     Ok(Redirect::to(LOCATION))
 }

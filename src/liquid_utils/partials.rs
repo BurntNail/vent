@@ -1,8 +1,8 @@
-use std::ffi::{OsString, OsStr};
+use std::ffi::{OsStr, OsString};
 
 use liquid::partials::{EagerCompiler, InMemorySource};
 use tokio::{fs::read_to_string, sync::OnceCell};
-use walkdir::{WalkDir, DirEntry};
+use walkdir::{DirEntry, WalkDir};
 
 #[derive(Debug)]
 pub struct Partials(InMemorySource);
@@ -20,13 +20,23 @@ pub async fn init_partials() -> Partials {
     const LIQUID_PARTIALS_NAME: &str = "partials/";
     const PARTIALS_EXTENSIONS: &[&str] = &["html", "liquid"];
 
-    let partial_extensions = PARTIALS_EXTENSIONS.iter().map(OsString::from).collect::<Vec<_>>(); //must do outside of const as this is not const
+    let partial_extensions = PARTIALS_EXTENSIONS
+        .iter()
+        .map(OsString::from)
+        .collect::<Vec<_>>(); //must do outside of const as this is not const
 
     let mut in_memory_source = InMemorySource::new();
 
-    for partial in WalkDir::new(PARTIALS_DIR).into_iter().filter_map(Result::ok).map(DirEntry::into_path).filter(|x| {
-        x.extension().map_or(false, |x| partial_extensions.iter().any(|allowed| x == allowed))
-    }) {
+    for partial in WalkDir::new(PARTIALS_DIR)
+        .into_iter()
+        .filter_map(Result::ok)
+        .map(DirEntry::into_path)
+        .filter(|x| {
+            x.extension().map_or(false, |x| {
+                partial_extensions.iter().any(|allowed| x == allowed)
+            })
+        })
+    {
         match read_to_string(&partial).await {
             Ok(source) => {
                 info!(?partial, "Got partial");

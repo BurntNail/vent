@@ -2,7 +2,7 @@ use axum::{extract::State, response::IntoResponse};
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use crate::{error::KnotError, liquid_utils::compile};
 
@@ -21,7 +21,6 @@ struct Event {
 #[derive(Serialize, Deserialize)]
 struct Person {
     pub person_name: String,
-    pub person_email: String,
 }
 
 pub async fn get_index(
@@ -45,38 +44,43 @@ pub async fn get_index(
 SELECT *
 FROM events
         "#
-    ).fetch_all(&mut conn).await? {
+    )
+    .fetch_all(&mut conn)
+    .await?
+    {
         let event_id = event.id;
         let prefects = sqlx::query_as!(
             Person,
             r#"
-SELECT p.person_name, p.person_email
+SELECT p.person_name
 FROM people p
 INNER JOIN events e ON e.id = $1
 INNER JOIN prefect_events pe ON p.id = pe.prefect_id
             "#,
             event_id
-        ).fetch_all(&mut conn).await?;
+        )
+        .fetch_all(&mut conn)
+        .await?;
         let participants = sqlx::query_as!(
             Person,
             r#"
-SELECT p.person_name, p.person_email
+SELECT p.person_name
 FROM people p
 INNER JOIN events e ON e.id = $1
 INNER JOIN participant_events pe ON p.id = pe.participant_id
             "#,
             event_id
-        ).fetch_all(&mut conn).await?;
+        )
+        .fetch_all(&mut conn)
+        .await?;
 
-        events.push(
-            WholeEvent {
-                event,
-                n_participants: participants.len(),
-                n_prefects: prefects.len(),
-                participants,
-                prefects
-            }
-        );
+        events.push(WholeEvent {
+            event,
+            n_participants: participants.len(),
+            n_prefects: prefects.len(),
+            participants,
+            prefects,
+        });
     }
 
     let globals = liquid::object!({ "events": events });
