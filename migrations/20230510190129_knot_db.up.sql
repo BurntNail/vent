@@ -10,7 +10,8 @@ CREATE TABLE events (
 CREATE TABLE people (
     id SERIAL PRIMARY KEY,
     person_name TEXT NOT NULL,
-    person_email TEXT NOT NULL
+    person_email TEXT NOT NULL,
+    is_prefect BOOLEAN NOT NULL
 );
 
 CREATE TABLE prefect_events (
