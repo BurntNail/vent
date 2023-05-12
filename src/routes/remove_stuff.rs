@@ -3,8 +3,8 @@ use std::sync::Arc;
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
-    Form,
 };
+use axum_extra::extract::Form;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
@@ -57,12 +57,12 @@ FROM events
 
 #[derive(Deserialize)]
 pub struct RemovePerson {
-    pub person_id: i32,
+    pub person_id: Vec<i32>,
 }
 
 #[derive(Deserialize)]
 pub struct RemoveEvent {
-    pub event_id: i32,
+    pub event_id: Vec<i32>,
 }
 
 pub async fn post_remove_person(
@@ -71,15 +71,17 @@ pub async fn post_remove_person(
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
 
-    sqlx::query!(
-        r#"
-DELETE FROM public.people
-WHERE id=$1
-        "#,
-        person_id
-    )
-    .execute(&mut conn)
-    .await?;
+    for person_id in person_id {
+        sqlx::query!(
+            r#"
+    DELETE FROM public.people
+    WHERE id=$1
+            "#,
+            person_id
+        )
+        .execute(&mut conn)
+        .await?;
+    }
 
     Ok(Redirect::to(LOCATION))
 }
@@ -89,15 +91,17 @@ pub async fn post_remove_event(
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
 
-    sqlx::query!(
-        r#"
-DELETE FROM public.events
-WHERE id=$1
-        "#,
-        event_id
-    )
-    .execute(&mut conn)
-    .await?;
+    for event_id in event_id {
+        sqlx::query!(
+            r#"
+    DELETE FROM public.events
+    WHERE id=$1
+            "#,
+            event_id
+        )
+        .execute(&mut conn)
+        .await?;
+    }
 
     Ok(Redirect::to(LOCATION))
 }
