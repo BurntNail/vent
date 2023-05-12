@@ -22,46 +22,52 @@
       {% else %}
       {% assign max = row.n_participants %}
       {% endif %}
+
+      {% if max == 0 %}
+      {% assign rowspan = 1 %}
+      {% else %}
+      {% assign rowspan = max %}
+      {% endif %}
       <tr>
-        <th scope="row" rowspan="{{ max }}">
+        <th scope="row" rowspan="{{ rowspan }}">
           {{ row.event.event_name }}
         </td>
-        <td scope="row" rowspan="{{ max }}">
+        <td scope="row" rowspan="{{ rowspan }}">
           {{ row.event.date }}
         </td>
-        <td scope="row" rowspan="{{ max }}">
+        <td scope="row" rowspan="{{ rowspan }}">
           {{ row.event.location }}
         </td>
-        <td scope="row" rowspan="{{ max }}">
+        <td scope="row" rowspan="{{ rowspan }}">
           {{ row.event.teacher }}
         </td>
-        <td scope="row" rowspan="{{ max }}">
+        <td scope="row" rowspan="{{ rowspan }}">
           {{ row.event.other_info }}
         </td>
-        <td scope="row" rowspan="{{ max }}">
+        <td scope="row" rowspan="{{ rowspan }}">
           <a href="/update_event/{{row.event.id}}">Update</a>
         </td>
-      {% if max == 0 %}
-      <td></td><td></td>
-      </tr>
-      {% else %}
-      {% assign mmo = max | minus: 1 %}
-      {% for i in (0..mmo) %}
-          {% if i < row.n_participants %}
-          <td scope="row">{{ row.participants[i].person_name }}</td>
-          {%else%}
-          <td></td>
-          {%endif%}
-          {% if i < row.n_prefects %}
-          <td scope="row">{{ row.prefects[i].person_name }}</td>
-          {%else%}
-          <td></td>
-          {%endif%}
-        
+        {% if max > 0 %}
+        {% assign mmo = max | minus: 1 %}
+        {% for i in (0..mmo) %}
+            {% if i < row.n_participants %}
+            <td scope="row">{{ row.participants[i].person_name }}</td>
+            {%else%}
+            <td></td>
+            {%endif%}
+
+            {% if i < row.n_prefects %}
+            <td scope="row">{{ row.prefects[i].person_name }}</td>
+            {%else%}
+            <td></td>
+            {%endif%}
+          </tr>
+          {% unless forloop.last %} <tr> {% endunless %}
+        {% endfor %}
+        {% else %}
+        <td> </td><td> </td>
         </tr>
-        {% unless forloop.last %} <tr> {% endunless %}
-      {% endfor %}
-    {% endif %}
+        {% endif %}
     {% endfor %}
   </tbody>
 </table>
