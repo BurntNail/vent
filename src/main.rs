@@ -26,6 +26,8 @@ use std::{
     sync::Arc, env::var,
 };
 
+use crate::routes::update_event_and_person::{get_update_event, get_remove_prefect_from_event, get_remove_participant_from_event};
+
 #[macro_use]
 extern crate tracing;
 
@@ -64,6 +66,9 @@ async fn main() {
         .route("/remove_person", post(post_remove_person))
         .route("/remove_event", post(post_remove_event))
         .route(calendar::LOCATION, get(get_calendar_feed))
+        .route("/update_event/:id", get(get_update_event))
+        .route("/remove_prefect_from_event/:relation_id", get(get_remove_prefect_from_event))
+        .route("/remove_participant_from_event/:relation_id", get(get_remove_participant_from_event))
         .with_state(pool);
 
     let port: SocketAddr = var("KNOT_SERVER_IP")
@@ -71,7 +76,7 @@ async fn main() {
         .parse()
         .expect("need KNOT_SERVER_IP to be valid");
 
-    info!(?port, "Listening");
+    info!(?port, "Serving: ");
 
     axum::Server::bind(&port)
         .serve(app.into_make_service())

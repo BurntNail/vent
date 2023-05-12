@@ -10,6 +10,7 @@
       <th scope="col">Location</th>
       <th scope="col">Teacher</th>
       <th scope="col">Other Information</th>
+      <th scope="col">Update Event</th>
       <th scope="col">Participants</th>
       <th scope="col">Prefects</th>
     </tr>
@@ -37,6 +38,12 @@
         <td scope="row" rowspan="{{ max }}">
           {{ row.event.other_info }}
         </td>
+        <td scope="row" rowspan="{{ max }}">
+          <a href="/update_event/{{row.event.id}}">Update</a>
+        </td>
+      {% if max == 0 %}
+      </tr>
+      {% else %}
       {% assign mmo = max | minus: 1 %}
       {% for i in (0..mmo) %}
           {% if i < row.n_participants %}
@@ -53,7 +60,7 @@
         </tr>
         {% unless forloop.last %} <tr> {% endunless %}
       {% endfor %}
-      <br>
+    {% endif %}
     {% endfor %}
   </tbody>
 </table>

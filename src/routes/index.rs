@@ -19,7 +19,7 @@ struct Event {
 }
 
 #[derive(Serialize, Deserialize)]
-struct Person {
+struct SmolPerson {
     pub person_name: String,
 }
 
@@ -31,8 +31,8 @@ pub async fn get_index(
     #[derive(Serialize)]
     struct WholeEvent {
         event: Event,
-        participants: Vec<Person>,
-        prefects: Vec<Person>,
+        participants: Vec<SmolPerson>,
+        prefects: Vec<SmolPerson>,
         n_participants: usize,
         n_prefects: usize,
     }
@@ -50,7 +50,7 @@ FROM events
     {
         let event_id = event.id;
         let prefects = sqlx::query_as!(
-            Person,
+            SmolPerson,
             r#"
 SELECT p.person_name
 FROM people p
@@ -62,7 +62,7 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
         .fetch_all(&mut conn)
         .await?;
         let participants = sqlx::query_as!(
-            Person,
+            SmolPerson,
             r#"
 SELECT p.person_name
 FROM people p
