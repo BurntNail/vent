@@ -1,22 +1,11 @@
 use axum::{extract::State, response::IntoResponse};
-use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
-use crate::{error::KnotError, liquid_utils::compile};
+use crate::{error::KnotError, liquid_utils::compile, routes::DbEvent};
 
 pub const LOCATION: &str = "/";
-
-#[derive(Serialize, Deserialize)]
-struct Event {
-    pub id: i32,
-    pub event_name: String,
-    pub date: NaiveDateTime,
-    pub location: String,
-    pub teacher: String,
-    pub other_info: Option<String>,
-}
 
 #[derive(Serialize, Deserialize)]
 struct SmolPerson {
@@ -29,8 +18,24 @@ pub async fn get_index(
     let mut conn = pool.acquire().await?;
 
     #[derive(Serialize)]
+    struct HTMLEvent {
+        pub id: i32,
+        pub event_name: String,
+        pub date: String,
+        pub location: String,
+        pub teacher: String,
+        pub other_info: String,
+    }
+
+    impl From<DbEvent> for HTMLEvent {
+        fn from(DbEvent { id, event_name, date, location, teacher, other_info }: DbEvent) -> Self {
+            Self { id, event_name, date: date.format("%A %d %B %Y at %H:%M").to_string(), location, teacher, other_info: other_info.unwrap()}
+        }
+    }
+
+    #[derive(Serialize)]
     struct WholeEvent {
-        event: Event,
+        event: HTMLEvent,
         participants: Vec<SmolPerson>,
         prefects: Vec<SmolPerson>,
         n_participants: usize,
@@ -39,7 +44,7 @@ pub async fn get_index(
 
     let mut events = vec![];
     for event in sqlx::query_as!(
-        Event,
+        DbEvent,
         r#"
 SELECT *
 FROM events
@@ -48,6 +53,8 @@ FROM events
     .fetch_all(&mut conn)
     .await?
     {
+        let event = HTMLEvent::from(event);
+
         let event_id = event.id;
         let prefects = sqlx::query_as!(
             SmolPerson,
@@ -61,6 +68,7 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
         )
         .fetch_all(&mut conn)
         .await?;
+
         let participants = sqlx::query_as!(
             SmolPerson,
             r#"
