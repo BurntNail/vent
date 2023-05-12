@@ -8,7 +8,7 @@ pub mod calendar;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 struct Person {
     pub person_name: String,
     pub is_prefect: bool,
