@@ -21,6 +21,8 @@ use routes::{
 use sqlx::postgres::PgPoolOptions;
 use std::{net::SocketAddr, sync::Arc, env::var};
 
+use crate::routes::calendar::{self, get_calendar_feed};
+
 #[macro_use]
 extern crate tracing;
 
@@ -61,6 +63,7 @@ async fn main() {
         )
         .route("/remove_person", post(post_remove_person))
         .route("/remove_event", post(post_remove_event))
+        .route(calendar::LOCATION, get(get_calendar_feed))
         .with_state(pool);
 
         let port: SocketAddr = var("KNOT_SERVER_IP").expect("need KNOT_SERVER_IP env var").parse().expect("need KNOT_SERVER_IP to be valid");

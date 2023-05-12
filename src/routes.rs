@@ -3,7 +3,9 @@ pub mod add_people_to_event;
 pub mod add_person;
 pub mod index;
 pub mod remove_stuff;
+pub mod calendar;
 
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
@@ -13,11 +15,12 @@ struct Person {
     pub id: i32,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct FormEvent {
-    pub name: String,
-    pub date: String,
+#[derive(Deserialize)]
+pub struct DbEvent {
+    pub id: i32,
+    pub event_name: String,
+    pub date: NaiveDateTime,
     pub location: String,
     pub teacher: String,
-    pub info: String,
+    pub other_info: Option<String>,
 }

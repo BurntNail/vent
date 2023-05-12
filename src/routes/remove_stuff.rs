@@ -12,7 +12,7 @@ use super::Person;
 pub const LOCATION: &str = "/remove_stuff";
 
 #[derive(Serialize, Deserialize)]
-pub struct DbEvent {
+pub struct SmolDbEvent {
     pub id: i32,
     pub event_name: String,
     pub date: NaiveDateTime,
@@ -29,8 +29,8 @@ FROM people
         "#
     ).fetch_all(&mut conn).await?;
 
-    let events: Vec<DbEvent> = sqlx::query_as!(
-        DbEvent,
+    let events: Vec<SmolDbEvent> = sqlx::query_as!(
+        SmolDbEvent,
         r#"
 SELECT id, event_name, date
 FROM events

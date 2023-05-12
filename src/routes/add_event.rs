@@ -9,7 +9,7 @@ use serde::Deserialize;
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
-use super::{FormEvent};
+use super::{DbEvent};
 
 pub const LOCATION: &str = "/add_event";
 
@@ -36,10 +36,10 @@ WHERE people.is_prefect = TRUE
     compile("www/add_event.liquid", globals).await
 }
 
-#[derive(Deserialize)]
-pub struct DbEvent {
+#[derive(Debug, Deserialize)]
+pub struct FormEvent {
     pub name: String,
-    pub date: NaiveDateTime,
+    pub date: String,
     pub location: String,
     pub teacher: String,
     pub info: String,
@@ -60,11 +60,12 @@ impl TryFrom<FormEvent> for DbEvent {
         let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M")?;
 
         Ok(Self {
-            name,
+            id: -1,
+            event_name: name,
             date,
             location,
             teacher,
-            info,
+            other_info: Some(info),
         })
     }
 }
@@ -77,13 +78,13 @@ pub async fn post_add_event_form(
     let mut conn = pool.acquire().await?;
 
     let DbEvent {
-        name,
+        id: _,
+        event_name,
         date,
         location,
         teacher,
-        info,
+        other_info: info,
     } = DbEvent::try_from(event)?;
-    info!(?name, ?date, ?location, ?teacher, ?info);
 
     sqlx::query!(
         r#"
@@ -92,7 +93,7 @@ INSERT INTO public.events
 VALUES($1, $2, $3, $4, $5)
 RETURNING id
         "#,
-        name,
+        event_name,
         date,
         location,
         teacher,
