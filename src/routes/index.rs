@@ -55,7 +55,7 @@ FROM events
 SELECT p.person_name
 FROM people p
 INNER JOIN events e ON e.id = $1
-INNER JOIN prefect_events pe ON p.id = pe.prefect_id
+INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
             "#,
             event_id
         )
@@ -67,7 +67,7 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id
 SELECT p.person_name
 FROM people p
 INNER JOIN events e ON e.id = $1
-INNER JOIN participant_events pe ON p.id = pe.participant_id
+INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $1
             "#,
             event_id
         )

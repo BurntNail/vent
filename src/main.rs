@@ -19,7 +19,7 @@ use routes::{
     index::{self, get_index}, remove_stuff::{self, get_remove_stuff, post_remove_person, post_remove_event},
 };
 use sqlx::postgres::PgPoolOptions;
-use std::{net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc, env::var};
 
 #[macro_use]
 extern crate tracing;
@@ -63,7 +63,11 @@ async fn main() {
         .route("/remove_event", post(post_remove_event))
         .with_state(pool);
 
-    axum::Server::bind(&SocketAddr::from(([127, 0, 0, 1], 443)))
+        let port: SocketAddr = var("KNOT_SERVER_IP").expect("need KNOT_SERVER_IP env var").parse().expect("need KNOT_SERVER_IP to be valid");
+
+        info!(?port, "Listening");
+
+    axum::Server::bind(&port)
         .serve(app.into_make_service())
         .await
         .unwrap();
