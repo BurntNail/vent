@@ -1,9 +1,9 @@
 pub mod add_event;
 pub mod add_people_to_event;
 pub mod add_person;
+pub mod calendar;
 pub mod index;
 pub mod remove_stuff;
-pub mod calendar;
 
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};

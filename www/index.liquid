@@ -1,63 +1,61 @@
 {% include "partials/header.liquid" %}
 
-      <table class="table">
-        <thead>
-          <tr>
-            <th scope="col">Event Name</th>
-            <th scope="col">Date</th>
-            <th scope="col">Location</th>
-            <th scope="col">Teacher</th>
-            <th scope="col">Other Information</th>
-            <th scope="col">Participants</th>
-            <th scope="col">Prefects</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in events %}
+<a href="/ical">ICalendar Link (copy link to your calendar provider)</a>
 
-            {% if row.n_prefects > row.n_participants %}
-            {% assign max = row.n_prefects %}
-            {% else %}
-            {% assign max = row.n_participants %}
-            {% endif %}
-            <tr>
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">Event Name</th>
+      <th scope="col">Date</th>
+      <th scope="col">Location</th>
+      <th scope="col">Teacher</th>
+      <th scope="col">Other Information</th>
+      <th scope="col">Participants</th>
+      <th scope="col">Prefects</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in events %}
+      {% if row.n_prefects > row.n_participants %}
+      {% assign max = row.n_prefects %}
+      {% else %}
+      {% assign max = row.n_participants %}
+      {% endif %}
+      <tr>
+        <th scope="row" rowspan="{{ max }}">
+          {{ row.event.event_name }}
+        </td>
+        <td scope="row" rowspan="{{ max }}">
+          {{ row.event.date }}
+        </td>
+        <td scope="row" rowspan="{{ max }}">
+          {{ row.event.location }}
+        </td>
+        <td scope="row" rowspan="{{ max }}">
+          {{ row.event.teacher }}
+        </td>
+        <td scope="row" rowspan="{{ max }}">
+          {{ row.event.other_info }}
+        </td>
+      {% assign mmo = max | minus: 1 %}
+      {% for i in (0..mmo) %}
+          {% if i < row.n_participants %}
+          <td scope="row">{{ row.participants[i].person_name }}</td>
+          {%else%}
+          <td></td>
+          {%endif%}
+          {% if i < row.n_prefects %}
+          <td scope="row">{{ row.prefects[i].person_name }}</td>
+          {%else%}
+          <td></td>
+          {%endif%}
+        
+        </tr>
+        {% unless forloop.last %} <tr> {% endunless %}
+      {% endfor %}
+      <br>
+    {% endfor %}
+  </tbody>
+</table>
 
-              <th scope="row" rowspan="{{ max }}">
-                {{ row.event.event_name }}
-              </td>
-              <td scope="row" rowspan="{{ max }}">
-                {{ row.event.date }}
-              </td>
-              <td scope="row" rowspan="{{ max }}">
-                {{ row.event.location }}
-              </td>
-              <td scope="row" rowspan="{{ max }}">
-                {{ row.event.teacher }}
-              </td>
-              <td scope="row" rowspan="{{ max }}">
-                {{ row.event.other_info }}
-              </td>
-
-            {% assign mmo = max | minus: 1 %}
-            {% for i in (0..mmo) %}
-                {% if i < row.n_participants %}
-                <td scope="row">{{ row.participants[i].person_name }}</td>
-                {%else%}
-                <td></td>
-                {%endif%}
-
-                {% if i < row.n_prefects %}
-                <td scope="row">{{ row.prefects[i].person_name }}</td>
-                {%else%}
-                <td></td>
-                {%endif%}
-              
-              </tr>
-              {% unless forloop.last %} <tr> {% endunless %}
-            {% endfor %}
-            <br>
-          {% endfor %}
-        </tbody>
-      </table>
-
-     {% include "partials/footer.liquid" %}
+{% include "partials/footer.liquid" %}

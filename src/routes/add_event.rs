@@ -9,7 +9,7 @@ use serde::Deserialize;
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
-use super::{DbEvent};
+use super::DbEvent;
 
 pub const LOCATION: &str = "/add_event";
 
