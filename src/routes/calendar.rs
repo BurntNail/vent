@@ -32,6 +32,7 @@ Other Information: {other_info}"#))
                 .done()
         );
     }
+    calendar.name("Kingsley House Events");
 
     {
         let mut local_file = File::create("calendar.ics").await?;
