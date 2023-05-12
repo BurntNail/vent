@@ -93,6 +93,17 @@ VALUES($2, $1);
         .await?;
     }
 
+    sqlx::query!(
+        r#"
+DELETE 
+FROM prefect_events dupes
+USING prefect_events fullTable
+WHERE dupes.prefect_id = fulltable.prefect_id
+AND dupes.event_id = fulltable.event_id 
+AND dupes.relation_id > fullTable.relation_id"#
+    ).fetch_one(&mut conn).await?;
+
+
     Ok(Redirect::to(LOCATION))
 }
 
@@ -127,6 +138,16 @@ VALUES($2, $1);
         .execute(&mut conn)
         .await?;
     }
+
+    sqlx::query!(
+        r#"
+DELETE 
+FROM participant_events dupes
+USING participant_events fullTable
+WHERE dupes.participant_id = fulltable.participant_id
+AND dupes.event_id = fulltable.event_id 
+AND dupes.relation_id > fullTable.relation_id"#
+    ).fetch_one(&mut conn).await?;
 
     Ok(Redirect::to(LOCATION))
 }
