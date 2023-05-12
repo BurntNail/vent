@@ -102,7 +102,7 @@ WHERE dupes.prefect_id = fulltable.prefect_id
 AND dupes.event_id = fulltable.event_id 
 AND dupes.relation_id > fullTable.relation_id"#
     )
-    .fetch_one(&mut conn)
+    .execute(&mut conn)
     .await?;
 
     Ok(Redirect::to(LOCATION))
@@ -149,7 +149,7 @@ WHERE dupes.participant_id = fulltable.participant_id
 AND dupes.event_id = fulltable.event_id 
 AND dupes.relation_id > fullTable.relation_id"#
     )
-    .fetch_one(&mut conn)
+    .execute(&mut conn)
     .await?;
 
     Ok(Redirect::to(LOCATION))
