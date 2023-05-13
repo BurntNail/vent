@@ -1,156 +1,87 @@
 use std::sync::Arc;
 
-use crate::{error::KnotError, liquid_utils::compile, routes::Person};
+use crate::{error::KnotError};
 use axum::{
-    extract::State,
+    extract::{Path, State},
     response::{IntoResponse, Redirect},
 };
-use axum_extra::extract::Form;
-use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
 
-pub const LOCATION: &str = "/add_people_to_event";
-
-pub async fn get_add_people_to_event(
+pub async fn get_add_prefect_to_event(
     State(pool): State<Arc<Pool<Postgres>>>,
+    Path((event_id, prefect_id)): Path<(i32, i32)>,
 ) -> Result<impl IntoResponse, KnotError> {
+    info!("HERE");
     let mut conn = pool.acquire().await?;
 
-    let prefects: Vec<Person> = sqlx::query_as!(
-        Person,
+    info!("Adding prefect");
+
+    if sqlx::query!(
         r#"
-SELECT person_name, id, is_prefect
-FROM people
-WHERE people.is_prefect = TRUE
-        "#
+SELECT * FROM public.prefect_events
+WHERE prefect_id = $1
+AND event_id = $2"#,
+        prefect_id,
+        event_id
     )
-    .fetch_all(&mut conn)
-    .await?;
-    let participants: Vec<Person> = sqlx::query_as!(
-        Person,
-        r#"
-SELECT person_name, id, is_prefect
-FROM people
-    "#
-    )
-    .fetch_all(&mut conn)
-    .await?;
+    .fetch_optional(&mut conn)
+    .await?
+    .is_none()
+    {
+        info!("No dupes");
 
-    #[derive(Serialize, Deserialize)]
-    struct NeededDBEvent {
-        pub event_name: String,
-        pub id: i32,
-    }
-
-    let events: Vec<NeededDBEvent> = sqlx::query_as!(
-        NeededDBEvent,
-        r#"
-SELECT id, event_name
-FROM events
-"#
-    )
-    .fetch_all(&mut conn)
-    .await?;
-
-    let globals = liquid::object!({
-        "events": events,
-        "prefects": prefects,
-        "participants": participants
-    });
-
-    compile("www/add_people_to_event.liquid", globals).await
-}
-
-#[derive(Deserialize)]
-pub struct AddPrefects {
-    pub event_id: i32,
-    pub prefects: Vec<String>,
-}
-
-pub async fn post_add_prefects_to_event(
-    State(pool): State<Arc<Pool<Postgres>>>,
-    Form(AddPrefects { event_id, prefects }): Form<AddPrefects>,
-) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
-    info!(?event_id, ?prefects);
-
-    let prefects: Vec<i32> = prefects
-        .into_iter()
-        .map(|x| x.parse())
-        .collect::<Result<_, _>>()?;
-
-    for prefect_id in prefects {
         sqlx::query!(
             r#"
 INSERT INTO public.prefect_events
 (prefect_id, event_id)
-VALUES($2, $1);            
+VALUES($1, $2);            
             "#,
-            event_id,
-            prefect_id
+            prefect_id,
+            event_id
         )
         .execute(&mut conn)
         .await?;
+    } else {
+        info!("Dupe found");
     }
 
-    sqlx::query!(
-        r#"
-DELETE 
-FROM prefect_events dupes
-USING prefect_events fullTable
-WHERE dupes.prefect_id = fulltable.prefect_id
-AND dupes.event_id = fulltable.event_id 
-AND dupes.relation_id > fullTable.relation_id"#
-    )
-    .execute(&mut conn)
-    .await?;
-
-    Ok(Redirect::to(LOCATION))
+    info!("Prefect update finished");
+    
+    Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
 
-#[derive(Deserialize)]
-pub struct AddParticipants {
-    pub event_id: i32,
-    pub people: Vec<String>,
-}
-
-pub async fn post_add_participants_to_event(
+pub async fn get_add_participant_to_event(
     State(pool): State<Arc<Pool<Postgres>>>,
-    Form(AddParticipants { event_id, people }): Form<AddParticipants>,
+    Path((event_id, participant_id)): Path<(i32, i32)>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
-    info!(?event_id, ?people);
 
-    let people: Vec<i32> = people
-        .into_iter()
-        .map(|x| x.parse())
-        .collect::<Result<_, _>>()?;
-
-    for id in people {
+    if sqlx::query!(
+        r#"
+SELECT * FROM public.participant_events
+WHERE participant_id = $1
+AND event_id = $2"#,
+    participant_id,
+        event_id
+    )
+    .fetch_optional(&mut conn)
+    .await?
+    .is_none()
+    {
         sqlx::query!(
             r#"
 INSERT INTO public.participant_events
 (participant_id, event_id)
-VALUES($2, $1);        
+VALUES($1, $2);            
             "#,
-            event_id,
-            id
+            participant_id,
+            event_id
         )
         .execute(&mut conn)
         .await?;
     }
 
-    sqlx::query!(
-        r#"
-DELETE 
-FROM participant_events dupes
-USING participant_events fullTable
-WHERE dupes.participant_id = fulltable.participant_id
-AND dupes.event_id = fulltable.event_id 
-AND dupes.relation_id > fullTable.relation_id"#
-    )
-    .execute(&mut conn)
-    .await?;
+    info!("Participant update finished");
 
-    Ok(Redirect::to(LOCATION))
+    Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
