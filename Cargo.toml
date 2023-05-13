@@ -23,5 +23,3 @@ tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
 tracing-tree = "0.2.3"
 walkdir = "2.3.3"
-axum-login = { version = "0.5.0", features = ["postgres", "sqlx"] }
-rand = "0.8.5"
