@@ -5,3 +5,4 @@
 devenv.local.nix
 
 .env
+*.ics
