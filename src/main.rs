@@ -4,6 +4,7 @@
 mod error;
 mod liquid_utils;
 mod routes;
+mod auth;
 
 use axum::{
     routing::{get, post},
