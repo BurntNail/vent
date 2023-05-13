@@ -1,6 +1,19 @@
 {% include "partials/header.liquid" %}
 
-<a href="/ical">ICalendar Link (copy link to your calendar provider)</a>
+<div class="card">
+  <div class="card-body">
+    <h5 class="card-title">ICalendar Link:</h5>
+    <div class="card">
+      <div class="card-body">
+        <a href="https://knot.maguire.tech/ical" target="_blank">https://knot.maguire.tech/ical</a>
+      </div>
+    </div>
+    <a href="https://support.google.com/calendar/answer/37100?hl=en" class="card-link">Setup for Google Calendar</a>
+    <a href="https://support.apple.com/en-gb/HT202361" class="card-link">Setup for Apple Calendar</a>
+  </div>
+</div>
+
+<br>
 
 <table class="table">
   <thead>
@@ -10,7 +23,7 @@
       <th scope="col">Location</th>
       <th scope="col">Teacher</th>
       <th scope="col">Other Information</th>
-      <th scope="col">Update Event</th>
+      <th scope="col">Modify/Add</th>
       <th scope="col">Participants</th>
       <th scope="col">Prefects</th>
     </tr>
@@ -45,7 +58,7 @@
           {{ row.event.other_info }}
         </td>
         <td scope="row" rowspan="{{ rowspan }}">
-          <a href="/update_event/{{row.event.id}}">Update</a>
+          <a href="/update_event/{{row.event.id}}">Modify/Add</a>
         </td>
         {% if max > 0 %}
         {% assign mmo = max | minus: 1 %}
