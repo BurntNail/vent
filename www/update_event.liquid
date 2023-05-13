@@ -1,56 +1,68 @@
 {% include "partials/header.liquid" %}
 
-<form method="POST">
-  <h2>Update Event</h2>
+<h2>Update Event</h2>
+<div class="card">
+  <div class="card-body">
+    <form method="POST">
 
-  <div class="mb-3">
-    <label for="name" class="form-label">Event Name:</label>
-    <input
-      type="text"
-      name="name"
-      id="name"
-      class="form-control"
-      value="{{event.event_name}}">
-  </div>
-  <div class="mb-3">
-    <label for="date" class="form-label">Date/Time:</label>
-    <input
-      type="datetime-local"
-      id="date"
-      name="date"
-      class="form-control"
-      value="{{event.date}}">
-  </div>
-  <div class="mb-3">
-    <label for="location" class="form-label">Location:</label>
-    <input
-      type="text"
-      id="location"
-      name="location"
-      class="form-control"
-      value="{{event.location}}">
-  </div>
-  <div class="mb-3">
-    <label for="teacher" class="form-label">Teacher:</label>
-    <input
-      type="text"
-      id="teacher"
-      name="teacher"
-      class="form-control"
-      value="{{event.teacher}}">
-  </div>
-  <div class="mb-3">
-    <label for="info" class="form-label">Other Information:</label>
-    <input
-      type="textarea"
-      id="info"
-      name="info"
-      class="form-control"
-      value="{{event.other_info}}">
-  </div>
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="name">Event Name:
+        </span>
+        <input
+          type="text"
+          name="name"
+          id="name"
+          class="form-control"
+          value="{{event.event_name}}">
+      </div>
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="date">Start Time:
+        </span>
+        <input
+          type="datetime-local"
+          id="date"
+          name="date"
+          class="form-control"
+          value="{{event.date}}">
+      </div>
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="location">Location:
+        </span>
+        <input
+          type="text"
+          id="location"
+          name="location"
+          class="form-control"
+          value="{{event.location}}">
+      </div>
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="teacher">Teacher:
+        </span>
+        <input
+          type="text"
+          id="teacher"
+          name="teacher"
+          class="form-control"
+          value="{{event.teacher}}">
+      </div>
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="info">Other Information:
+        </span>
+        <input
+          type="textarea"
+          id="info"
+          name="info"
+          class="form-control"
+          value="{{event.other_info}}">
+      </div>
 
-  <button type="submit" class="btn btn-primary">Update Event.</button>
-</form>
+      <button type="submit" class="btn btn-primary">Update Event.</button>
+    </form>
+
+  </div>
+</div>
+
+
 
 <br><br>
 
