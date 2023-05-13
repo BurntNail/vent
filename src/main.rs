@@ -13,7 +13,7 @@ use liquid_utils::partials::{init_partials, PARTIALS};
 use routes::{
     add_event::{self, get_add_event_form, post_add_event_form},
     add_people_to_event::{
-        self, get_add_people_to_event, post_add_participants_to_event, post_add_prefects_to_event,
+        get_add_participant_to_event, get_add_prefect_to_event,
     },
     add_person::{self, get_add_person, post_add_person},
     index::{self, get_index},
@@ -55,9 +55,8 @@ async fn main() {
             add_event::LOCATION,
             get(get_add_event_form).post(post_add_event_form),
         )
-        .route(add_people_to_event::LOCATION, get(get_add_people_to_event))
-        .route("/add_participant", post(post_add_participants_to_event))
-        .route("/add_prefect", post(post_add_prefects_to_event))
+        .route("/add_participant/:event_id/:participant_id", get(get_add_participant_to_event))
+        .route("/add_prefect/:event_id/:prefect_id", get(get_add_prefect_to_event))
         .route(
             add_person::LOCATION,
             get(get_add_person).post(post_add_person),
