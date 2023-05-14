@@ -17,7 +17,7 @@ You need to have a `.env` file with the following variables set:
  - You can also optionally have a `RUST_LOG` variable set to `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE` each of which shows all of the messages from the levels above (eg. `INFO` shows `ERROR` messages)
 
 ### Setup
-I would highly reccomend a `tmux` based setup to run this without needing an active session.
+I would highly reccomend a `tmux` based setup to run this without needing an active ssh session to run whilst away.
 1) Setup the postgres server - `devenv up`
 2) Run the postgres migrations - `sqlx migrate run`
 3) Run the binary - `cargo r --release` for production, or `cargo r` for development. In production to minimise downtime, I use `cargo b` rather than `cargo r` to quickly stop the old binary and launch into the new one without recompiling
