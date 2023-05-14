@@ -15,11 +15,27 @@ use super::Person;
 
 pub const LOCATION: &str = "/remove_stuff";
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct SmolDbEvent {
     pub id: i32,
     pub event_name: String,
     pub date: NaiveDateTime,
+}
+#[derive(Serialize)]
+pub struct SmolFormattedDbEvent {
+    pub id: i32,
+    pub event_name: String,
+    pub date: String,
+}
+
+impl From<SmolDbEvent> for SmolFormattedDbEvent {
+    fn from(SmolDbEvent { id, event_name, date }: SmolDbEvent) -> Self {
+        Self {
+            id,
+            event_name,
+            date: date.format("%d/%m/%Y @ %H:%M").to_string()
+        }
+    }
 }
 
 pub async fn get_remove_stuff(
@@ -37,7 +53,7 @@ FROM people
     .fetch_all(&mut conn)
     .await?;
 
-    let events: Vec<SmolDbEvent> = sqlx::query_as!(
+    let events: Vec<SmolFormattedDbEvent> = sqlx::query_as!(
         SmolDbEvent,
         r#"
 SELECT id, event_name, date
@@ -45,7 +61,7 @@ FROM events
         "#
     )
     .fetch_all(&mut conn)
-    .await?;
+    .await?.into_iter().map(SmolFormattedDbEvent::from).collect();
 
     let globals = liquid::object!({
         "people": people,

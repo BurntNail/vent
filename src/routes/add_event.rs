@@ -19,7 +19,7 @@ pub async fn get_add_event_form(
     compile("www/add_event.liquid", liquid::object!({})).await
 }
 
-///Struct to hold the event that comes back from the `add_event` form
+///Struct to hold the event that comes back from the [`add_event`] form
 #[derive(Debug, Deserialize)]
 pub struct FormEvent {
     pub name: String,
