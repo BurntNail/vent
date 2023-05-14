@@ -48,6 +48,7 @@ pub async fn get_index(
         r#"
 SELECT *
 FROM events
+ORDER BY events.date
         "#
     )
     .fetch_all(&mut conn)
