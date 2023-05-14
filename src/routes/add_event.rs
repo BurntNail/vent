@@ -1,4 +1,4 @@
-use crate::{error::KnotError, liquid_utils::compile, routes::Person};
+use crate::{error::KnotError, liquid_utils::compile};
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
@@ -13,29 +13,13 @@ use super::DbEvent;
 
 pub const LOCATION: &str = "/add_event";
 
+///`GET` method for the `add_event` form - just compiles and returns the liquid `www/add_event.liquid`
 pub async fn get_add_event_form(
-    State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
-
-    let prefects: Vec<Person> = sqlx::query_as!(
-        Person,
-        r#"
-SELECT person_name, id, is_prefect
-FROM people
-WHERE people.is_prefect = TRUE
-        "#
-    )
-    .fetch_all(&mut conn)
-    .await?;
-
-    let globals = liquid::object!({ "prefects": prefects });
-
-    info!("here");
-
-    compile("www/add_event.liquid", globals).await
+    compile("www/add_event.liquid", liquid::object!({})).await
 }
 
+///Struct to hold the event that comes back from the `add_event` form
 #[derive(Debug, Deserialize)]
 pub struct FormEvent {
     pub name: String,
@@ -48,6 +32,7 @@ pub struct FormEvent {
 impl TryFrom<FormEvent> for DbEvent {
     type Error = KnotError;
 
+///Get a [`DbEvent`] from a [`FormEvent`], can fail if we can't parse the date.
     fn try_from(
         FormEvent {
             name,
@@ -60,7 +45,7 @@ impl TryFrom<FormEvent> for DbEvent {
         let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M")?;
 
         Ok(Self {
-            id: -1,
+            id: -1, //no ID for events to be added
             event_name: name,
             date,
             location,
@@ -70,11 +55,11 @@ impl TryFrom<FormEvent> for DbEvent {
     }
 }
 
+///`POST` method to add an event from a form to the database. Redirects back to the [`get_add_event_form`]
 pub async fn post_add_event_form(
     State(pool): State<Arc<Pool<Postgres>>>,
     Form(event): Form<FormEvent>,
 ) -> Result<impl IntoResponse, KnotError> {
-    info!(?event);
     let mut conn = pool.acquire().await?;
 
     let DbEvent {

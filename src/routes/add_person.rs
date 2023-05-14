@@ -10,6 +10,7 @@ use std::sync::Arc;
 
 pub const LOCATION: &str = "/add_person";
 
+///`GET` function to display the add person form
 pub async fn get_add_person() -> Result<impl IntoResponse, KnotError> {
     compile("www/add_person.liquid", liquid::object!({})).await
 }

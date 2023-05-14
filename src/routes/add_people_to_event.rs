@@ -7,14 +7,12 @@ use axum::{
 };
 use sqlx::{Pool, Postgres};
 
+///`GET` method that acts like a `POST` method that adds a prefect associated with the given `prefect_id` (seconnd argument) to a given `event_id` (first argument). Ensures to avoid duplicates.
 pub async fn get_add_prefect_to_event(
     State(pool): State<Arc<Pool<Postgres>>>,
     Path((event_id, prefect_id)): Path<(i32, i32)>,
 ) -> Result<impl IntoResponse, KnotError> {
-    info!("HERE");
-    let mut conn = pool.acquire().await?;
-
-    info!("Adding prefect");
+    let mut conn = pool.acquire().await?; //get a connection
 
     if sqlx::query!(
         r#"
@@ -26,11 +24,9 @@ AND event_id = $2"#,
     )
     .fetch_optional(&mut conn)
     .await?
-    .is_none()
+    .is_none() //if we can't find anything
     {
-        info!("No dupes");
-
-        sqlx::query!(
+        sqlx::query!( //add away
             r#"
 INSERT INTO public.prefect_events
 (prefect_id, event_id)
@@ -41,20 +37,17 @@ VALUES($1, $2);
         )
         .execute(&mut conn)
         .await?;
-    } else {
-        info!("Dupe found");
     }
-
-    info!("Prefect update finished");
     
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
 
+///`GET` method that acts like a `POST` method that adds a prefect associated with the given `participant_id` (seconnd argument) to a given `event_id` (first argument). Ensures to avoid duplicates.
 pub async fn get_add_participant_to_event(
     State(pool): State<Arc<Pool<Postgres>>>,
     Path((event_id, participant_id)): Path<(i32, i32)>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
+    let mut conn = pool.acquire().await?; //get db connection
 
     if sqlx::query!(
         r#"
@@ -66,9 +59,9 @@ AND event_id = $2"#,
     )
     .fetch_optional(&mut conn)
     .await?
-    .is_none()
+    .is_none() //if we can't find anything
     {
-        sqlx::query!(
+        sqlx::query!( //add away
             r#"
 INSERT INTO public.participant_events
 (participant_id, event_id)
@@ -80,8 +73,6 @@ VALUES($1, $2);
         .execute(&mut conn)
         .await?;
     }
-
-    info!("Participant update finished");
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
