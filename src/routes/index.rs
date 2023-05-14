@@ -1,4 +1,5 @@
 use axum::{extract::State, response::IntoResponse};
+use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
@@ -42,7 +43,11 @@ pub async fn get_index(
         n_prefects: usize,
     }
 
-    let mut events = vec![];
+    let mut happened_events = vec![];
+    let mut events_to_happen = vec![];
+
+    let now = Utc::now().naive_local();
+
     for event in sqlx::query_as!(
         DbEvent,
         r#"
@@ -54,6 +59,7 @@ ORDER BY events.date
     .fetch_all(&mut conn)
     .await?
     {
+        let date = event.date;
         let event = HTMLEvent::from(event);
 
         let event_id = event.id;
@@ -83,16 +89,26 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
         .fetch_all(&mut conn)
         .await?;
 
-        events.push(WholeEvent {
-            event,
-            n_participants: participants.len(),
-            n_prefects: prefects.len(),
-            participants,
-            prefects,
-        });
+        if date < now {
+            happened_events.push(WholeEvent {
+                event,
+                n_participants: participants.len(),
+                n_prefects: prefects.len(),
+                participants,
+                prefects,
+            });
+        } else {
+            events_to_happen.push(WholeEvent {
+                event,
+                n_participants: participants.len(),
+                n_prefects: prefects.len(),
+                participants,
+                prefects,
+            });
+        }
     }
 
-    let globals = liquid::object!({ "events": events });
+    let globals = liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events });
 
     compile("www/index.liquid", globals).await
 }

@@ -15,6 +15,8 @@
 
 <br>
 
+<h2>Future Events</h2>
+
 <table class="table">
   <thead>
     <tr>
@@ -29,7 +31,7 @@
     </tr>
   </thead>
   <tbody>
-    {% for row in events %}
+    {% for row in events_to_happen %}
       {% if row.n_prefects > row.n_participants %}
       {% assign max = row.n_prefects %}
       {% else %}
@@ -84,5 +86,80 @@
     {% endfor %}
   </tbody>
 </table>
+
+<br><br>
+
+<h2>Past Events</h2>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">Event Name</th>
+      <th scope="col">Date</th>
+      <th scope="col">Location</th>
+      <th scope="col">Teacher</th>
+      <th scope="col">Other Information</th>
+      <th scope="col">Modify/Add</th>
+      <th scope="col">Participants</th>
+      <th scope="col">Prefects</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in happened_events %}
+      {% if row.n_prefects > row.n_participants %}
+      {% assign max = row.n_prefects %}
+      {% else %}
+      {% assign max = row.n_participants %}
+      {% endif %}
+
+      {% if max == 0 %}
+      {% assign rowspan = 1 %}
+      {% else %}
+      {% assign rowspan = max %}
+      {% endif %}
+      <tr>
+        <th scope="row" rowspan="{{ rowspan }}">
+          {{ row.event.event_name }}
+        </td>
+        <td scope="row" rowspan="{{ rowspan }}">
+          {{ row.event.date }}
+        </td>
+        <td scope="row" rowspan="{{ rowspan }}">
+          {{ row.event.location }}
+        </td>
+        <td scope="row" rowspan="{{ rowspan }}">
+          {{ row.event.teacher }}
+        </td>
+        <td scope="row" rowspan="{{ rowspan }}">
+          {{ row.event.other_info }}
+        </td>
+        <td scope="row" rowspan="{{ rowspan }}">
+          <a href="/update_event/{{row.event.id}}">Modify/Add</a>
+        </td>
+        {% if max > 0 %}
+        {% assign mmo = max | minus: 1 %}
+        {% for i in (0..mmo) %}
+            {% if i < row.n_participants %}
+            <td scope="row">{{ row.participants[i].person_name }}</td>
+            {%else%}
+            <td></td>
+            {%endif%}
+
+            {% if i < row.n_prefects %}
+            <td scope="row">{{ row.prefects[i].person_name }}</td>
+            {%else%}
+            <td></td>
+            {%endif%}
+          </tr>
+          {% unless forloop.last %} <tr> {% endunless %}
+        {% endfor %}
+        {% else %}
+        <td> </td><td> </td>
+        </tr>
+        {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+
 
 {% include "partials/footer.liquid" %}
