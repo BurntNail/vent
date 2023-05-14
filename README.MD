@@ -6,9 +6,9 @@ This is a project designed for managing events with 2 classes of people - those 
 ### Requirements
 This project requires:
  - `cargo` and the other rust build tools like a valid `C++` compiler
- - `cargo-sqlx` installed via `cargo`
- - `devenv` - this is used for the server
- - `libssl-dev` - this is used for the server
+ - `cargo-sqlx` installed via `cargo` - this is used for postgres migrations
+ - `devenv` - this is used for the postgres server
+ - `libssl-dev` - this is used for the axum server
 
 ### Environment
 You need to have a `.env` file with the following variables set:
