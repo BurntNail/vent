@@ -29,11 +29,17 @@ pub struct SmolFormattedDbEvent {
 }
 
 impl From<SmolDbEvent> for SmolFormattedDbEvent {
-    fn from(SmolDbEvent { id, event_name, date }: SmolDbEvent) -> Self {
+    fn from(
+        SmolDbEvent {
+            id,
+            event_name,
+            date,
+        }: SmolDbEvent,
+    ) -> Self {
         Self {
             id,
             event_name,
-            date: date.format("%d/%m/%Y @ %H:%M").to_string()
+            date: date.format("%d/%m/%Y @ %H:%M").to_string(),
         }
     }
 }
@@ -61,7 +67,10 @@ FROM events
         "#
     )
     .fetch_all(&mut conn)
-    .await?.into_iter().map(SmolFormattedDbEvent::from).collect();
+    .await?
+    .into_iter()
+    .map(SmolFormattedDbEvent::from)
+    .collect();
 
     let globals = liquid::object!({
         "people": people,

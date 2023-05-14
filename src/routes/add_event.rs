@@ -14,8 +14,7 @@ use super::DbEvent;
 pub const LOCATION: &str = "/add_event";
 
 ///`GET` method for the `add_event` form - just compiles and returns the liquid `www/add_event.liquid`
-pub async fn get_add_event_form(
-) -> Result<impl IntoResponse, KnotError> {
+pub async fn get_add_event_form() -> Result<impl IntoResponse, KnotError> {
     compile("www/add_event.liquid", liquid::object!({})).await
 }
 
@@ -32,7 +31,7 @@ pub struct FormEvent {
 impl TryFrom<FormEvent> for DbEvent {
     type Error = KnotError;
 
-///Get a [`DbEvent`] from a [`FormEvent`], can fail if we can't parse the date.
+    ///Get a [`DbEvent`] from a [`FormEvent`], can fail if we can't parse the date.
     fn try_from(
         FormEvent {
             name,

@@ -12,21 +12,18 @@ use axum::{
 use liquid_utils::partials::{init_partials, PARTIALS};
 use routes::{
     add_event::{self, get_add_event_form, post_add_event_form},
-    add_people_to_event::{
-        get_add_participant_to_event, get_add_prefect_to_event,
-    },
+    add_people_to_event::{get_add_participant_to_event, get_add_prefect_to_event},
     add_person::{self, get_add_person, post_add_person},
+    calendar::{self, get_calendar_feed},
     index::{self, get_index},
     remove_stuff::{self, get_remove_stuff, post_remove_event, post_remove_person},
-    calendar::{self, get_calendar_feed},
 };
 use sqlx::postgres::PgPoolOptions;
-use std::{
-    net::SocketAddr,
-    sync::Arc, env::var,
-};
+use std::{env::var, net::SocketAddr, sync::Arc};
 
-use crate::routes::update_event_and_person::{get_update_event, get_remove_prefect_from_event, get_remove_participant_from_event};
+use crate::routes::update_event_and_person::{
+    get_remove_participant_from_event, get_remove_prefect_from_event, get_update_event,
+};
 
 #[macro_use]
 extern crate tracing;
@@ -55,8 +52,14 @@ async fn main() {
             add_event::LOCATION,
             get(get_add_event_form).post(post_add_event_form),
         )
-        .route("/add_participant/:event_id/:participant_id", get(get_add_participant_to_event))
-        .route("/add_prefect/:event_id/:prefect_id", get(get_add_prefect_to_event))
+        .route(
+            "/add_participant/:event_id/:participant_id",
+            get(get_add_participant_to_event),
+        )
+        .route(
+            "/add_prefect/:event_id/:prefect_id",
+            get(get_add_prefect_to_event),
+        )
         .route(
             add_person::LOCATION,
             get(get_add_person).post(post_add_person),
@@ -66,8 +69,14 @@ async fn main() {
         .route("/remove_event", post(post_remove_event))
         .route(calendar::LOCATION, get(get_calendar_feed))
         .route("/update_event/:id", get(get_update_event))
-        .route("/remove_prefect_from_event/:relation_id", get(get_remove_prefect_from_event))
-        .route("/remove_participant_from_event/:relation_id", get(get_remove_participant_from_event))
+        .route(
+            "/remove_prefect_from_event/:relation_id",
+            get(get_remove_prefect_from_event),
+        )
+        .route(
+            "/remove_participant_from_event/:relation_id",
+            get(get_remove_participant_from_event),
+        )
         .with_state(pool);
 
     let port: SocketAddr = var("KNOT_SERVER_IP")

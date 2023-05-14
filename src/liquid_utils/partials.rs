@@ -10,7 +10,7 @@ pub struct Partials(InMemorySource);
 
 impl Partials {
     ///Get an [`EagerCompiler`] from the `self`
-    /// 
+    ///
     ///NB: This will not reflect any file changes, the server needs to be restarted for that.
     pub fn to_compiler(&self) -> EagerCompiler<InMemorySource> {
         EagerCompiler::new(self.0.clone())
@@ -21,10 +21,10 @@ impl Partials {
 pub static PARTIALS: OnceCell<Partials> = OnceCell::const_new();
 
 ///Async function to get `Partials` - used to set [`PARTIALS`]
-/// 
+///
 /// Looks for the Partials in `www/partials/`, and sets their `liquid` names to be in the `partials/` directory, and accepts `html`, and `liquid` extensions
 pub async fn init_partials() -> Partials {
-    ///The 
+    ///The
     const PARTIALS_DIR: &str = "www/partials/";
     const LIQUID_PARTIALS_NAME: &str = "partials/";
     const PARTIALS_EXTENSIONS: &[&str] = &["html", "liquid"];
@@ -37,11 +37,13 @@ pub async fn init_partials() -> Partials {
     let mut in_memory_source = InMemorySource::new(); //make a new source
 
     for partial in WalkDir::new(PARTIALS_DIR)
-        .into_iter()  //for every file in PARTIALS_DIR
+        .into_iter() //for every file in PARTIALS_DIR
         .filter_map(Result::ok) //that we can access
         .map(DirEntry::into_path) //get it as a path
-        .filter(|x| { //and check it has one of the extensions
-            x.extension().map_or(false, |x| { //if it doesn't have an extension, ignore
+        .filter(|x| {
+            //and check it has one of the extensions
+            x.extension().map_or(false, |x| {
+                //if it doesn't have an extension, ignore
                 partial_extensions.iter().any(|allowed| x == allowed)
             })
         })
@@ -50,7 +52,8 @@ pub async fn init_partials() -> Partials {
             Ok(source) => {
                 info!(?partial, "Got partial");
                 if let Some(name) = partial.file_name().and_then(OsStr::to_str) {
-                    in_memory_source.add(LIQUID_PARTIALS_NAME.to_string() + name, source); //add partial
+                    in_memory_source.add(LIQUID_PARTIALS_NAME.to_string() + name, source);
+                //add partial
                 } else {
                     error!("Got partial, could not transform name to UTF-8");
                 }

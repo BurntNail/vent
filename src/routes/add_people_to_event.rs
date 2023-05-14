@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{error::KnotError};
+use crate::error::KnotError;
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Redirect},
@@ -24,9 +24,11 @@ AND event_id = $2"#,
     )
     .fetch_optional(&mut conn)
     .await?
-    .is_none() //if we can't find anything
+    .is_none()
+    //if we can't find anything
     {
-        sqlx::query!( //add away
+        sqlx::query!(
+            //add away
             r#"
 INSERT INTO public.prefect_events
 (prefect_id, event_id)
@@ -38,7 +40,7 @@ VALUES($1, $2);
         .execute(&mut conn)
         .await?;
     }
-    
+
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
 
@@ -54,14 +56,16 @@ pub async fn get_add_participant_to_event(
 SELECT * FROM public.participant_events
 WHERE participant_id = $1
 AND event_id = $2"#,
-    participant_id,
+        participant_id,
         event_id
     )
     .fetch_optional(&mut conn)
     .await?
-    .is_none() //if we can't find anything
+    .is_none()
+    //if we can't find anything
     {
-        sqlx::query!( //add away
+        sqlx::query!(
+            //add away
             r#"
 INSERT INTO public.participant_events
 (participant_id, event_id)

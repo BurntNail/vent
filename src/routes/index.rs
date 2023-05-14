@@ -1,5 +1,5 @@
 use axum::{extract::State, response::IntoResponse};
-use chrono::{NaiveDateTime, Utc};
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
@@ -29,8 +29,24 @@ pub async fn get_index(
     }
 
     impl From<DbEvent> for HTMLEvent {
-        fn from(DbEvent { id, event_name, date, location, teacher, other_info }: DbEvent) -> Self {
-            Self { id, event_name, date: date.format("%A %d %B %Y at %H:%M").to_string(), location, teacher, other_info: other_info.unwrap()}
+        fn from(
+            DbEvent {
+                id,
+                event_name,
+                date,
+                location,
+                teacher,
+                other_info,
+            }: DbEvent,
+        ) -> Self {
+            Self {
+                id,
+                event_name,
+                date: date.format("%A %d %B %Y at %H:%M").to_string(),
+                location,
+                teacher,
+                other_info: other_info.unwrap(),
+            }
         }
     }
 
