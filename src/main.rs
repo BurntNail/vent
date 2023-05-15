@@ -48,8 +48,8 @@ async fn main() {
     );
 
     let app = Router::new()
-        .route("/", get(public_index))
-        .route(index::LOCATION, get(get_index))
+        .route("/", get(get_index::<true>))
+        .route(index::LOCATION, get(get_index::<false>))
         .route(
             add_event::LOCATION,
             get(get_add_event_form).post(post_add_event_form),
@@ -92,8 +92,4 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
-}
-
-pub async fn public_index () -> Result<impl IntoResponse, KnotError> {
-    compile("www/public_index.liquid", liquid::object!({})).await
 }
