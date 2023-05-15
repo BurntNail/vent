@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use crate::{error::KnotError, liquid_utils::compile, routes::DbEvent};
 
-pub const LOCATION: &str = "/";
+pub const LOCATION: &str = "/kingsleyisbest123";
 
 #[derive(Serialize, Deserialize)]
 struct SmolPerson {

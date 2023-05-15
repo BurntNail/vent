@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use super::DbEvent;
 
-pub const LOCATION: &str = "/add_event";
+pub const LOCATION: &str = "/kingsleyisbest123/add_event";
 
 ///`GET` method for the `add_event` form - just compiles and returns the liquid `www/add_event.liquid`
 pub async fn get_add_event_form() -> Result<impl IntoResponse, KnotError> {
