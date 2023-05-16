@@ -9,8 +9,11 @@ use axum::{
     extract::{Path, State},
     response::{IntoResponse, Redirect},
 };
+use axum_extra::extract::Form;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
+
+use super::FormEvent;
 
 pub async fn get_update_event(
     Path(event_id): Path<i32>,
@@ -105,6 +108,41 @@ FROM people p
         "participants": possible_participants
     });
     compile("www/update_event.liquid", globals).await
+}
+pub async fn post_update_event(
+    Path(event_id): Path<i32>,
+    State(pool): State<Arc<Pool<Postgres>>>,
+    Form(event): Form<FormEvent>,
+) -> Result<impl IntoResponse, KnotError> {
+    let mut conn = pool.acquire().await?;
+
+    let DbEvent {
+        id: _id,
+        event_name,
+        date,
+        location,
+        teacher,
+        other_info,
+    } = DbEvent::try_from(event)?;
+    let other_info = other_info.unwrap_or_default();
+
+    sqlx::query!(
+        r#"
+UPDATE public.events
+SET event_name=$2, date=$3, location=$4, teacher=$5, other_info=$6
+WHERE id=$1
+        "#,
+        event_id,
+        event_name,
+        date,
+        location,
+        teacher,
+        other_info
+    )
+    .execute(&mut conn)
+    .await?;
+
+    Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
 
 pub async fn get_remove_prefect_from_event(

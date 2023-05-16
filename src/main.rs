@@ -24,6 +24,7 @@ use std::{env::var, net::SocketAddr, sync::Arc};
 
 use crate::routes::update_event_and_person::{
     get_remove_participant_from_event, get_remove_prefect_from_event, get_update_event,
+    post_update_event,
 };
 
 #[macro_use]
@@ -69,7 +70,10 @@ async fn main() {
         .route("/remove_person", post(post_remove_person))
         .route("/remove_event", post(post_remove_event))
         .route(calendar::LOCATION, get(get_calendar_feed))
-        .route("/update_event/:id", get(get_update_event))
+        .route(
+            "/update_event/:id",
+            get(get_update_event).post(post_update_event),
+        )
         .route(
             "/remove_prefect_from_event/:relation_id",
             get(get_remove_prefect_from_event),
