@@ -17,6 +17,8 @@ pub enum KnotError {
     ParseInt(#[from] std::num::ParseIntError),
     #[error("Error Parsing Time")]
     ParseTime(#[from] chrono::ParseError),
+    #[error("Error in Headers")]
+    Headers(#[from] axum::http::header::InvalidHeaderValue),
 }
 
 impl IntoResponse for KnotError {

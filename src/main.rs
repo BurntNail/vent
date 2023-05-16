@@ -18,14 +18,14 @@ use routes::{
     calendar::{self, get_calendar_feed},
     index::{self, get_index},
     remove_stuff::{self, get_remove_stuff, post_remove_event, post_remove_person},
+    icon::{self, get_favicon},
+    update_event_and_person::{
+        get_remove_participant_from_event, get_remove_prefect_from_event, get_update_event,
+        post_update_event,
+    },
 };
 use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr, sync::Arc};
-
-use crate::routes::update_event_and_person::{
-    get_remove_participant_from_event, get_remove_prefect_from_event, get_update_event,
-    post_update_event,
-};
 
 #[macro_use]
 extern crate tracing;
@@ -50,6 +50,7 @@ async fn main() {
 
     let app = Router::new()
         .route(index::LOCATION, get(get_index))
+        .route(icon::LOCATION, get(get_favicon).head(get_favicon))
         .route(
             add_event::LOCATION,
             get(get_add_event_form).post(post_add_event_form),
