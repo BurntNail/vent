@@ -143,5 +143,5 @@ RETURNING event_id
     .await?
     .event_id;
 
-    Ok(Redirect::to(&format!("/update_event/{id}")))
+    Ok(Redirect::to(&format!("/kingsleyisbest123/update_event/{id}")))
 }

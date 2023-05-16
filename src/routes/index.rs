@@ -6,14 +6,14 @@ use std::sync::Arc;
 
 use crate::{error::KnotError, liquid_utils::compile, routes::DbEvent};
 
-pub const LOCATION: &str = "/";
+pub const LOCATION: &str = "/kingsleyisbest123";
 
 #[derive(Serialize, Deserialize)]
 struct SmolPerson {
     pub person_name: String,
 }
 
-pub async fn get_index(
+pub async fn get_index<const IS_PUBLIC: bool>(
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
@@ -126,5 +126,9 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
 
     let globals = liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events });
 
-    compile("www/index.liquid", globals).await
+    if IS_PUBLIC {
+        compile("www/public_index.liquid", globals).await
+    } else {
+        compile("www/index.liquid", globals).await
+    }
 }

@@ -13,7 +13,7 @@ use crate::{error::KnotError, liquid_utils::compile};
 
 use super::Person;
 
-pub const LOCATION: &str = "/remove_stuff";
+pub const LOCATION: &str = "/kingsleyisbest123/remove_stuff";
 
 #[derive(Deserialize)]
 pub struct SmolDbEvent {
