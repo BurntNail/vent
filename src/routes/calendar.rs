@@ -50,9 +50,9 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
                 .summary(&event_name)
                 .starts(date)
                 .ends(date + Duration::minutes(45))
+                .location(&location)
                 .description(&format!(
                     r#"
-Location: {location}
 Teacher: {teacher}
 Other Information: {other_info}
 Prefects Attending: {prefects}"#
