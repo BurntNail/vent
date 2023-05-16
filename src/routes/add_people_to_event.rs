@@ -41,7 +41,7 @@ VALUES($1, $2);
         .await?;
     }
 
-    Ok(Redirect::to(&format!("/kingsleyisbest123/update_event/{event_id}")))
+    Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
 
 ///`GET` method that acts like a `POST` method that adds a prefect associated with the given `participant_id` (seconnd argument) to a given `event_id` (first argument). Ensures to avoid duplicates.
@@ -78,5 +78,5 @@ VALUES($1, $2);
         .await?;
     }
 
-    Ok(Redirect::to(&format!("/kingsleyisbest123/update_event/{event_id}")))
+    Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }

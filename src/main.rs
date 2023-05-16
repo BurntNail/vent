@@ -7,10 +7,10 @@ mod routes;
 
 use axum::{
     routing::{get, post},
-    Router, response::IntoResponse,
+    Router,
 };
-use error::KnotError;
-use liquid_utils::{partials::{init_partials, PARTIALS}, compile};
+
+use liquid_utils::partials::{init_partials, PARTIALS};
 use routes::{
     add_event::{self, get_add_event_form, post_add_event_form},
     add_people_to_event::{get_add_participant_to_event, get_add_prefect_to_event},
@@ -48,18 +48,17 @@ async fn main() {
     );
 
     let app = Router::new()
-        .route("/", get(get_index::<true>))
-        .route(index::LOCATION, get(get_index::<false>))
+        .route(index::LOCATION, get(get_index))
         .route(
             add_event::LOCATION,
             get(get_add_event_form).post(post_add_event_form),
         )
         .route(
-            "/kingsleyisbest123/add_participant/:event_id/:participant_id",
+            "/add_participant/:event_id/:participant_id",
             get(get_add_participant_to_event),
         )
         .route(
-            "/kingsleyisbest123/add_prefect/:event_id/:prefect_id",
+            "/add_prefect/:event_id/:prefect_id",
             get(get_add_prefect_to_event),
         )
         .route(
@@ -67,16 +66,16 @@ async fn main() {
             get(get_add_person).post(post_add_person),
         )
         .route(remove_stuff::LOCATION, get(get_remove_stuff))
-        .route("/kingsleyisbest123/remove_person", post(post_remove_person))
-        .route("/kingsleyisbest123/remove_event", post(post_remove_event))
+        .route("/remove_person", post(post_remove_person))
+        .route("/remove_event", post(post_remove_event))
         .route(calendar::LOCATION, get(get_calendar_feed))
-        .route("/kingsleyisbest123/update_event/:id", get(get_update_event))
+        .route("/update_event/:id", get(get_update_event))
         .route(
-            "/kingsleyisbest123/remove_prefect_from_event/:relation_id",
+            "/remove_prefect_from_event/:relation_id",
             get(get_remove_prefect_from_event),
         )
         .route(
-            "/kingsleyisbest123/remove_participant_from_event/:relation_id",
+            "/remove_participant_from_event/:relation_id",
             get(get_remove_participant_from_event),
         )
         .with_state(pool);

@@ -74,7 +74,7 @@
       <h5>Prefects</h3>
       <div class="list-group">
         {% for prefect in prefects %}
-          <a class="list-group-item" href="/kingsleyisbest123/add_prefect/{{event.id}}/{{prefect.id}}">
+          <a class="list-group-item" href="/add_prefect/{{event.id}}/{{prefect.id}}">
             Add {{ prefect.person_name }}
           </a>
         {% endfor %}
@@ -84,7 +84,7 @@
       <h5>Participants</h3>
       <div class="list-group">
         {% for person in participants %}
-          <a class="list-group-item" href="/kingsleyisbest123/add_participant/{{event.id}}/{{person.id}}">
+          <a class="list-group-item" href="/add_participant/{{event.id}}/{{person.id}}">
             Add {{ person.person_name }}
           </a>
         {% endfor %}
@@ -102,7 +102,7 @@
       <h5>Prefects</h3>
       <div class="list-group">
         {% for prefect in existing_prefects %}
-          <a class="list-group-item" href="/kingsleyisbest123/remove_prefect_from_event/{{prefect.relation_id}}">
+          <a class="list-group-item" href="/remove_prefect_from_event/{{prefect.relation_id}}">
             Remove {{ prefect.person_name }}
           </a>
         {% endfor %}
@@ -112,7 +112,7 @@
       <h5>Participants</h3>
       <div class="list-group">
         {% for person in existing_participants %}
-          <a class="list-group-item" href="/kingsleyisbest123/remove_participant_from_event/{{person.relation_id}}">
+          <a class="list-group-item" href="/remove_participant_from_event/{{person.relation_id}}">
             Remove {{ person.person_name }}
           </a>
         {% endfor %}
