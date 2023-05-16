@@ -46,7 +46,7 @@ impl TryFrom<FormEvent> for DbEvent {
 
     ///Get a [`DbEvent`] from a [`FormEvent`], can fail if we can't parse the date.
     ///
-    /// NB: Event ID is always -1 as try_from cannot get a DB connection
+    /// NB: Event ID is always -1 as `try_from` cannot get a DB connection
     fn try_from(
         FormEvent {
             name,

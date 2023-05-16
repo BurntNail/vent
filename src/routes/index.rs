@@ -13,6 +13,7 @@ struct SmolPerson {
     pub person_name: String,
 }
 
+#[allow(clippy::too_many_lines)]
 pub async fn get_index(
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
