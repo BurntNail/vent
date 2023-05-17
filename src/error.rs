@@ -1,5 +1,5 @@
 use axum::{
-    http::StatusCode,
+    http::{StatusCode},
     response::{Html, IntoResponse},
 };
 
@@ -19,6 +19,18 @@ pub enum KnotError {
     ParseTime(#[from] chrono::ParseError),
     #[error("Error in Headers")]
     Headers(#[from] axum::http::header::InvalidHeaderValue),
+    #[error("Missing form data")]
+    MissingFormData,
+    #[error("Multipart Error")]
+    Multipart(#[from] axum::extract::multipart::MultipartError),
+    #[error("Invalid Image")]
+    ImageFormat(#[from] image::error::ImageError),
+    #[error("Missing Image Extension: {0:?}")]
+    NoImageExtension(image::ImageFormat),    
+    #[error("Missing File: {0:?}")]
+    MissingFile(String),
+    #[error("Encountered Invalid UTF-8")]
+    InvalidUTF8
 }
 
 impl IntoResponse for KnotError {

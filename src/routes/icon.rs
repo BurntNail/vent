@@ -7,7 +7,7 @@ use axum::{
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 
-pub const LOCATION: &str = "favicon.ico";
+pub const LOCATION: &str = "/favicon.ico";
 
 pub async fn get_favicon() -> Result<impl IntoResponse, KnotError> {
     let file = File::open("favicon.ico").await?;

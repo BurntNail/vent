@@ -13,7 +13,8 @@
           name="name"
           id="name"
           class="form-control"
-          value="{{event.event_name}}">
+          value="{{event.event_name}}"
+          required>
       </div>
       <div class="input-group mb-3">
         <span class="input-group-text" id="date">Start Time:
@@ -23,7 +24,8 @@
           id="date"
           name="date"
           class="form-control"
-          value="{{event.date}}">
+          value="{{event.date}}"
+          required>
       </div>
       <div class="input-group mb-3">
         <span class="input-group-text" id="location">Location:
@@ -33,7 +35,8 @@
           id="location"
           name="location"
           class="form-control"
-          value="{{event.location}}">
+          value="{{event.location}}"
+          required>
       </div>
       <div class="input-group mb-3">
         <span class="input-group-text" id="teacher">Teacher:
@@ -43,7 +46,8 @@
           id="teacher"
           name="teacher"
           class="form-control"
-          value="{{event.teacher}}">
+          value="{{event.teacher}}"
+          required>
       </div>
       <div class="input-group mb-3">
         <span class="input-group-text" id="info">Other Information:
@@ -118,6 +122,45 @@
         {% endfor %}
       </div>
     </div>
+  </div>
+</div>
+
+
+<br>
+
+<div class="card">
+  <div class="card-body">
+    <h2 class="card-title">Existing Images</h2>
+    {% for img in imgs %}
+      <img
+        src="../{{img}}"
+        alt="Photo of People playing sports"
+        class="img-fluid">
+    {% endfor %}
+  </div>
+</div>
+
+<br>
+
+<div class="card">
+  <div class="card-body">
+    <form
+      action="/add_image/{{event.id}}"
+      method="POST"
+      enctype=multipart/form-data>
+      <div class="mb-3">
+        <label for="photo" class="form-label">Add Photo:</label>
+        <input
+          type="file"
+          name="photo"
+          id="photo"
+          class="form-control"
+          accept="image/bmp, image/exr, image/gif, image/hdr, image/ico, image/jpeg, image/png, image/qoi, image/tiff, image/webp"
+          required>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Add photo.</button>
+    </form>
   </div>
 </div>
 

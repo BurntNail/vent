@@ -9,16 +9,15 @@ use axum::{
     routing::{get, post},
     Router,
 };
-
 use liquid_utils::partials::{init_partials, PARTIALS};
 use routes::{
     add_event::{self, get_add_event_form, post_add_event_form},
     add_people_to_event::{get_add_participant_to_event, get_add_prefect_to_event},
     add_person::{self, get_add_person, post_add_person},
     calendar::{self, get_calendar_feed},
+    icon::{self, get_favicon},
     index::{self, get_index},
     remove_stuff::{self, get_remove_stuff, post_remove_event, post_remove_person},
-    icon::{self, get_favicon},
     update_event_and_person::{
         get_remove_participant_from_event, get_remove_prefect_from_event, get_update_event,
         post_update_event,
@@ -26,6 +25,8 @@ use routes::{
 };
 use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr, sync::Arc};
+
+use crate::routes::update_event_and_person::{post_add_photo, serve_image};
 
 #[macro_use]
 extern crate tracing;
@@ -83,6 +84,8 @@ async fn main() {
             "/remove_participant_from_event/:relation_id",
             get(get_remove_participant_from_event),
         )
+        .route("/add_image/:event_id", post(post_add_photo))
+        .route("/uploads/:img", get(serve_image))
         .with_state(pool);
 
     let port: SocketAddr = var("KNOT_SERVER_IP")
