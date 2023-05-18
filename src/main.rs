@@ -26,7 +26,7 @@ use routes::{
 use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr, sync::Arc};
 
-use crate::routes::update_event_and_person::{post_add_photo, serve_image};
+use crate::routes::update_event_and_person::{post_add_photo, serve_image, get_all_images};
 
 #[macro_use]
 extern crate tracing;
@@ -85,6 +85,7 @@ async fn main() {
             get(get_remove_participant_from_event),
         )
         .route("/add_image/:event_id", post(post_add_photo))
+        .route("/get_all_imgs/:event_id", get(get_all_images))
         .route("/uploads/:img", get(serve_image))
         .with_state(pool);
 

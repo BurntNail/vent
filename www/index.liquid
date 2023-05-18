@@ -61,6 +61,8 @@
         </td>
         <td scope="row" rowspan="{{ rowspan }}">
           <a href="/update_event/{{row.event.id}}">Modify/Add</a>
+          <br>
+          <a href="/get_all_imgs/{{row.event.id}}" target="_blank">Get all images</a>
         </td>
         {% if max > 0 %}
         {% assign mmo = max | minus: 1 %}

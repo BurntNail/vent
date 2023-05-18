@@ -1,3 +1,4 @@
+use async_zip::error::ZipError;
 use axum::{
     http::{StatusCode},
     response::{Html, IntoResponse},
@@ -27,10 +28,12 @@ pub enum KnotError {
     ImageFormat(#[from] image::error::ImageError),
     #[error("Missing Image Extension: {0:?}")]
     NoImageExtension(image::ImageFormat),    
+    #[error("Error creating Zip File")]
+    Zip(ZipError),
     #[error("Missing File: {0:?}")]
     MissingFile(String),
     #[error("Encountered Invalid UTF-8")]
-    InvalidUTF8
+    InvalidUTF8,
 }
 
 impl IntoResponse for KnotError {

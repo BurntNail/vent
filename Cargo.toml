@@ -25,3 +25,4 @@ tracing-tree = "0.2.3"
 walkdir = "2.3.3"
 image = "0.24.6"
 rand = "0.8.5"
+async_zip = { version = "0.0.15", features = ["tokio", "tokio-fs", "deflate"] }

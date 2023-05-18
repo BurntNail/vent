@@ -75,7 +75,7 @@ Prefects Attending: {prefects}"#
         (header::CONTENT_TYPE, "text/calendar; charset=utf-8"),
         (
             header::CONTENT_DISPOSITION,
-            "attachment; filename=\"calendar.ics\"",
+            "filename=\"calendar.ics\"",
         ),
     ];
 
