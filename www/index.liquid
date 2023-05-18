@@ -15,8 +15,7 @@
 
 <br>
 
-<h2>All Events</h2>
-
+<h3> Future </h3>
 <ul>
   {% for row in events_to_happen %}
     <li>
@@ -24,15 +23,20 @@
       </a>
     </li>
   {% endfor %}
+</ul>
+
+<h3> Past </h3>
+<ul>
   {% for row in happened_events %}
     <li>
       <a href="\#event-{{row.event.id}}">{{ row.event.event_name }}      </a>
     </li>
   {% endfor %}
-
 </ul>
 
 <h2>Future Events</h2>
+
+<br><br>
 
 {% for row in events_to_happen %}
   <div class="card">
