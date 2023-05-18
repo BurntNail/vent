@@ -1,4 +1,4 @@
-use std::{sync::Arc};
+use super::FormEvent;
 use crate::{
     error::KnotError,
     liquid_utils::compile,
@@ -6,12 +6,12 @@ use crate::{
 };
 use axum::{
     extract::{Path, State},
-    response::{IntoResponse, Redirect}
+    response::{IntoResponse, Redirect},
 };
 use axum_extra::extract::Form;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
-use super::FormEvent;
+use std::sync::Arc;
 
 pub async fn get_update_event(
     Path(event_id): Path<i32>,

@@ -15,7 +15,9 @@
 
 <br>
 
-<h3> Future </h3>
+<h3>
+  Future
+</h3>
 <ul>
   {% for row in events_to_happen %}
     <li>
@@ -25,11 +27,14 @@
   {% endfor %}
 </ul>
 
-<h3> Past </h3>
+<h3>
+  Past
+</h3>
 <ul>
   {% for row in happened_events %}
     <li>
-      <a href="\#event-{{row.event.id}}">{{ row.event.event_name }}      </a>
+      <a href="\#event-{{row.event.id}}">{{ row.event.event_name }}
+      </a>
     </li>
   {% endfor %}
 </ul>

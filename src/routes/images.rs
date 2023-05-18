@@ -1,18 +1,20 @@
-use std::{sync::Arc, path::PathBuf, ffi::{OsStr}};
-use crate::{
-    error::KnotError
-};
-use async_zip::{tokio::write::ZipFileWriter, ZipEntryBuilder, Compression};
+use crate::error::KnotError;
+use async_zip::{tokio::write::ZipFileWriter, Compression, ZipEntryBuilder};
 use axum::{
+    body::StreamBody,
     extract::{Multipart, Path, State},
-    response::{IntoResponse, Redirect}, http::header, body::StreamBody,
+    http::header,
+    response::{IntoResponse, Redirect},
 };
 use rand::{thread_rng, Rng};
 use sqlx::{Pool, Postgres};
-use tokio::{fs::File, io::{AsyncWriteExt, AsyncReadExt}};
+use std::{ffi::OsStr, path::PathBuf, sync::Arc};
+use tokio::{
+    fs::File,
+    io::{AsyncReadExt, AsyncWriteExt},
+};
 use tokio_util::io::ReaderStream;
 use walkdir::WalkDir;
-
 
 #[axum::debug_handler]
 pub async fn post_add_photo(
@@ -29,7 +31,8 @@ pub async fn post_add_photo(
 
     let format = image::guess_format(&data)?;
     let ext = format
-        .extensions_str().first()
+        .extensions_str()
+        .first()
         .ok_or(KnotError::NoImageExtension(format))?;
 
     let mut conn = pool.acquire().await?;
@@ -68,10 +71,16 @@ VALUES($1, $2)"#,
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
 
-pub async fn serve_image (Path(img_path): Path<String>) -> Result<impl IntoResponse, KnotError> {
+pub async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoResponse, KnotError> {
     let path = PathBuf::from(img_path.as_str());
-    let ext = path.extension().ok_or_else(|| KnotError::MissingFile(img_path.clone()))?.to_str().ok_or(KnotError::InvalidUTF8)?;
-    let body = StreamBody::new(ReaderStream::new(File::open(format!("uploads/{img_path}")).await?));
+    let ext = path
+        .extension()
+        .ok_or_else(|| KnotError::MissingFile(img_path.clone()))?
+        .to_str()
+        .ok_or(KnotError::InvalidUTF8)?;
+    let body = StreamBody::new(ReaderStream::new(
+        File::open(format!("uploads/{img_path}")).await?,
+    ));
 
     let headers = [
         (header::CONTENT_TYPE, format!("image/{ext}")),
@@ -85,7 +94,10 @@ pub async fn serve_image (Path(img_path): Path<String>) -> Result<impl IntoRespo
 }
 
 #[axum::debug_handler]
-pub async fn get_all_images (Path(event_id): Path<i32>, State(pool): State<Arc<Pool<Postgres>>>) -> Result<impl IntoResponse, KnotError> {
+pub async fn get_all_images(
+    Path(event_id): Path<i32>,
+    State(pool): State<Arc<Pool<Postgres>>>,
+) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
 
     let files_to_find = sqlx::query!(
@@ -93,15 +105,19 @@ pub async fn get_all_images (Path(event_id): Path<i32>, State(pool): State<Arc<P
 SELECT path FROM public.photos
 WHERE event_id = $1"#,
         event_id
-    ).fetch_all(&mut conn).await?.into_iter().map(|x| x.path);
+    )
+    .fetch_all(&mut conn)
+    .await?
+    .into_iter()
+    .map(|x| x.path);
 
     drop(conn);
 
     let file_name = {
-        fn get_existing () -> Vec<String> {
+        fn get_existing() -> Vec<String> {
             let zip_ext = OsStr::new("zip");
             let mut files = vec![];
-            
+
             for de in WalkDir::new("uploads").into_iter().filter_map(Result::ok) {
                 if let Ok(file_name) = de.file_name().to_str().ok_or(KnotError::InvalidUTF8) {
                     if de.path().extension().map_or(false, |e| e == zip_ext) {
@@ -116,15 +132,17 @@ WHERE event_id = $1"#,
         let existing = tokio::task::spawn_blocking(get_existing).await?;
 
         let mut rng = thread_rng();
-        format!("uploads/{}", loop {
-            let key = format!("{}.zip", rng.gen::<u128>());
-            if !existing.contains(&key) {
-                break key;
+        format!(
+            "uploads/{}",
+            loop {
+                let key = format!("{}.zip", rng.gen::<u128>());
+                if !existing.contains(&key) {
+                    break key;
+                }
             }
-        })
+        )
     };
 
-    
     let mut file = File::create(&file_name).await?;
     let mut writer = ZipFileWriter::with_tokio(&mut file);
 
@@ -141,14 +159,18 @@ WHERE event_id = $1"#,
             }
         }
 
-        writer.write_entry_whole(ZipEntryBuilder::new(file_path.into(), Compression::Deflate), &data).await.map_err(KnotError::Zip)?;
+        writer
+            .write_entry_whole(
+                ZipEntryBuilder::new(file_path.into(), Compression::Deflate),
+                &data,
+            )
+            .await
+            .map_err(KnotError::Zip)?;
         data.clear();
     }
 
-
     writer.close().await.map_err(KnotError::Zip)?;
     drop(file);
-
 
     let body = StreamBody::new(ReaderStream::new(File::open(&file_name).await?));
 

@@ -3,15 +3,14 @@ pub mod add_people_to_event;
 pub mod add_person;
 pub mod calendar;
 pub mod icon;
+pub mod images;
 pub mod index;
 pub mod remove_stuff;
 pub mod update_event_and_person;
-pub mod images;
 
-
+use crate::error::KnotError;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use crate::error::KnotError;
 
 #[derive(Deserialize, Serialize)]
 struct Person {

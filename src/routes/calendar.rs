@@ -73,10 +73,7 @@ Prefects Attending: {prefects}"#
     let body = StreamBody::new(ReaderStream::new(File::open("calendar.ics").await?));
     let headers = [
         (header::CONTENT_TYPE, "text/calendar; charset=utf-8"),
-        (
-            header::CONTENT_DISPOSITION,
-            "filename=\"calendar.ics\"",
-        ),
+        (header::CONTENT_DISPOSITION, "filename=\"calendar.ics\""),
     ];
 
     Ok((headers, body))
