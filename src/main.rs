@@ -26,7 +26,7 @@ use routes::{
 use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr, sync::Arc};
 
-use crate::routes::update_event_and_person::{post_add_photo, serve_image, get_all_images};
+use crate::routes::images::{post_add_photo, serve_image, get_all_images};
 
 #[macro_use]
 extern crate tracing;

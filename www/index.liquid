@@ -17,151 +17,159 @@
 
 <h2>Future Events</h2>
 
-<table class="table">
-  <thead>
-    <tr>
-      <th scope="col">Event Name</th>
-      <th scope="col">Date</th>
-      <th scope="col">Location</th>
-      <th scope="col">Teacher</th>
-      <th scope="col">Other Information</th>
-      <th scope="col">Modify/Add</th>
-      <th scope="col">Participants</th>
-      <th scope="col">Prefects</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for row in events_to_happen %}
-      {% if row.n_prefects > row.n_participants %}
-      {% assign max = row.n_prefects %}
-      {% else %}
-      {% assign max = row.n_participants %}
-      {% endif %}
+{% for row in events_to_happen %}
+  <div class="card">
+    <div class="card-body">
+      <h2 class="card-title">
+        {{ row.event.event_name }}
+      </h2>
 
-      {% if max == 0 %}
-      {% assign rowspan = 1 %}
-      {% else %}
-      {% assign rowspan = max %}
-      {% endif %}
-      <tr>
-        <th scope="row" rowspan="{{ rowspan }}">
-          {{ row.event.event_name }}
-        </td>
-        <td scope="row" rowspan="{{ rowspan }}">
-          {{ row.event.date }}
-        </td>
-        <td scope="row" rowspan="{{ rowspan }}">
-          {{ row.event.location }}
-        </td>
-        <td scope="row" rowspan="{{ rowspan }}">
-          {{ row.event.teacher }}
-        </td>
-        <td scope="row" rowspan="{{ rowspan }}">
-          {{ row.event.other_info }}
-        </td>
-        <td scope="row" rowspan="{{ rowspan }}">
-          <a href="/update_event/{{row.event.id}}">Modify/Add</a>
-          <br>
-          <a href="/get_all_imgs/{{row.event.id}}" target="_blank">Get all images</a>
-        </td>
-        {% if max > 0 %}
-        {% assign mmo = max | minus: 1 %}
-        {% for i in (0..mmo) %}
-            {% if i < row.n_participants %}
-            <td scope="row">{{ row.participants[i].person_name }}</td>
-            {%else%}
-            <td></td>
-            {%endif%}
+      <br>
 
-            {% if i < row.n_prefects %}
-            <td scope="row">{{ row.prefects[i].person_name }}</td>
-            {%else%}
-            <td></td>
-            {%endif%}
-          </tr>
-          {% unless forloop.last %} <tr> {% endunless %}
-        {% endfor %}
-        {% else %}
-        <td> </td><td> </td>
-        </tr>
-        {% endif %}
-    {% endfor %}
-  </tbody>
-</table>
+      <p class="card-text">
+        Happening at {{ row.event.date }} in/at {{ row.event.location }} managed by {{ row.event.teacher }}
+      </p>
+      <p class="card-text">
+        Notes: {{ row.event.other_info }}
+      </p>
 
-<br><br>
+      <br>
+
+      <div class="row">
+        <div class="col">
+          <h3>Prefects</h3>
+          <ul>
+            {% for prefect in row.prefects %}
+              <li>{{ prefect.person_name }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="col">
+          <h3>Participants</h3>
+          {% for participant in row.participants %}
+            <li>{{ participant.person_name }}</li>
+          {% endfor %}
+        </div>
+      </div>
+
+      <br>
+      <a href="/update_event/{{row.event.id}}" class="btn btn-primary">Modify the details, add photos/people</a>
+      <br>
+
+      <br>
+
+      <h3>Photos</h3>
+
+      <div class="row">
+        <div class="col">
+          <form
+            action="/add_image/{{row.event.id}}"
+            method="POST"
+            enctype=multipart/form-data>
+            <div class="mb-3">
+              <label for="photo" class="form-label">Add Photo:</label>
+              <input
+                type="file"
+                name="photo"
+                id="photo"
+                class="form-control"
+                accept="image/bmp, image/exr, image/gif, image/hdr, image/ico, image/jpeg, image/png, image/qoi, image/tiff, image/webp"
+                required>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Add photo.</button>
+          </form>
+        </div>
+        <div class="col">
+          <a
+            href="/get_all_imgs/{{row.event.id}}"
+            target="_blank"
+            class="btn btn-primary">Download all images</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <br>
+{% endfor %}
+
 
 <h2>Past Events</h2>
 
-<table class="table">
-  <thead>
-    <tr>
-      <th scope="col">Event Name</th>
-      <th scope="col">Date</th>
-      <th scope="col">Location</th>
-      <th scope="col">Teacher</th>
-      <th scope="col">Other Information</th>
-      <th scope="col">Modify/Add</th>
-      <th scope="col">Participants</th>
-      <th scope="col">Prefects</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for row in happened_events %}
-      {% if row.n_prefects > row.n_participants %}
-      {% assign max = row.n_prefects %}
-      {% else %}
-      {% assign max = row.n_participants %}
-      {% endif %}
+{% for row in happened_events %}
+  <div class="card">
+    <div class="card-body">
+      <h2 class="card-title">
+        {{ row.event.event_name }}
+      </h2>
 
-      {% if max == 0 %}
-      {% assign rowspan = 1 %}
-      {% else %}
-      {% assign rowspan = max %}
-      {% endif %}
-      <tr>
-        <th scope="row" rowspan="{{ rowspan }}">
-          {{ row.event.event_name }}
-        </td>
-        <td scope="row" rowspan="{{ rowspan }}">
-          {{ row.event.date }}
-        </td>
-        <td scope="row" rowspan="{{ rowspan }}">
-          {{ row.event.location }}
-        </td>
-        <td scope="row" rowspan="{{ rowspan }}">
-          {{ row.event.teacher }}
-        </td>
-        <td scope="row" rowspan="{{ rowspan }}">
-          {{ row.event.other_info }}
-        </td>
-        <td scope="row" rowspan="{{ rowspan }}">
-          <a href="/update_event/{{row.event.id}}">Modify/Add</a>
-        </td>
-        {% if max > 0 %}
-        {% assign mmo = max | minus: 1 %}
-        {% for i in (0..mmo) %}
-            {% if i < row.n_participants %}
-            <td scope="row">{{ row.participants[i].person_name }}</td>
-            {%else%}
-            <td></td>
-            {%endif%}
+      <br>
 
-            {% if i < row.n_prefects %}
-            <td scope="row">{{ row.prefects[i].person_name }}</td>
-            {%else%}
-            <td></td>
-            {%endif%}
-          </tr>
-          {% unless forloop.last %} <tr> {% endunless %}
-        {% endfor %}
-        {% else %}
-        <td> </td><td> </td>
-        </tr>
-        {% endif %}
-    {% endfor %}
-  </tbody>
-</table>
+      <p class="card-text">
+        Happening at {{ row.event.date }} in/at {{ row.event.location }} managed by {{ row.event.teacher }}
+      </p>
+      <p class="card-text">
+        Notes: {{ row.event.other_info }}
+      </p>
 
+      <br>
+
+      <div class="row">
+        <div class="col">
+          <h3>Prefects</h3>
+          <ul>
+            {% for prefect in row.prefects %}
+              <li>{{ prefect.person_name }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="col">
+          <h3>Participants</h3>
+          {% for participant in row.participants %}
+            <li>{{ participant.person_name }}</li>
+          {% endfor %}
+        </div>
+      </div>
+
+      <br>
+      <a href="/update_event/{{row.event.id}}" class="btn btn-primary">Modify the details, add photos/people</a>
+      <br>
+
+      <br>
+
+      <h3>Photos</h3>
+
+      <div class="row">
+        <div class="col">
+          <form
+            action="/add_image/{{row.event.id}}"
+            method="POST"
+            enctype=multipart/form-data>
+            <div class="mb-3">
+              <label for="photo" class="form-label">Add Photo:</label>
+              <input
+                type="file"
+                name="photo"
+                id="photo"
+                class="form-control"
+                accept="image/bmp, image/exr, image/gif, image/hdr, image/ico, image/jpeg, image/png, image/qoi, image/tiff, image/webp"
+                required>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Add photo.</button>
+          </form>
+        </div>
+        <div class="col">
+          <a
+            href="/get_all_imgs/{{row.event.id}}"
+            target="_blank"
+            class="btn btn-primary">Download all images</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <br>
+{% endfor %}
 
 {% include "partials/footer.liquid" %}

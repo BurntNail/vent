@@ -6,6 +6,7 @@ pub mod icon;
 pub mod index;
 pub mod remove_stuff;
 pub mod update_event_and_person;
+pub mod images;
 
 
 use chrono::NaiveDateTime;
