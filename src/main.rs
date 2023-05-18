@@ -6,9 +6,11 @@ mod liquid_utils;
 mod routes;
 
 use axum::{
+	extract::DefaultBodyLimit,
     routing::{get, post},
     Router,
 };
+use tower_http::trace::TraceLayer;
 use liquid_utils::partials::{init_partials, PARTIALS};
 use routes::{
     add_event::{self, get_add_event_form, post_add_event_form},
@@ -88,6 +90,8 @@ async fn main() {
         .route("/add_image/:event_id", post(post_add_photo))
         .route("/get_all_imgs/:event_id", get(get_all_images))
         .route("/uploads/:img", get(serve_image))
+        .layer(TraceLayer::new_for_http())
+        .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think
         .with_state(pool);
 
     let port: SocketAddr = var("KNOT_SERVER_IP")
