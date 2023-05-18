@@ -27,64 +27,77 @@
       <br>
 
       <p class="card-text">
-        Happening at {{ row.event.date }} in/at {{ row.event.location }} managed by {{ row.event.teacher }}
+        Happening at
+        <i>{{ row.event.date }}</i>
+        in/at
+        <i>{{ row.event.location }}</i>
+        managed by
+        <i>{{ row.event.teacher }}</i>.
       </p>
       <p class="card-text">
         Notes: {{ row.event.other_info }}
       </p>
 
+      <a href="/update_event/{{row.event.id}}" class="btn btn-primary centred">Modify the details, add photos/people</a>
+
+      <br>
+      <br>
       <br>
 
-      <div class="row">
-        <div class="col">
-          <h3>Prefects</h3>
-          <ul>
-            {% for prefect in row.prefects %}
-              <li>{{ prefect.person_name }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-        <div class="col">
-          <h3>Participants</h3>
-          {% for participant in row.participants %}
-            <li>{{ participant.person_name }}</li>
-          {% endfor %}
+      <div class="card">
+        <div class="card-body">
+          <div class="row">
+            <div class="col">
+              <h3 class="card-title">Prefects</h3>
+              <ul>
+                {% for prefect in row.prefects %}
+                  <li>{{ prefect.person_name }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            <div class="col">
+              <h3 class="card-title">Participants</h3>
+              {% for participant in row.participants %}
+                <li>{{ participant.person_name }}</li>
+              {% endfor %}
+            </div>
+          </div>
         </div>
       </div>
 
       <br>
-      <a href="/update_event/{{row.event.id}}" class="btn btn-primary">Modify the details, add photos/people</a>
-      <br>
 
-      <br>
+      <div class="card">
+        <div class="card-body">
+          <h3 class="card-title">Photos</h3>
 
-      <h3>Photos</h3>
+          <div class="row">
+            <div class="col">
+              <form
+                action="/add_image/{{row.event.id}}"
+                method="POST"
+                enctype=multipart/form-data>
+                <div class="mb-3">
+                  <label for="photo" class="form-label">Add Photo:</label>
+                  <input
+                    type="file"
+                    name="photo"
+                    id="photo"
+                    class="form-control"
+                    accept="image/bmp, image/exr, image/gif, image/hdr, image/ico, image/jpeg, image/png, image/qoi, image/tiff, image/webp"
+                    required>
+                </div>
 
-      <div class="row">
-        <div class="col">
-          <form
-            action="/add_image/{{row.event.id}}"
-            method="POST"
-            enctype=multipart/form-data>
-            <div class="mb-3">
-              <label for="photo" class="form-label">Add Photo:</label>
-              <input
-                type="file"
-                name="photo"
-                id="photo"
-                class="form-control"
-                accept="image/bmp, image/exr, image/gif, image/hdr, image/ico, image/jpeg, image/png, image/qoi, image/tiff, image/webp"
-                required>
+                <button type="submit" class="btn btn-primary">Add photo.</button>
+              </form>
             </div>
-
-            <button type="submit" class="btn btn-primary">Add photo.</button>
-          </form>
-        </div>
-        <div class="col">
-          <a
-            href="/get_all_imgs/{{row.event.id}}"
-            target="_blank"
-            class="btn btn-primary">Download all images</a>
+            <div class="col">
+              <a
+                href="/get_all_imgs/{{row.event.id}}"
+                target="_blank"
+                class="btn btn-primary">Download all images</a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -106,64 +119,79 @@
       <br>
 
       <p class="card-text">
-        Happening at {{ row.event.date }} in/at {{ row.event.location }} managed by {{ row.event.teacher }}
+        Happening at
+        <i>{{ row.event.date }}</i>
+        in/at
+        <i>{{ row.event.location }}</i>
+        managed by
+        <i>{{ row.event.teacher }}</i>.
       </p>
       <p class="card-text">
         Notes: {{ row.event.other_info }}
       </p>
+      <p class="card-text">
+        Notes: {{ row.event.other_info }}
+      </p>
+      <a href="/update_event/{{row.event.id}}" class="btn btn-primary centred">Modify the details, add photos/people</a>
 
       <br>
+      <br>
+      <br>
 
-      <div class="row">
-        <div class="col">
-          <h3>Prefects</h3>
-          <ul>
-            {% for prefect in row.prefects %}
-              <li>{{ prefect.person_name }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-        <div class="col">
-          <h3>Participants</h3>
-          {% for participant in row.participants %}
-            <li>{{ participant.person_name }}</li>
-          {% endfor %}
+      <div class="card">
+        <div class="card-body">
+          <div class="row">
+            <div class="col">
+              <h3 class="card-title">Prefects</h3>
+              <ul>
+                {% for prefect in row.prefects %}
+                  <li>{{ prefect.person_name }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            <div class="col">
+              <h3 class="card-title">Participants</h3>
+              {% for participant in row.participants %}
+                <li>{{ participant.person_name }}</li>
+              {% endfor %}
+            </div>
+          </div>
         </div>
       </div>
 
       <br>
-      <a href="/update_event/{{row.event.id}}" class="btn btn-primary">Modify the details, add photos/people</a>
-      <br>
 
-      <br>
+      <div class="card">
+        <div class="card-body">
+          <h3 class="card-title">Photos</h3>
 
-      <h3>Photos</h3>
+          <div class="row">
+            <div class="col">
+              <form
+                action="/add_image/{{row.event.id}}"
+                method="POST"
+                enctype=multipart/form-data>
+                <div class="mb-3">
+                  <label for="photo" class="form-label">Add Photo:</label>
+                  <input
+                    type="file"
+                    name="photo"
+                    id="photo"
+                    class="form-control"
+                    accept="image/bmp, image/exr, image/gif, image/hdr, image/ico, image/jpeg, image/png, image/qoi, image/tiff, image/webp"
+                    required>
+                </div>
 
-      <div class="row">
-        <div class="col">
-          <form
-            action="/add_image/{{row.event.id}}"
-            method="POST"
-            enctype=multipart/form-data>
-            <div class="mb-3">
-              <label for="photo" class="form-label">Add Photo:</label>
-              <input
-                type="file"
-                name="photo"
-                id="photo"
-                class="form-control"
-                accept="image/bmp, image/exr, image/gif, image/hdr, image/ico, image/jpeg, image/png, image/qoi, image/tiff, image/webp"
-                required>
+                <button type="submit" class="btn btn-primary">Add photo.</button>
+              </form>
             </div>
-
-            <button type="submit" class="btn btn-primary">Add photo.</button>
-          </form>
-        </div>
-        <div class="col">
-          <a
-            href="/get_all_imgs/{{row.event.id}}"
-            target="_blank"
-            class="btn btn-primary">Download all images</a>
+            <div class="col">
+              <a
+                href="/get_all_imgs/{{row.event.id}}"
+                target="_blank"
+                class="btn btn-primary">Download all images</a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
