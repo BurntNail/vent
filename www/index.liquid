@@ -15,12 +15,30 @@
 
 <br>
 
+<h2>All Events</h2>
+
+<ul>
+  {% for row in events_to_happen %}
+    <li>
+      <a href="\#event-{{row.event.id}}">{{ row.event.event_name }}: {{ row.event.date }}
+      </a>
+    </li>
+  {% endfor %}
+  {% for row in happened_events %}
+    <li>
+      <a href="\#event-{{row.event.id}}">{{ row.event.event_name }}: {{ row.event.date }}
+      </a>
+    </li>
+  {% endfor %}
+
+</ul>
+
 <h2>Future Events</h2>
 
 {% for row in events_to_happen %}
   <div class="card">
     <div class="card-body">
-      <h2 class="card-title">
+      <h2 class="card-title" id="event-{{row.event.id}}">
         {{ row.event.event_name }}
       </h2>
 
@@ -112,7 +130,7 @@
 {% for row in happened_events %}
   <div class="card">
     <div class="card-body">
-      <h2 class="card-title">
+      <h2 class="card-title" id="event-{{row.event.id}}">
         {{ row.event.event_name }}
       </h2>
 
@@ -125,9 +143,6 @@
         <i>{{ row.event.location }}</i>
         managed by
         <i>{{ row.event.teacher }}</i>.
-      </p>
-      <p class="card-text">
-        Notes: {{ row.event.other_info }}
       </p>
       <p class="card-text">
         Notes: {{ row.event.other_info }}
