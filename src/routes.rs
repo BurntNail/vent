@@ -7,6 +7,7 @@ pub mod images;
 pub mod index;
 pub mod remove_stuff;
 pub mod update_event_and_person;
+pub mod spreadsheets;
 
 use crate::error::KnotError;
 use chrono::NaiveDateTime;

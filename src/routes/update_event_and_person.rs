@@ -11,8 +11,10 @@ use axum::{
 use axum_extra::extract::Form;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
+use tokio::fs::remove_file;
 use std::sync::Arc;
 
+#[allow(clippy::too_many_lines)]
 pub async fn get_update_event(
     Path(event_id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
@@ -91,18 +93,22 @@ FROM people p
     .filter(|p| !existing_participants.iter().any(|e| e.id == p.id))
     .collect::<Vec<_>>();
 
-    let photos: Vec<String> = sqlx::query!(
+    #[derive(Serialize)]
+    struct Image {
+        path: String,
+        id: i32,
+    }
+
+    let photos: Vec<Image> = sqlx::query_as!(
+        Image,
         r#"
-SELECT * FROM photos
+SELECT path, id FROM photos
 WHERE event_id = $1
         "#,
         event_id
     )
     .fetch_all(&mut conn)
-    .await?
-    .into_iter()
-    .map(|x| x.path)
-    .collect();
+    .await?;
 
     let globals = liquid::object!({
         "event": liquid::object!({
@@ -117,6 +123,7 @@ WHERE event_id = $1
         "existing_participants": existing_participants,
         "prefects": possible_prefects,
         "participants": possible_participants,
+        "n_imgs": photos.len(),
         "imgs": photos
     });
 
@@ -195,4 +202,19 @@ RETURNING event_id
     .event_id;
 
     Ok(Redirect::to(&format!("/update_event/{id}")))
+}
+
+pub async fn delete_image (Path(img_id): Path<i32>, State(pool): State<Arc<Pool<Postgres>>>) -> Result<impl IntoResponse, KnotError> {
+    let mut conn = pool.acquire().await?;
+    let event = sqlx::query!(
+        r#"
+DELETE FROM public.photos
+WHERE id=$1
+RETURNING path, event_id"#,
+        img_id
+    ).fetch_one(&mut conn).await?;
+
+    remove_file(event.path).await?;
+
+    Ok(Redirect::to(&format!("/update_event/{}", event.event_id)))
 }

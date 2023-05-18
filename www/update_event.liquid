@@ -128,17 +128,57 @@
 
 <br>
 
-<div class="card">
-  <div class="card-body">
-    <h2 class="card-title">Existing Images</h2>
-    {% for img in imgs %}
-      <img
-        src="../{{img}}"
-        alt="Photo of People playing sports"
-        class="img-fluid">
-    {% endfor %}
+<h2>Existing Images</h2>
+
+{% if n_imgs == 0 %}
+  <p>No Images yet</p>
+{% else %}
+  <div id="imagesCarousel" class="carousel slide carousel-fade">
+    <div class="carousel-inner">
+      <div class="carousel-item active">
+        <img
+          src="../{{imgs[0].path}}"
+          class="d-block w-100 h-100"
+          alt="Photo of people playing sports">
+        <div class="carousel-caption d-none d-md-block">
+          <a href="/remove_img/{{imgs[0].id}}" class="btn btn-danger">Remove Image</a>
+        </div>
+      </div>
+      {% for n in (2..n_imgs) %}
+        <div class="carousel-item">
+          {% assign prev = n | minus: 1 %}
+          <img
+            src="../{{imgs[prev].path}}"
+            class="d-block w-100 h-100"
+            alt="Photo of people playing sports">
+          <div class="carousel-caption d-none d-md-block">
+            <a href="/remove_img/{{imgs[0].id}}" class="btn btn-danger">Remove Image</a>
+          </div>
+        </div>
+      {% endfor %}
+
+    </div>
+
+    {% if n_imgs > 1 %}
+      <button
+        class="carousel-control-prev"
+        type="button"
+        data-bs-target="#imagesCarousel"
+        data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+      </button>
+      <button
+        class="carousel-control-next"
+        type="button"
+        data-bs-target="#imagesCarousel"
+        data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+      </button>
+    {% endif %}
   </div>
-</div>
+{% endif %}
 
 <br>
 
