@@ -20,14 +20,13 @@
 <ul>
   {% for row in events_to_happen %}
     <li>
-      <a href="\#event-{{row.event.id}}">{{ row.event.event_name }}: {{ row.event.date }}
+      <a href="\#event-{{row.event.id}}">{{ row.event.event_name }}
       </a>
     </li>
   {% endfor %}
   {% for row in happened_events %}
     <li>
-      <a href="\#event-{{row.event.id}}">{{ row.event.event_name }}: {{ row.event.date }}
-      </a>
+      <a href="\#event-{{row.event.id}}">{{ row.event.event_name }}      </a>
     </li>
   {% endfor %}
 
