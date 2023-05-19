@@ -76,21 +76,66 @@
     <h3 class="card-title">Potential</h3>
     <div class="col">
       <h5>Prefects</h3>
-      <div class="list-group">
-        {% for prefect in prefects %}
-          <a class="list-group-item" href="/add_prefect/{{event.id}}/{{prefect.id}}">
-            Add {{ prefect.person_name }}
-          </a>
+      <div class="accordion" id="pot_pres">
+        {% for form in prefects %}
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button
+                class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#pot_pres_{{form.form}}"
+                aria-controls="pot_pres_{{form.form}}">
+                {{ form.form }}
+              </button>
+            </h2>
+            <div
+              class="accordion-collapse collapse"
+              data-bs-parent="pot_pres"
+              id="pot_pres_{{form.form}}">
+              <div class="accordion-body">
+                {% for person in form.people %}
+                  <a href="/add_prefect/{{event.id}}/{{person.id}}">
+                    Add {{ person.first_name }} {{ person.surname }}
+                  </a>
+                  <br>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
         {% endfor %}
       </div>
     </div>
     <div class="col">
       <h5>Participants</h3>
-      <div class="list-group">
-        {% for person in participants %}
-          <a class="list-group-item" href="/add_participant/{{event.id}}/{{person.id}}">
-            Add {{ person.person_name }}
-          </a>
+
+      <div class="accordion" id="pot_part">
+        {% for form in participants %}
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button
+                class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#pot_part_{{form.form}}"
+                aria-controls="pot_part_{{form.form}}">
+                {{ form.form }}
+              </button>
+            </h2>
+            <div
+              class="accordion-collapse collapse"
+              data-bs-parent="pot_part"
+              id="pot_part_{{form.form}}">
+              <div class="accordion-body">
+                {% for person in form.people %}
+                  <a href="/add_participant/{{event.id}}/{{person.id}}">
+                    Add {{ person.first_name }} {{ person.surname }}
+                  </a>
+                  <br>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
         {% endfor %}
       </div>
     </div>
@@ -102,23 +147,70 @@
 <div class="card">
   <div class="row card-body">
     <h3 class="card-title">Curent</h3>
+
+
     <div class="col">
       <h5>Prefects</h3>
-      <div class="list-group">
-        {% for prefect in existing_prefects %}
-          <a class="list-group-item" href="/remove_prefect_from_event/{{prefect.relation_id}}">
-            Remove {{ prefect.person_name }}
-          </a>
+      <div class="accordion" id="cu_pre">
+        {% for form in existing_prefects %}
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button
+                class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#cu_pre_{{form.form}}"
+                aria-controls="cu_pre_{{form.form}}">
+                {{ form.form }}
+              </button>
+            </h2>
+            <div
+              class="accordion-collapse collapse"
+              data-bs-parent="cu_pre"
+              id="cu_pre_{{form.form}}">
+              <div class="accordion-body">
+                {% for person in form.people %}
+                  <a href="/remove_prefect_from_event/{{person.relation_id}}">
+                    Remove {{ person.first_name }} {{ person.surname }}
+                  </a>
+                  <br>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
         {% endfor %}
       </div>
     </div>
     <div class="col">
       <h5>Participants</h3>
-      <div class="list-group">
-        {% for person in existing_participants %}
-          <a class="list-group-item" href="/remove_participant_from_event/{{person.relation_id}}">
-            Remove {{ person.person_name }}
-          </a>
+
+      <div class="accordion" id="cu_part">
+        {% for form in existing_participants %}
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button
+                class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#cu_part_{{form.form}}"
+                aria-controls="cu_part_{{form.form}}">
+                {{ form.form }}
+              </button>
+            </h2>
+            <div
+              class="accordion-collapse collapse"
+              data-bs-parent="cu_part"
+              id="cu_part_{{form.form}}">
+              <div class="accordion-body">
+                {% for person in form.people %}
+                  <a href="/remove_participant_from_event/{{person.relation_id}}">
+                    Remove {{ person.first_name }} {{ person.surname }}
+                  </a>
+                  <br>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
         {% endfor %}
       </div>
     </div>

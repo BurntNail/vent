@@ -17,29 +17,28 @@ pub async fn get_add_person() -> Result<impl IntoResponse, KnotError> {
 
 #[derive(Deserialize)]
 pub struct NoIDPerson {
-    pub person_name: String,
+    pub first_name: String,
+    pub surname: String,
+    pub form: Option<String>,
     pub is_prefect: bool,
 }
 
 pub async fn post_add_person(
     State(pool): State<Arc<Pool<Postgres>>>,
-    Form(NoIDPerson {
-        person_name,
-        is_prefect,
-    }): Form<NoIDPerson>,
+    Form(NoIDPerson { first_name, surname, form, is_prefect }): Form<NoIDPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
-
-    info!(?person_name, ?is_prefect);
 
     sqlx::query!(
         r#"
 INSERT INTO public.people
-(person_name, is_prefect)
-VALUES($1, $2);    
+(is_prefect, first_name, surname, form)
+VALUES($1, $2, $3, $4);    
     "#,
-        person_name,
-        is_prefect
+        is_prefect,
+        first_name,
+        surname,
+        form,
     )
     .execute(&mut conn)
     .await?;

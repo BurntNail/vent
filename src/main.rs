@@ -23,6 +23,7 @@ use routes::{
         post_update_event,
     },
 };
+use tower_http::trace::TraceLayer;
 use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr, sync::Arc};
 
@@ -88,6 +89,7 @@ async fn main() {
         .route("/add_image/:event_id", post(post_add_photo))
         .route("/get_all_imgs/:event_id", get(get_all_images))
         .route("/uploads/:img", get(serve_image))
+        .layer(TraceLayer::new_for_http())
         .with_state(pool);
 
     let port: SocketAddr = var("KNOT_SERVER_IP")

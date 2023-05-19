@@ -1,17 +1,12 @@
 use axum::{extract::State, response::IntoResponse};
 use chrono::Utc;
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
 use crate::{error::KnotError, liquid_utils::compile, routes::DbEvent};
 
 pub const LOCATION: &str = "/";
-
-#[derive(Serialize, Deserialize)]
-struct SmolPerson {
-    pub person_name: String,
-}
 
 #[allow(clippy::too_many_lines)]
 pub async fn get_index(
@@ -54,8 +49,8 @@ pub async fn get_index(
     #[derive(Serialize)]
     struct WholeEvent {
         event: HTMLEvent,
-        participants: Vec<SmolPerson>,
-        prefects: Vec<SmolPerson>,
+        participants: Vec<String>,
+        prefects: Vec<String>,
         n_participants: usize,
         n_prefects: usize,
     }
@@ -80,10 +75,9 @@ ORDER BY events.date
         let event = HTMLEvent::from(event);
 
         let event_id = event.id;
-        let prefects = sqlx::query_as!(
-            SmolPerson,
+        let prefects = sqlx::query!(
             r#"
-SELECT p.person_name
+SELECT p.first_name, p.surname
 FROM people p
 INNER JOIN events e ON e.id = $1
 INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
@@ -91,12 +85,14 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
             event_id
         )
         .fetch_all(&mut conn)
-        .await?;
+        .await?
+        .into_iter()
+        .map(|p| format!("{} {}", p.first_name, p.surname))
+        .collect::<Vec<_>>();
 
-        let participants = sqlx::query_as!(
-            SmolPerson,
+        let participants = sqlx::query!(
             r#"
-SELECT p.person_name
+SELECT p.first_name, p.surname
 FROM people p
 INNER JOIN events e ON e.id = $1
 INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $1
@@ -104,7 +100,11 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
             event_id
         )
         .fetch_all(&mut conn)
-        .await?;
+        .await?
+        .into_iter()
+        .map(|p| format!("{} {}", p.first_name, p.surname))
+        .collect::<Vec<_>>();
+
 
         if date < now {
             happened_events.push(WholeEvent {

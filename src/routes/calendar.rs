@@ -31,7 +31,7 @@ pub async fn get_calendar_feed(
 
         let prefects = sqlx::query!(
             r#"
-SELECT p.person_name
+SELECT p.first_name, p.surname
 FROM people p
 INNER JOIN events e ON e.id = $1
 INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
@@ -41,7 +41,7 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
         .fetch_all(&mut conn)
         .await?
         .into_iter()
-        .map(|r| r.person_name)
+        .map(|r| format!("{} {}", r.first_name, r.surname))
         .collect::<Vec<_>>()
         .join(", ");
 

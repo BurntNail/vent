@@ -11,7 +11,7 @@ use sqlx::{Pool, Postgres};
 
 use crate::{error::KnotError, liquid_utils::compile};
 
-use super::Person;
+use super::DbPerson;
 
 pub const LOCATION: &str = "/remove_stuff";
 
@@ -49,8 +49,8 @@ pub async fn get_remove_stuff(
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
 
-    let people: Vec<Person> = sqlx::query_as!(
-        Person,
+    let people: Vec<DbPerson> = sqlx::query_as!(
+        DbPerson,
         r#"
 SELECT *
 FROM people

@@ -2,7 +2,7 @@ use super::FormEvent;
 use crate::{
     error::KnotError,
     liquid_utils::compile,
-    routes::{DbEvent, Person},
+    routes::{DbEvent, DbPerson},
 };
 use axum::{
     extract::{Path, State},
@@ -12,7 +12,7 @@ use axum_extra::extract::Form;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
 use tokio::fs::remove_file;
-use std::sync::Arc;
+use std::{sync::Arc, collections::HashMap};
 
 #[allow(clippy::too_many_lines)]
 pub async fn get_update_event(
@@ -39,59 +39,106 @@ SELECT * FROM events WHERE id = $1
     .await?;
     let date = date.to_string();
 
-    #[derive(Deserialize, Serialize, Debug)]
+    #[derive(Deserialize, Serialize, Debug, Clone)]
     struct PersonPlusRelID {
         pub id: i32,
-        pub person_name: String,
+        pub first_name: String,
+        pub surname: String,
+        pub form: String,
         pub relation_id: i32,
     }
 
-    let existing_prefects = sqlx::query_as!(
+    #[derive(Serialize, Clone)]
+    struct RelFormGroup {
+        pub form: String,
+        pub people: Vec<PersonPlusRelID>
+    }
+    #[derive(Serialize, Clone)]
+    struct DbFormGroup {
+        pub form: String,
+        pub people: Vec<DbPerson>
+    }
+
+    let mut existing_prefects = HashMap::new();
+    for person in sqlx::query_as!(
         PersonPlusRelID,
         r#"
-SELECT p.person_name, pe.relation_id, p.id
+SELECT p.first_name, p.surname, pe.relation_id, p.id, p.form
 FROM people p
-INNER JOIN prefect_events pe ON pe.event_id = $1 AND pe.prefect_id = p.id"#,
+INNER JOIN prefect_events pe ON pe.event_id = $1 AND pe.prefect_id = p.id
+ORDER BY p.form
+"#,
         event_id
     )
     .fetch_all(&mut conn)
-    .await?;
+    .await? {
+        existing_prefects.entry(person.form.clone()).or_insert(RelFormGroup {
+            form: person.form.clone(),
+            people: vec![]
+        }).people.push(person);
+    }
+    let existing_prefects = existing_prefects.into_values().collect::<Vec<_>>();
 
-    let existing_participants = sqlx::query_as!(
+    let mut existing_participants = HashMap::new();
+    for person in sqlx::query_as!(
         PersonPlusRelID,
         r#"
-SELECT p.person_name, pe.relation_id, p.id
+SELECT p.first_name, p.surname, pe.relation_id, p.id, p.form
 FROM people p
-INNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.id"#,
+INNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.id
+ORDER BY p.form
+"#,
         event_id
     )
     .fetch_all(&mut conn)
-    .await?;
+    .await? {
+        existing_participants.entry(person.form.clone()).or_insert(RelFormGroup {
+            form: person.form.clone(),
+            people: vec![]
+        }).people.push(person);
+    }
+    let existing_participants = existing_participants.into_values().collect::<Vec<_>>();
 
-    let possible_prefects = sqlx::query_as!(
-        Person,
+    let mut possible_prefects = HashMap::new();
+    for person in sqlx::query_as!(
+        DbPerson,
         r#"
-SELECT p.id, p.person_name, p.is_prefect
+SELECT *
 FROM people p
-WHERE p.is_prefect = true"#
-    )
-    .fetch_all(&mut conn)
-    .await?
-    .into_iter()
-    .filter(|p| !existing_prefects.iter().any(|e| e.id == p.id))
-    .collect::<Vec<_>>();
-    let possible_participants = sqlx::query_as!(
-        Person,
-        r#"
-SELECT p.id, p.person_name, p.is_prefect
-FROM people p
+WHERE p.is_prefect = true
+ORDER BY p.form
 "#
     )
     .fetch_all(&mut conn)
     .await?
     .into_iter()
-    .filter(|p| !existing_participants.iter().any(|e| e.id == p.id))
-    .collect::<Vec<_>>();
+    .filter(|p| !existing_prefects.iter().any(|g| g.people.iter().any(|e| e.id == p.id))) {
+        possible_prefects.entry(person.form.clone()).or_insert(DbFormGroup {
+            form: person.form.clone(),
+            people: vec![]
+        }).people.push(person);
+    }
+    let possible_prefects = possible_prefects.into_values().collect::<Vec<_>>();
+
+    let mut possible_participants = HashMap::new();
+    for person in sqlx::query_as!(
+        DbPerson,
+        r#"
+SELECT *
+FROM people p
+ORDER BY p.form
+"#
+    )
+    .fetch_all(&mut conn)
+    .await?
+    .into_iter()
+    .filter(|p| !existing_participants.iter().any(|g| g.people.iter().any(|e| e.id == p.id))) {
+        possible_participants.entry(person.form.clone()).or_insert(DbFormGroup {
+            form: person.form.clone(),
+            people: vec![]
+        }).people.push(person);
+    }
+    let possible_participants = possible_participants.into_values().collect::<Vec<_>>();
 
     #[derive(Serialize)]
     struct Image {

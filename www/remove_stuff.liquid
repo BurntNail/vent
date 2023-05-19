@@ -14,7 +14,9 @@
         id="person_id"
         value="{{person.id}}">
       <label class="form-check-label" for="person_id">
-        {{ person.person_name }} -
+        {{ person.first_name }} {{ person.surname }}
+        <i>({{ person.form }})</i>
+        -
         {% unless person.is_prefect %}
           Not a
         {% endunless %}

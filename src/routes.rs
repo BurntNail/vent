@@ -13,11 +13,13 @@ use crate::error::KnotError;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize)]
-struct Person {
-    pub person_name: String,
+#[derive(Deserialize, Serialize, Clone)]
+struct DbPerson {
+    pub first_name: String,
+    pub surname: String,
     pub is_prefect: bool,
     pub id: i32,
+    pub form: String,
 }
 
 #[derive(Deserialize)]

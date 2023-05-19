@@ -77,14 +77,14 @@
               <h3 class="card-title">Prefects</h3>
               <ul>
                 {% for prefect in row.prefects %}
-                  <li>{{ prefect.person_name }}</li>
+                  <li>{{ prefect }}</li>
                 {% endfor %}
               </ul>
             </div>
             <div class="col">
               <h3 class="card-title">Participants</h3>
               {% for participant in row.participants %}
-                <li>{{ participant.person_name }}</li>
+                <li>{{ participant }}</li>
               {% endfor %}
             </div>
           </div>
@@ -168,14 +168,14 @@
               <h3 class="card-title">Prefects</h3>
               <ul>
                 {% for prefect in row.prefects %}
-                  <li>{{ prefect.person_name }}</li>
+                  <li>{{ prefect }}</li>
                 {% endfor %}
               </ul>
             </div>
             <div class="col">
               <h3 class="card-title">Participants</h3>
               {% for participant in row.participants %}
-                <li>{{ participant.person_name }}</li>
+                <li>{{ participant }}</li>
               {% endfor %}
             </div>
           </div>
