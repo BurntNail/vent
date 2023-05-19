@@ -5,9 +5,10 @@ pub mod calendar;
 pub mod icon;
 pub mod images;
 pub mod index;
-pub mod remove_stuff;
+pub mod show_all;
 pub mod update_event_and_person;
 pub mod spreadsheets;
+pub mod edit_person;
 
 use crate::error::KnotError;
 use chrono::NaiveDateTime;

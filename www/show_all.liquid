@@ -1,0 +1,92 @@
+{% include "partials/header.liquid" %}
+
+<h2>Remove People</h2>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">
+        Name
+      </th>
+      <th scope="col">
+        Form
+      </th>
+      <th scope="col">
+        Remove
+      </th>
+      <th scope="col">
+        Edit
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for person in people %}
+      <tr>
+        <td>{{ person.first_name }} {{ person.surname }}
+        </td>
+        <td>
+          {{ person.form }}
+        </td>
+        <td>
+          <form action="POST" action="/remove_person">
+            <input
+              type="hidden"
+              name="person_id"
+              value="{{person.id}}">
+            <button type="submit" class="btn btn-danger">Remove Person.</button>
+          </form>
+        </td>
+        <td>
+          <a href="/edit_person/{{person.id}}" class="btn btn-secondary">Edit Person.</a>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<br><br>
+
+<h2>Events</h2>
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">
+        Name
+      </th>
+      <th scope="col">
+        Date
+      </th>
+      <th scope="col">
+        Remove
+      </th>
+      <th scope="col">
+        Edit
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for event in events %}
+      <tr>
+        <td>{{ event.event_name }}
+        </td>
+        <td>
+          {{ event.date }}
+        </td>
+        <td>
+          <form action="POST" action="/remove_person">
+            <input
+              type="hidden"
+              name="event_id"
+              value="{{event.id}}">
+            <button type="submit" class="btn btn-danger">Remove Event.</button>
+          </form>
+        </td>
+        <td>
+          <a href="/update_event/{{event.id}}" class="btn btn-secondary">Edit Event.</a>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% include "partials/footer.liquid" %}

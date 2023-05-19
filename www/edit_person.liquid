@@ -1,0 +1,81 @@
+{% include "partials/header.liquid" %}
+
+<h2>Edit Person</h2>
+
+<div class="card">
+  <div class="card-body">
+    <form method="POST">
+
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="first_name">First Name:
+        </span>
+        <input
+          type="text"
+          class="form-control"
+          name="first_name"
+          id="first_name"
+          value="{{person.first_name}}"
+          required>
+      </div>
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="surname">Surname:
+        </span>
+        <input
+          type="text"
+          class="form-control"
+          name="surname"
+          id="surname"
+          value="{{person.surname}}"
+          required>
+      </div>
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="form">Form:
+        </span>
+        <input
+          type="text"
+          class="form-control"
+          name="form"
+          id="form"
+          value="{{person.form}}">
+      </div>
+
+      <div class="input-group mb-3">
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="radio"
+            name="is_prefect"
+            id="is_not"
+            value="false"
+            {% unless person.is_prefect %}
+            checked
+            {% endunless %}>
+          <label class="form-check-label" for="is_not">
+            Is not a prefect.
+          </label>
+        </div>
+        <br>
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="radio"
+            name="is_prefect"
+            id="is"
+            value="true"
+            {% if person.is_prefect %}
+            checked
+            {% endif %}>
+          <label class="form-check-label" for="is">
+            Is a prefect.
+          </label>
+        </div>
+      </div>
+
+
+      <button type="submit" class="btn btn-primary">Edit person.</button>
+    </form>
+  </div>
+</div>
+
+
+{% include "partials/footer.liquid" %}

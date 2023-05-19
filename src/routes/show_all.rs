@@ -13,7 +13,7 @@ use crate::{error::KnotError, liquid_utils::compile};
 
 use super::DbPerson;
 
-pub const LOCATION: &str = "/remove_stuff";
+pub const LOCATION: &str = "/show_all";
 
 #[derive(Deserialize)]
 pub struct SmolDbEvent {
@@ -53,7 +53,8 @@ pub async fn get_remove_stuff(
         DbPerson,
         r#"
 SELECT *
-FROM people
+FROM people p
+ORDER BY p.form
         "#
     )
     .fetch_all(&mut conn)
@@ -63,7 +64,8 @@ FROM people
         SmolDbEvent,
         r#"
 SELECT id, event_name, date
-FROM events
+FROM events e
+ORDER BY e.date
         "#
     )
     .fetch_all(&mut conn)
@@ -77,7 +79,7 @@ FROM events
         "events": events
     });
 
-    compile("www/remove_stuff.liquid", globals).await
+    compile("www/show_all.liquid", globals).await
 }
 
 #[derive(Deserialize)]

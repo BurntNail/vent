@@ -17,7 +17,7 @@ use routes::{
     calendar::{self, get_calendar_feed},
     icon::{self, get_favicon},
     index::{self, get_index},
-    remove_stuff::{self, get_remove_stuff, post_remove_event, post_remove_person},
+    show_all::{self, get_remove_stuff, post_remove_event, post_remove_person},
     update_event_and_person::{
         get_remove_participant_from_event, get_remove_prefect_from_event, get_update_event,
         post_update_event,
@@ -27,7 +27,7 @@ use tower_http::trace::TraceLayer;
 use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr, sync::Arc};
 
-use crate::routes::{images::{get_all_images, post_add_photo, serve_image}, update_event_and_person::delete_image};
+use crate::routes::{images::{get_all_images, post_add_photo, serve_image}, update_event_and_person::delete_image, edit_person::{get_edit_person, post_edit_person}};
 
 #[macro_use]
 extern crate tracing;
@@ -69,7 +69,7 @@ async fn main() {
             add_person::LOCATION,
             get(get_add_person).post(post_add_person),
         )
-        .route(remove_stuff::LOCATION, get(get_remove_stuff))
+        .route(show_all::LOCATION, get(get_remove_stuff))
         .route("/remove_person", post(post_remove_person))
         .route("/remove_event", post(post_remove_event))
         .route("/remove_img/:id", get(delete_image))
@@ -78,6 +78,7 @@ async fn main() {
             "/update_event/:id",
             get(get_update_event).post(post_update_event),
         )
+        .route("/edit_person/:id", get(get_edit_person).post(post_edit_person))
         .route(
             "/remove_prefect_from_event/:relation_id",
             get(get_remove_prefect_from_event),
