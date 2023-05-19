@@ -46,11 +46,19 @@ pub async fn get_index(
         }
     }
 
+
+    #[derive(Serialize)]
+    struct PersonForm {
+        pub first_name: String,
+        pub surname: String,
+        pub form: String,
+    }
+
     #[derive(Serialize)]
     struct WholeEvent {
         event: HTMLEvent,
-        participants: Vec<String>,
-        prefects: Vec<String>,
+        participants: Vec<PersonForm>,
+        prefects: Vec<PersonForm>,
         n_participants: usize,
         n_prefects: usize,
     }
@@ -75,9 +83,10 @@ ORDER BY events.date
         let event = HTMLEvent::from(event);
 
         let event_id = event.id;
-        let prefects = sqlx::query!(
+        let prefects = sqlx::query_as!(
+            PersonForm,
             r#"
-SELECT p.first_name, p.surname
+SELECT p.first_name, p.surname, p.form
 FROM people p
 INNER JOIN events e ON e.id = $1
 INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
@@ -85,14 +94,12 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
             event_id
         )
         .fetch_all(&mut conn)
-        .await?
-        .into_iter()
-        .map(|p| format!("{} {}", p.first_name, p.surname))
-        .collect::<Vec<_>>();
+        .await?;
 
-        let participants = sqlx::query!(
+        let participants = sqlx::query_as!(
+            PersonForm,
             r#"
-SELECT p.first_name, p.surname
+SELECT p.first_name, p.surname, p.form
 FROM people p
 INNER JOIN events e ON e.id = $1
 INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $1
@@ -100,11 +107,7 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
             event_id
         )
         .fetch_all(&mut conn)
-        .await?
-        .into_iter()
-        .map(|p| format!("{} {}", p.first_name, p.surname))
-        .collect::<Vec<_>>();
-
+        .await?;
 
         if date < now {
             happened_events.push(WholeEvent {
