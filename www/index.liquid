@@ -185,15 +185,19 @@
             <div class="col">
               <h3 class="card-title">Prefects</h3>
               <ul>
-                {% for prefect in row.prefects %}
-                  <li>{{ prefect }}</li>
+                {% for person in row.prefects %}
+                  <li>{{ person.first_name }} {{ person.surname }}
+                    <i>({{ person.form }})</i>
+                  </li>
                 {% endfor %}
               </ul>
             </div>
             <div class="col">
               <h3 class="card-title">Participants</h3>
-              {% for participant in row.participants %}
-                <li>{{ participant }}</li>
+              {% for person in row.participants %}
+                <li>{{ person.first_name }} {{ person.surname }}
+                  <i>({{ person.form }})</i>
+                </li>
               {% endfor %}
             </div>
           </div>
