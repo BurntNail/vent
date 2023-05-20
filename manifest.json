@@ -1,0 +1,21 @@
+{
+    "background_color": "#212529",
+    "description": "App for managing events",
+    "dir": "ltr",
+    "display": "standalone",
+    "name": "Knot",
+    "orientation": "portrait",
+    "scope": "/",
+    "short_name": "Knot",
+    "start_url": "/",
+    "theme_color": "#212529",
+    "categories": [],
+    "screenshots": [],
+    "icons": [
+      {
+        "src": "/favicon.ico",
+        "type": "image/x-icon"
+      }
+    ],
+    "shortcuts": []
+  }
