@@ -1,8 +1,8 @@
 {% include "partials/header.liquid" %}
 
-<h2>Update Event</h2>
 <div class="card">
   <div class="card-body">
+    <h2 class="card-title">Update Event</h2>
     <form method="POST">
 
       <div class="input-group mb-3">
@@ -62,239 +62,209 @@
 
       <button type="submit" class="btn btn-primary">Update Event.</button>
     </form>
-
-  </div>
-</div>
-
-
-
-<br><br>
-
-
-<div class="card">
-  <div class="row card-body">
-    <h3 class="card-title">Potential</h3>
-    <div class="col">
-      <h5>Prefects</h3>
-      <div class="accordion" id="pot_pres">
-        {% for form in prefects %}
-          <div class="accordion-item">
-            <h2 class="accordion-header">
-              <button
-                class="accordion-button collapsed"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#pot_pres_{{form.form}}"
-                aria-controls="pot_pres_{{form.form}}">
-                {{ form.form }}
-              </button>
-            </h2>
-            <div
-              class="accordion-collapse collapse"
-              data-bs-parent="pot_pres"
-              id="pot_pres_{{form.form}}">
-              <div class="accordion-body">
-                {% for person in form.people %}
-                  <a href="/add_prefect/{{event.id}}/{{person.id}}">
-                    Add {{ person.first_name }} {{ person.surname }}
-                  </a>
-                  <br>
-                {% endfor %}
-              </div>
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-    </div>
-    <div class="col">
-      <h5>Participants</h3>
-
-      <div class="accordion" id="pot_part">
-        {% for form in participants %}
-          <div class="accordion-item">
-            <h2 class="accordion-header">
-              <button
-                class="accordion-button collapsed"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#pot_part_{{form.form}}"
-                aria-controls="pot_part_{{form.form}}">
-                {{ form.form }}
-              </button>
-            </h2>
-            <div
-              class="accordion-collapse collapse"
-              data-bs-parent="pot_part"
-              id="pot_part_{{form.form}}">
-              <div class="accordion-body">
-                {% for person in form.people %}
-                  <a href="/add_participant/{{event.id}}/{{person.id}}">
-                    Add {{ person.first_name }} {{ person.surname }}
-                  </a>
-                  <br>
-                {% endfor %}
-              </div>
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-    </div>
   </div>
 </div>
 
 <br>
 
-<div class="card">
-  <div class="row card-body">
-    <h3 class="card-title">Curent</h3>
+<div class="row">
+  <div class="col">
+    <div class="card">
+      <div class="row card-body">
+        <h3 class="card-title">Potential</h3>
+        <div class="col">
+          <h5>Prefects</h3>
+          <div class="accordion" id="pot_pres">
+            {% for form in prefects %}
+              <div class="accordion-item">
+                <h2 class="accordion-header">
+                  <button
+                    class="accordion-button collapsed"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#pot_pres_{{form.form}}"
+                    aria-controls="pot_pres_{{form.form}}">
+                    {{ form.form }}
+                  </button>
+                </h2>
+                <div
+                  class="accordion-collapse collapse"
+                  data-bs-parent="pot_pres"
+                  id="pot_pres_{{form.form}}">
+                  <div class="accordion-body">
+                    {% for person in form.people %}
+                      <a href="/add_prefect/{{event.id}}/{{person.id}}">
+                        Add {{ person.first_name }} {{ person.surname }}
+                      </a>
+                      <br>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="col">
+          <h5>Participants</h3>
 
+          <div class="accordion" id="pot_part">
+            {% for form in participants %}
+              <div class="accordion-item">
+                <h2 class="accordion-header">
+                  <button
+                    class="accordion-button collapsed"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#pot_part_{{form.form}}"
+                    aria-controls="pot_part_{{form.form}}">
+                    {{ form.form }}
+                  </button>
+                </h2>
+                <div
+                  class="accordion-collapse collapse"
+                  data-bs-parent="pot_part"
+                  id="pot_part_{{form.form}}">
+                  <div class="accordion-body">
+                    {% for person in form.people %}
+                      <a href="/add_participant/{{event.id}}/{{person.id}}">
+                        Add {{ person.first_name }} {{ person.surname }}
+                      </a>
+                      <br>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card">
+      <div class="row card-body">
+        <h3 class="card-title">Curent</h3>
 
-    <div class="col">
-      <h5>Prefects</h3>
-      <div class="accordion" id="cu_pre">
-        {% for form in existing_prefects %}
-          <div class="accordion-item">
-            <h2 class="accordion-header">
-              <button
-                class="accordion-button collapsed"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#cu_pre_{{form.form}}"
-                aria-controls="cu_pre_{{form.form}}">
-                {{ form.form }}
-              </button>
-            </h2>
-            <div
-              class="accordion-collapse collapse"
-              data-bs-parent="cu_pre"
-              id="cu_pre_{{form.form}}">
-              <div class="accordion-body">
-                {% for person in form.people %}
+        <div class="col">
+          <h3>Prefects</h3>
+          <ul class="list-group list-group-flush">
+            {% for form in existing_prefects %}
+              <li class="list-group-item">
+                <b>{{ form.form }}</b>
+              </li>
+              {% for person in form.people %}
+                <li class="list-group-item">
                   <a href="/remove_prefect_from_event/{{person.relation_id}}">
                     Remove {{ person.first_name }} {{ person.surname }}
                   </a>
-                  <br>
-                {% endfor %}
-              </div>
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-    </div>
-    <div class="col">
-      <h5>Participants</h3>
+                </li>
+              {% endfor %}
+            {% endfor %}
+          </ul>
+        </div>
 
-      <div class="accordion" id="cu_part">
-        {% for form in existing_participants %}
-          <div class="accordion-item">
-            <h2 class="accordion-header">
-              <button
-                class="accordion-button collapsed"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#cu_part_{{form.form}}"
-                aria-controls="cu_part_{{form.form}}">
-                {{ form.form }}
-              </button>
-            </h2>
-            <div
-              class="accordion-collapse collapse"
-              data-bs-parent="cu_part"
-              id="cu_part_{{form.form}}">
-              <div class="accordion-body">
-                {% for person in form.people %}
-                  <a href="/remove_participant_from_event/{{person.relation_id}}">
+        <div class="col">
+          <h3>Prefects</h3>
+          <ul class="list-group list-group-flush">
+            {% for form in existing_participants %}
+              <li class="list-group-item">
+                <b>{{ form.form }}</b>
+              </li>
+              {% for person in form.people %}
+                <li class="list-group-item">
+                  <a href="/remove_prefect_from_event/{{person.relation_id}}">
                     Remove {{ person.first_name }} {{ person.surname }}
                   </a>
-                  <br>
-                {% endfor %}
-              </div>
-            </div>
-          </div>
-        {% endfor %}
+                </li>
+              {% endfor %}
+            {% endfor %}
+          </ul>
+        </div>
       </div>
     </div>
   </div>
 </div>
-
-
-<br>
-
-<h2>Existing Images</h2>
-
-{% if n_imgs == 0 %}
-  <p>No Images yet</p>
-{% else %}
-  <div id="imagesCarousel" class="carousel slide carousel-fade">
-    <div class="carousel-inner">
-      <div class="carousel-item active">
-        <img
-          src="../{{imgs[0].path}}"
-          class="d-block w-100 h-100"
-          alt="Photo of people playing sports">
-        <div class="carousel-caption d-none d-md-block">
-          <a href="/remove_img/{{imgs[0].id}}" class="btn btn-danger">Remove Image</a>
-        </div>
-      </div>
-      {% for n in (2..n_imgs) %}
-        <div class="carousel-item">
-          {% assign prev = n | minus: 1 %}
-          <img
-            src="../{{imgs[prev].path}}"
-            class="d-block w-100 h-100"
-            alt="Photo of people playing sports">
-          <div class="carousel-caption d-none d-md-block">
-            <a href="/remove_img/{{imgs[0].id}}" class="btn btn-danger">Remove Image</a>
-          </div>
-        </div>
-      {% endfor %}
-
-    </div>
-
-    {% if n_imgs > 1 %}
-      <button
-        class="carousel-control-prev"
-        type="button"
-        data-bs-target="#imagesCarousel"
-        data-bs-slide="prev">
-        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Previous</span>
-      </button>
-      <button
-        class="carousel-control-next"
-        type="button"
-        data-bs-target="#imagesCarousel"
-        data-bs-slide="next">
-        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Next</span>
-      </button>
-    {% endif %}
-  </div>
-{% endif %}
 
 <br>
 
 <div class="card">
   <div class="card-body">
-    <form
-      action="/add_image/{{event.id}}"
-      method="POST"
-      enctype=multipart/form-data>
-      <div class="mb-3">
-        <label for="photo" class="form-label">Add Photo:</label>
-        <input
-          type="file"
-          name="photo"
-          id="photo"
-          class="form-control"
-          accept="image/bmp, image/exr, image/gif, image/hdr, image/ico, image/jpeg, image/png, image/qoi, image/tiff, image/webp"
-          required>
-      </div>
+    <h2 class="card-title">Existing Images</h2>
 
-      <button type="submit" class="btn btn-primary">Add photo.</button>
-    </form>
+    <a href="/get_all_imgs/{{event.id}}" class="btn btn-primary">Download as zip.</a>
+
+    <br>
+
+    {% if n_imgs == 0 %}
+      <p>No Images yet</p>
+    {% else %}
+      <div id="imagesCarousel" class="carousel slide carousel-fade">
+        <div class="carousel-inner">
+          {% for img in imgs %}
+            {% if forloop.first %}
+              {% assign class = "carousel-item active" %}
+            {% else %}
+              {% assign class = "carousel-item" %}
+            {% endif %}
+            <div class="{{class}}">
+              <img
+                src="/{{img.path}}"
+                class="d-block w-100 h-100"
+                alt="Photo of people playing sports">
+              <div class="carousel-caption d-none d-md-block">
+                <a href="/remove_img/{{img.id}}" class="btn btn-danger">Remove Image</a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        {% if n_imgs > 1 %}
+          <button
+            class="carousel-control-prev"
+            type="button"
+            data-bs-target="#imagesCarousel"
+            data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+          </button>
+          <button
+            class="carousel-control-next"
+            type="button"
+            data-bs-target="#imagesCarousel"
+            data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+          </button>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <br>
+
+    <div class="card">
+      <div class="card-body">
+        <form
+          action="/add_image/{{event.id}}"
+          method="POST"
+          enctype=multipart/form-data>
+          <div class="mb-3">
+            <label for="photo" class="form-label">Add Photo:</label>
+            <input
+              type="file"
+              name="photo"
+              id="photo"
+              class="form-control"
+              accept="image/bmp, image/exr, image/gif, image/hdr, image/ico, image/jpeg, image/png, image/qoi, image/tiff, image/webp"
+              required>
+          </div>
+
+          <button type="submit" class="btn btn-primary">Add photo.</button>
+        </form>
+      </div>
+    </div>
   </div>
 </div>
 
+<br>
 
 {% include "partials/footer.liquid" %}

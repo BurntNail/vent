@@ -93,7 +93,6 @@ pub async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoRespon
     Ok((headers, body))
 }
 
-#[axum::debug_handler]
 pub async fn get_all_images(
     Path(event_id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
