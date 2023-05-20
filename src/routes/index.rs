@@ -1,6 +1,6 @@
 use axum::{extract::State, response::IntoResponse};
 use chrono::Utc;
-use serde::{Serialize};
+use serde::Serialize;
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
@@ -45,7 +45,6 @@ pub async fn get_index(
             }
         }
     }
-
 
     #[derive(Serialize)]
     struct PersonForm {

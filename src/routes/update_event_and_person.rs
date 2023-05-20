@@ -11,8 +11,8 @@ use axum::{
 use axum_extra::extract::Form;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
+use std::{collections::HashMap, sync::Arc};
 use tokio::fs::remove_file;
-use std::{sync::Arc, collections::HashMap};
 
 #[allow(clippy::too_many_lines)]
 pub async fn get_update_event(
@@ -51,12 +51,12 @@ SELECT * FROM events WHERE id = $1
     #[derive(Serialize, Clone)]
     struct RelFormGroup {
         pub form: String,
-        pub people: Vec<PersonPlusRelID>
+        pub people: Vec<PersonPlusRelID>,
     }
     #[derive(Serialize, Clone)]
     struct DbFormGroup {
         pub form: String,
-        pub people: Vec<DbPerson>
+        pub people: Vec<DbPerson>,
     }
 
     let mut existing_prefects = HashMap::new();
@@ -71,11 +71,16 @@ ORDER BY p.form
         event_id
     )
     .fetch_all(&mut conn)
-    .await? {
-        existing_prefects.entry(person.form.clone()).or_insert(RelFormGroup {
-            form: person.form.clone(),
-            people: vec![]
-        }).people.push(person);
+    .await?
+    {
+        existing_prefects
+            .entry(person.form.clone())
+            .or_insert(RelFormGroup {
+                form: person.form.clone(),
+                people: vec![],
+            })
+            .people
+            .push(person);
     }
     let existing_prefects = existing_prefects.into_values().collect::<Vec<_>>();
 
@@ -91,11 +96,16 @@ ORDER BY p.form
         event_id
     )
     .fetch_all(&mut conn)
-    .await? {
-        existing_participants.entry(person.form.clone()).or_insert(RelFormGroup {
-            form: person.form.clone(),
-            people: vec![]
-        }).people.push(person);
+    .await?
+    {
+        existing_participants
+            .entry(person.form.clone())
+            .or_insert(RelFormGroup {
+                form: person.form.clone(),
+                people: vec![],
+            })
+            .people
+            .push(person);
     }
     let existing_participants = existing_participants.into_values().collect::<Vec<_>>();
 
@@ -112,11 +122,19 @@ ORDER BY p.form
     .fetch_all(&mut conn)
     .await?
     .into_iter()
-    .filter(|p| !existing_prefects.iter().any(|g| g.people.iter().any(|e| e.id == p.id))) {
-        possible_prefects.entry(person.form.clone()).or_insert(DbFormGroup {
-            form: person.form.clone(),
-            people: vec![]
-        }).people.push(person);
+    .filter(|p| {
+        !existing_prefects
+            .iter()
+            .any(|g| g.people.iter().any(|e| e.id == p.id))
+    }) {
+        possible_prefects
+            .entry(person.form.clone())
+            .or_insert(DbFormGroup {
+                form: person.form.clone(),
+                people: vec![],
+            })
+            .people
+            .push(person);
     }
     let possible_prefects = possible_prefects.into_values().collect::<Vec<_>>();
 
@@ -132,11 +150,19 @@ ORDER BY p.form
     .fetch_all(&mut conn)
     .await?
     .into_iter()
-    .filter(|p| !existing_participants.iter().any(|g| g.people.iter().any(|e| e.id == p.id))) {
-        possible_participants.entry(person.form.clone()).or_insert(DbFormGroup {
-            form: person.form.clone(),
-            people: vec![]
-        }).people.push(person);
+    .filter(|p| {
+        !existing_participants
+            .iter()
+            .any(|g| g.people.iter().any(|e| e.id == p.id))
+    }) {
+        possible_participants
+            .entry(person.form.clone())
+            .or_insert(DbFormGroup {
+                form: person.form.clone(),
+                people: vec![],
+            })
+            .people
+            .push(person);
     }
     let possible_participants = possible_participants.into_values().collect::<Vec<_>>();
 
@@ -251,7 +277,10 @@ RETURNING event_id
     Ok(Redirect::to(&format!("/update_event/{id}")))
 }
 
-pub async fn delete_image (Path(img_id): Path<i32>, State(pool): State<Arc<Pool<Postgres>>>) -> Result<impl IntoResponse, KnotError> {
+pub async fn delete_image(
+    Path(img_id): Path<i32>,
+    State(pool): State<Arc<Pool<Postgres>>>,
+) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
     let event = sqlx::query!(
         r#"
@@ -259,7 +288,9 @@ DELETE FROM public.photos
 WHERE id=$1
 RETURNING path, event_id"#,
         img_id
-    ).fetch_one(&mut conn).await?;
+    )
+    .fetch_one(&mut conn)
+    .await?;
 
     remove_file(event.path).await?;
 

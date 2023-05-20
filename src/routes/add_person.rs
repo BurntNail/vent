@@ -25,7 +25,12 @@ pub struct NoIDPerson {
 
 pub async fn post_add_person(
     State(pool): State<Arc<Pool<Postgres>>>,
-    Form(NoIDPerson { first_name, surname, form, is_prefect }): Form<NoIDPerson>,
+    Form(NoIDPerson {
+        first_name,
+        surname,
+        form,
+        is_prefect,
+    }): Form<NoIDPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
 

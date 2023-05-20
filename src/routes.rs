@@ -2,13 +2,13 @@ pub mod add_event;
 pub mod add_people_to_event;
 pub mod add_person;
 pub mod calendar;
+pub mod edit_person;
 pub mod icon;
 pub mod images;
 pub mod index;
 pub mod show_all;
-pub mod update_event_and_person;
 pub mod spreadsheets;
-pub mod edit_person;
+pub mod update_event_and_person;
 
 use crate::error::KnotError;
 use chrono::NaiveDateTime;

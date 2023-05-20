@@ -6,6 +6,7 @@ mod liquid_utils;
 mod routes;
 
 use axum::{
+    extract::DefaultBodyLimit,
     routing::{get, post},
     Router,
 };
@@ -23,11 +24,16 @@ use routes::{
         post_update_event,
     },
 };
-use tower_http::trace::TraceLayer;
 use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr, sync::Arc};
+use tower_http::trace::TraceLayer;
 
-use crate::routes::{images::{get_all_images, post_add_photo, serve_image}, update_event_and_person::delete_image, edit_person::{get_edit_person, post_edit_person}, spreadsheets::get_spreadsheet};
+use crate::routes::{
+    edit_person::{get_edit_person, post_edit_person},
+    images::{get_all_images, post_add_photo, serve_image},
+    spreadsheets::get_spreadsheet,
+    update_event_and_person::delete_image,
+};
 
 #[macro_use]
 extern crate tracing;
@@ -79,7 +85,10 @@ async fn main() {
             "/update_event/:id",
             get(get_update_event).post(post_update_event),
         )
-        .route("/edit_person/:id", get(get_edit_person).post(post_edit_person))
+        .route(
+            "/edit_person/:id",
+            get(get_edit_person).post(post_edit_person),
+        )
         .route(
             "/remove_prefect_from_event/:relation_id",
             get(get_remove_prefect_from_event),
@@ -92,6 +101,7 @@ async fn main() {
         .route("/get_all_imgs/:event_id", get(get_all_images))
         .route("/uploads/:img", get(serve_image))
         .layer(TraceLayer::new_for_http())
+        .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think
         .with_state(pool);
 
     let port: SocketAddr = var("KNOT_SERVER_IP")
