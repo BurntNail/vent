@@ -27,7 +27,7 @@ use tower_http::trace::TraceLayer;
 use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr, sync::Arc};
 
-use crate::routes::{images::{get_all_images, post_add_photo, serve_image}, update_event_and_person::delete_image, edit_person::{get_edit_person, post_edit_person}};
+use crate::routes::{images::{get_all_images, post_add_photo, serve_image}, update_event_and_person::delete_image, edit_person::{get_edit_person, post_edit_person}, spreadsheets::get_spreadsheet};
 
 #[macro_use]
 extern crate tracing;
@@ -74,6 +74,7 @@ async fn main() {
         .route("/remove_event", post(post_remove_event))
         .route("/remove_img/:id", get(delete_image))
         .route(calendar::LOCATION, get(get_calendar_feed))
+        .route("/spreadsheet", get(get_spreadsheet))
         .route(
             "/update_event/:id",
             get(get_update_event).post(post_update_event),

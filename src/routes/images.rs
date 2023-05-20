@@ -164,12 +164,11 @@ WHERE event_id = $1"#,
                 ZipEntryBuilder::new(file_path.into(), Compression::Deflate),
                 &data,
             )
-            .await
-            .map_err(KnotError::Zip)?;
+            .await?;
         data.clear();
     }
 
-    writer.close().await.map_err(KnotError::Zip)?;
+    writer.close().await?;
     drop(file);
 
     let body = StreamBody::new(ReaderStream::new(File::open(&file_name).await?));
