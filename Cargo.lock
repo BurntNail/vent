@@ -1111,7 +1111,6 @@ dependencies = [
  "time 0.3.21",
  "tokio",
  "tokio-util",
- "tower-http",
  "tracing",
  "tracing-subscriber",
  "tracing-tree",
@@ -2418,7 +2417,6 @@ dependencies = [
  "pin-project-lite",
  "tower-layer",
  "tower-service",
- "tracing",
 ]
 
 [[package]]

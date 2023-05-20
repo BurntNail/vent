@@ -56,10 +56,8 @@ pub async fn get_index(
     #[derive(Serialize)]
     struct WholeEvent {
         event: HTMLEvent,
-        participants: Vec<PersonForm>,
-        prefects: Vec<PersonForm>,
-        n_participants: usize,
-        n_prefects: usize,
+        participants: usize,
+        prefects: usize,
     }
 
     let mut happened_events = vec![];
@@ -93,7 +91,7 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
             event_id
         )
         .fetch_all(&mut conn)
-        .await?;
+        .await?.len();
 
         let participants = sqlx::query_as!(
             PersonForm,
@@ -106,21 +104,17 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
             event_id
         )
         .fetch_all(&mut conn)
-        .await?;
+        .await?.len();
 
         if date < now {
             happened_events.push(WholeEvent {
                 event,
-                n_participants: participants.len(),
-                n_prefects: prefects.len(),
                 participants,
                 prefects,
             });
         } else {
             events_to_happen.push(WholeEvent {
                 event,
-                n_participants: participants.len(),
-                n_prefects: prefects.len(),
                 participants,
                 prefects,
             });

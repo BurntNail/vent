@@ -23,20 +23,6 @@ pub async fn get_favicon() -> Result<impl IntoResponse, KnotError> {
     Ok((headers, body))
 }
 
-pub async fn get_sw() -> Result<impl IntoResponse, KnotError> {
-    let file = File::open("www/sw.js").await?;
-
-    let file_size = file.metadata().await?.len();
-
-    let body = StreamBody::new(ReaderStream::new(file));
-
-    let mut headers = HeaderMap::new();
-    headers.insert(header::CONTENT_TYPE, "text/javascript".parse()?);
-    headers.insert(header::CONTENT_LENGTH, file_size.into());
-
-    Ok((headers, body))
-}
-
 pub async fn get_manifest() -> Result<impl IntoResponse, KnotError> {
     let file = File::open("manifest.json").await?;
 
