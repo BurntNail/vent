@@ -101,8 +101,8 @@ pub async fn post_remove_person(
     for person_id in person_id {
         sqlx::query!(
             r#"
-    DELETE FROM public.people
-    WHERE id=$1
+DELETE FROM public.people
+WHERE id=$1
             "#,
             person_id
         )

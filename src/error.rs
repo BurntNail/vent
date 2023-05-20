@@ -29,7 +29,9 @@ pub enum KnotError {
     #[error("Missing Image Extension: {0:?}")]
     NoImageExtension(image::ImageFormat),
     #[error("Error creating Zip File")]
-    Zip(ZipError),
+    Zip(#[from] ZipError),
+    #[error("Error with CSV")]
+    Csv(#[from] csv_async::Error),
     #[error("Missing File: {0:?}")]
     MissingFile(String),
     #[error("Encountered Invalid UTF-8")]
