@@ -3,7 +3,7 @@ pub mod add_people_to_event;
 pub mod add_person;
 pub mod calendar;
 pub mod edit_person;
-pub mod icon;
+pub mod public;
 pub mod images;
 pub mod index;
 pub mod show_all;

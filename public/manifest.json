@@ -15,6 +15,14 @@
       {
         "src": "/favicon.ico",
         "type": "image/x-icon"
+      },
+      {
+        "src": "/512x512.png",
+        "type": "image/png"
+      },
+      {
+        "src": "/256x256.png",
+        "type": "image/png"
       }
     ],
     "shortcuts": []

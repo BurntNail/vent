@@ -34,6 +34,10 @@ pub enum KnotError {
     Csv(#[from] csv_async::Error),
     #[error("Missing File: {0:?}")]
     MissingFile(String),
+    #[error("Missing Extension")]
+    MissingExt,
+    #[error("Unknown MIME Type for Extension: {0:?}")]
+    UnknownMIME(String),
     #[error("Encountered Invalid UTF-8")]
     InvalidUTF8,
 }

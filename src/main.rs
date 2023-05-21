@@ -16,23 +16,22 @@ use routes::{
     add_people_to_event::{get_add_participant_to_event, get_add_prefect_to_event},
     add_person::{self, get_add_person, post_add_person},
     calendar::{self, get_calendar_feed},
-    icon::{self, get_favicon},
+    public::{get_favicon},
     index::{self, get_index},
     show_all::{self, get_remove_stuff, post_remove_event, post_remove_person},
     update_event_and_person::{
         get_remove_participant_from_event, get_remove_prefect_from_event, get_update_event,
         post_update_event,
     },
+    edit_person::{get_edit_person, post_edit_person},
+    images::{get_all_images, post_add_photo, serve_image},
+    spreadsheets::get_spreadsheet,
+    update_event_and_person::delete_image, public::{get_manifest},
 };
 use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr, sync::Arc};
 
-use crate::routes::{
-    edit_person::{get_edit_person, post_edit_person},
-    images::{get_all_images, post_add_photo, serve_image},
-    spreadsheets::get_spreadsheet,
-    update_event_and_person::delete_image, icon::{get_manifest},
-};
+use crate::routes::public::{get_512, get_256, get_sw, get_offline};
 
 #[macro_use]
 extern crate tracing;
@@ -57,8 +56,12 @@ async fn main() {
 
     let app = Router::new()
         .route(index::LOCATION, get(get_index))
-        .route(icon::LOCATION, get(get_favicon).head(get_favicon))
-        .route("/manifest.json", get(get_manifest))
+        .route("/favicon.ico", get(get_favicon).head(get_favicon))
+        .route("/manifest.json", get(get_manifest).head(get_manifest))
+        .route("/sw.js", get(get_sw).head(get_sw))
+        .route("/offline.html", get(get_offline).head(get_offline))
+        .route("/512x512.png", get(get_512).head(get_512))
+        .route("/256x256.png", get(get_256).head(get_256))
         .route(
             add_event::LOCATION,
             get(get_add_event_form).post(post_add_event_form),
