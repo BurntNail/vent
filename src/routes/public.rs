@@ -23,6 +23,7 @@ macro_rules! get_x {
                     "js" => "application/javascript",
                     "ico" => "image/x-icon",
                     "png" => "image/png",
+                    "html" => "text/html",
                     unknown => Err(KnotError::UnknownMIME(unknown.into()))?
                 }.parse()?;
             
