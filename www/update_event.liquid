@@ -96,12 +96,13 @@
                   data-bs-parent="pot_pres"
                   id="pot_pres_{{form.form}}">
                   <div class="accordion-body">
+                  <ul>
                     {% for person in form.people %}
-                      <a href="/add_prefect/{{event.id}}/{{person.id}}">
+                      <li><a href="/add_prefect/{{event.id}}/{{person.id}}">
                         Add {{ person.first_name }} {{ person.surname }}
-                      </a>
-                      <br>
+                      </a></li>
                     {% endfor %}
+                  </ul>
                   </div>
                 </div>
               </div>
@@ -129,12 +130,13 @@
                   data-bs-parent="pot_part"
                   id="pot_part_{{form.form}}">
                   <div class="accordion-body">
+                  <ul>
                     {% for person in form.people %}
-                      <a href="/add_participant/{{event.id}}/{{person.id}}">
+                      <li><a href="/add_participant/{{event.id}}/{{person.id}}">
                         Add {{ person.first_name }} {{ person.surname }}
-                      </a>
-                      <br>
+                      </a></li>
                     {% endfor %}
+                  </ul>
                   </div>
                 </div>
               </div>
