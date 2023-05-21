@@ -81,10 +81,13 @@ INNER JOIN prefect_events pe ON pe.event_id = $1 AND pe.prefect_id = p.id
             .people
             .push(person);
     }
-    let mut existing_prefects = existing_prefects.into_values().map(|mut rfg| {
-        rfg.people.sort_by_key(|x| x.surname.clone());
-        rfg
-    }).collect::<Vec<_>>();
+    let mut existing_prefects = existing_prefects
+        .into_values()
+        .map(|mut rfg| {
+            rfg.people.sort_by_key(|x| x.surname.clone());
+            rfg
+        })
+        .collect::<Vec<_>>();
     existing_prefects.sort_by_key(|rfg| rfg.form.clone());
 
     let mut existing_participants = HashMap::new();
@@ -109,10 +112,13 @@ INNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.i
             .people
             .push(person);
     }
-    let mut existing_participants = existing_participants.into_values().map(|mut rfg| {
-        rfg.people.sort_by_key(|x| x.surname.clone());
-        rfg
-    }).collect::<Vec<_>>();
+    let mut existing_participants = existing_participants
+        .into_values()
+        .map(|mut rfg| {
+            rfg.people.sort_by_key(|x| x.surname.clone());
+            rfg
+        })
+        .collect::<Vec<_>>();
     existing_participants.sort_by_key(|rfg| rfg.form.clone());
 
     let mut possible_prefects = HashMap::new();
@@ -141,10 +147,13 @@ WHERE p.is_prefect = true
             .people
             .push(person);
     }
-    let mut possible_prefects = possible_prefects.into_values().map(|mut dfg| {
-        dfg.people.sort_by_key(|x| x.surname.clone());
-        dfg
-    }).collect::<Vec<_>>();
+    let mut possible_prefects = possible_prefects
+        .into_values()
+        .map(|mut dfg| {
+            dfg.people.sort_by_key(|x| x.surname.clone());
+            dfg
+        })
+        .collect::<Vec<_>>();
     possible_prefects.sort_by_key(|dfg| dfg.form.clone());
 
     let mut possible_participants = HashMap::new();
@@ -172,12 +181,14 @@ FROM people p
             .people
             .push(person);
     }
-    let mut possible_participants = possible_participants.into_values().map(|mut dfg| {
-        dfg.people.sort_by_key(|x| x.surname.clone());
-        dfg
-    }).collect::<Vec<_>>();
+    let mut possible_participants = possible_participants
+        .into_values()
+        .map(|mut dfg| {
+            dfg.people.sort_by_key(|x| x.surname.clone());
+            dfg
+        })
+        .collect::<Vec<_>>();
     possible_participants.sort_by_key(|dfg| dfg.form.clone());
-
 
     #[derive(Serialize)]
     struct Image {

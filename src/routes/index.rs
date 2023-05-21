@@ -91,7 +91,8 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
             event_id
         )
         .fetch_all(&mut conn)
-        .await?.len();
+        .await?
+        .len();
 
         let participants = sqlx::query_as!(
             PersonForm,
@@ -104,7 +105,8 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
             event_id
         )
         .fetch_all(&mut conn)
-        .await?.len();
+        .await?
+        .len();
 
         if date < now {
             happened_events.push(WholeEvent {
