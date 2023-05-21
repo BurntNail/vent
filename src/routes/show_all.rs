@@ -49,16 +49,17 @@ pub async fn get_remove_stuff(
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
 
-    let people: Vec<DbPerson> = sqlx::query_as!(
+    let mut people: Vec<DbPerson> = sqlx::query_as!(
         DbPerson,
         r#"
 SELECT *
 FROM people p
-ORDER BY p.form
         "#
     )
     .fetch_all(&mut conn)
     .await?;
+    people.sort_by_key(|x| x.surname.clone());
+    people.sort_by_key(|x| x.form.clone());
 
     let events: Vec<SmolFormattedDbEvent> = sqlx::query_as!(
         SmolDbEvent,

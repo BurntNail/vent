@@ -66,7 +66,6 @@ SELECT * FROM events WHERE id = $1
 SELECT p.first_name, p.surname, pe.relation_id, p.id, p.form
 FROM people p
 INNER JOIN prefect_events pe ON pe.event_id = $1 AND pe.prefect_id = p.id
-ORDER BY p.form
 "#,
         event_id
     )
@@ -82,7 +81,11 @@ ORDER BY p.form
             .people
             .push(person);
     }
-    let existing_prefects = existing_prefects.into_values().collect::<Vec<_>>();
+    let mut existing_prefects = existing_prefects.into_values().map(|mut rfg| {
+        rfg.people.sort_by_key(|x| x.surname.clone());
+        rfg
+    }).collect::<Vec<_>>();
+    existing_prefects.sort_by_key(|rfg| rfg.form.clone());
 
     let mut existing_participants = HashMap::new();
     for person in sqlx::query_as!(
@@ -91,7 +94,6 @@ ORDER BY p.form
 SELECT p.first_name, p.surname, pe.relation_id, p.id, p.form
 FROM people p
 INNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.id
-ORDER BY p.form
 "#,
         event_id
     )
@@ -107,7 +109,11 @@ ORDER BY p.form
             .people
             .push(person);
     }
-    let existing_participants = existing_participants.into_values().collect::<Vec<_>>();
+    let mut existing_participants = existing_participants.into_values().map(|mut rfg| {
+        rfg.people.sort_by_key(|x| x.surname.clone());
+        rfg
+    }).collect::<Vec<_>>();
+    existing_participants.sort_by_key(|rfg| rfg.form.clone());
 
     let mut possible_prefects = HashMap::new();
     for person in sqlx::query_as!(
@@ -116,7 +122,6 @@ ORDER BY p.form
 SELECT *
 FROM people p
 WHERE p.is_prefect = true
-ORDER BY p.form
 "#
     )
     .fetch_all(&mut conn)
@@ -136,7 +141,11 @@ ORDER BY p.form
             .people
             .push(person);
     }
-    let possible_prefects = possible_prefects.into_values().collect::<Vec<_>>();
+    let mut possible_prefects = possible_prefects.into_values().map(|mut dfg| {
+        dfg.people.sort_by_key(|x| x.surname.clone());
+        dfg
+    }).collect::<Vec<_>>();
+    possible_prefects.sort_by_key(|dfg| dfg.form.clone());
 
     let mut possible_participants = HashMap::new();
     for person in sqlx::query_as!(
@@ -144,7 +153,6 @@ ORDER BY p.form
         r#"
 SELECT *
 FROM people p
-ORDER BY p.form
 "#
     )
     .fetch_all(&mut conn)
@@ -164,7 +172,12 @@ ORDER BY p.form
             .people
             .push(person);
     }
-    let possible_participants = possible_participants.into_values().collect::<Vec<_>>();
+    let mut possible_participants = possible_participants.into_values().map(|mut dfg| {
+        dfg.people.sort_by_key(|x| x.surname.clone());
+        dfg
+    }).collect::<Vec<_>>();
+    possible_participants.sort_by_key(|dfg| dfg.form.clone());
+
 
     #[derive(Serialize)]
     struct Image {

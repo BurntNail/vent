@@ -39,21 +39,19 @@
     <tr>
       <th scope="col">Name</th>
       <th scope="col">Date/Time</th>
-      <th scope="col">People</th>
-      <th scope="col">See more</th>
+      <th scope="col">Prefects / Participants</th>
       <th scope="col">Add Photo</th>
     </tr>
   </thead>
   <tbody>
     {% for row in events_to_happen %}
       <tr>
-        <td scope="row">{{ row.event.event_name }}</td>
+        <td scope="row">
+          <a href="/update_event/{{row.event.id}}" class="btn btn-primary centred">{{ row.event.event_name }}</a>
+        </td>
         <td>{{ row.event.date }}</td>
         <td>
-          {{ row.prefects }} Prefects, {{ row.participants }} Participants
-        </td>
-        <td>
-          <a href="/update_event/{{row.event.id}}" class="btn btn-primary centred">More.</a>
+          {{ row.prefects }}/{{ row.participants }}
         </td>
 
         <td>
@@ -85,23 +83,20 @@
     <tr>
       <th scope="col">Name</th>
       <th scope="col">Date/Time</th>
-      <th scope="col">People</th>
-      <th scope="col">See more</th>
+      <th scope="col">Prefects / Participants</th>
       <th scope="col">Add Photo</th>
     </tr>
   </thead>
   <tbody>
     {% for row in happened_events %}
       <tr>
-        <td scope="row">{{ row.event.event_name }}</td>
+        <td scope="row">
+          <a href="/update_event/{{row.event.id}}" class="btn btn-primary centred">{{ row.event.event_name }}</a>
+        </td>
         <td>{{ row.event.date }}</td>
         <td>
-          {{ row.prefects }} Prefects, {{ row.participants }} Participants
+          {{ row.prefects }}/{{ row.participants }}
         </td>
-        <td>
-          <a href="/update_event/{{row.event.id}}" class="btn btn-primary centred">More.</a>
-        </td>
-
         <td>
           <form
             action="/add_image/{{row.event.id}}"

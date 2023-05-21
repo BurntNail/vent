@@ -20,7 +20,16 @@
     </tr>
   </thead>
   <tbody>
+    {% assign prev_form = "" %}
     {% for person in people %}
+      {% if prev_form != person.form %}
+        {% assign prev_form = person.form %}
+        <tr>
+          <td colspan="4">
+            <h3>{{ person.form }}</h3>
+          </td>
+        </tr>
+      {% endif %}
       <tr>
         <td>{{ person.first_name }} {{ person.surname }}
         </td>
