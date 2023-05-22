@@ -6,4 +6,5 @@ devenv.local.nix
 
 .env
 *.ics
+*.csv
 uploads/*
