@@ -24,9 +24,11 @@ pub static PARTIALS: OnceCell<Partials> = OnceCell::const_new();
 ///
 /// Looks for the Partials in `www/partials/`, and sets their `liquid` names to be in the `partials/` directory, and accepts `html`, and `liquid` extensions
 pub async fn init_partials() -> Partials {
-    ///The
+    ///The directory which contains the partials
     const PARTIALS_DIR: &str = "www/partials/";
+    ///The name that the partials will have for use in embedding, eg. "www/partials/li.liquid" would be referenced as `{% include "partials/li.liquid" %}`
     const LIQUID_PARTIALS_NAME: &str = "partials/";
+    ///The accepted extensions for partials
     const PARTIALS_EXTENSIONS: &[&str] = &["html", "liquid"];
 
     let partial_extensions = PARTIALS_EXTENSIONS

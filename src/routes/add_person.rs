@@ -1,3 +1,5 @@
+//! Module that deals with adding a person - publishes a `GET` method with a form, and a `POST` method that deals with the form.
+
 use crate::{error::KnotError, liquid_utils::compile};
 use axum::{
     extract::State,
@@ -7,8 +9,6 @@ use axum::{
 use serde::Deserialize;
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
-
-pub const LOCATION: &str = "/add_person";
 
 ///`GET` function to display the add person form
 pub async fn get_add_person() -> Result<impl IntoResponse, KnotError> {
@@ -48,5 +48,5 @@ VALUES($1, $2, $3, $4);
     .execute(&mut conn)
     .await?;
 
-    Ok(Redirect::to(LOCATION))
+    Ok(Redirect::to("/add_person"))
 }

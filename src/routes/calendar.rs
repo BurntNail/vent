@@ -1,19 +1,44 @@
-use std::sync::Arc;
+//! Module that publishes an iCalendar file in a GET/HEAD method
 
+use std::{sync::Arc, collections::HashMap};
 use crate::{error::KnotError, routes::DbEvent};
 use axum::{body::StreamBody, extract::State, http::header, response::IntoResponse};
 use chrono::Duration;
 use icalendar::{Calendar, Component, Event, EventLike};
+use serde::Serialize;
 use sqlx::{Pool, Postgres};
 use tokio::{fs::File, io::AsyncWriteExt};
 use tokio_util::io::ReaderStream;
 
-pub const LOCATION: &str = "/ical";
-
 pub async fn get_calendar_feed(
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
+    let mut conn = pool.acquire().await?; //get a database connection
+
+
+
+    let prefect_events = {   
+        let mut map: HashMap<i32, Vec<String>> = HashMap::new();
+
+        let prefects = sqlx::query!(
+            r#"
+    SELECT id, first_name, surname FROM people p WHERE p.is_prefect = true"#
+            ).fetch_all(&mut conn).await?.into_iter().map(|x| (x.id, format!("{} {}", x.first_name, x.surname))).collect::<HashMap<_, _>>();
+        let rels = sqlx::query!(
+            r#"
+    SELECT event_id, prefect_id FROM prefect_events"#
+        ).fetch_all(&mut conn).await?;
+
+
+        for rec in rels {
+            if let Some(name) = prefects.get(&rec.event_id).cloned() {
+                map.entry(rec.event_id).or_default().push(name);
+            }
+        }
+
+        map
+    };
+
 
     let mut calendar = Calendar::new();
     for DbEvent {
@@ -28,22 +53,7 @@ pub async fn get_calendar_feed(
         .await?
     {
         let other_info = other_info.unwrap_or_default();
-
-        let prefects = sqlx::query!(
-            r#"
-SELECT p.first_name, p.surname
-FROM people p
-INNER JOIN events e ON e.id = $1
-INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
-            "#,
-            id
-        )
-        .fetch_all(&mut conn)
-        .await?
-        .into_iter()
-        .map(|r| format!("{} {}", r.first_name, r.surname))
-        .collect::<Vec<_>>()
-        .join(", ");
+        let prefects = prefect_events.get(&id).map(|x| x.join(", ")).unwrap_or_default();
 
         calendar.push(
             Event::new()

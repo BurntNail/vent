@@ -6,8 +6,6 @@ use std::sync::Arc;
 
 use crate::{error::KnotError, liquid_utils::compile, routes::DbEvent};
 
-pub const LOCATION: &str = "/";
-
 #[allow(clippy::too_many_lines)]
 pub async fn get_index(
     State(pool): State<Arc<Pool<Postgres>>>,

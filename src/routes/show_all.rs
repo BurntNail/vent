@@ -13,8 +13,6 @@ use crate::{error::KnotError, liquid_utils::compile};
 
 use super::DbPerson;
 
-pub const LOCATION: &str = "/show_all";
-
 #[derive(Deserialize)]
 pub struct SmolDbEvent {
     pub id: i32,
@@ -111,7 +109,7 @@ WHERE id=$1
         .await?;
     }
 
-    Ok(Redirect::to(LOCATION))
+    Ok(Redirect::to("/show_all"))
 }
 pub async fn post_remove_event(
     State(pool): State<Arc<Pool<Postgres>>>,
@@ -131,5 +129,5 @@ pub async fn post_remove_event(
         .await?;
     }
 
-    Ok(Redirect::to(LOCATION))
+    Ok(Redirect::to("/show_all"))
 }

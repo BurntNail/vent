@@ -12,13 +12,13 @@ use axum::{
 };
 use liquid_utils::partials::{init_partials, PARTIALS};
 use routes::{
-    add_event::{self, get_add_event_form, post_add_event_form},
-    add_people_to_event::{get_add_participant_to_event, get_add_prefect_to_event},
-    add_person::{self, get_add_person, post_add_person},
-    calendar::{self, get_calendar_feed},
+    add_event::{get_add_event_form, post_add_event_form},
+    add_people_to_event::{post_add_participant_to_event, post_add_prefect_to_event},
+    add_person::{get_add_person, post_add_person},
+    calendar::{get_calendar_feed},
     public::{get_favicon},
-    index::{self, get_index},
-    show_all::{self, get_remove_stuff, post_remove_event, post_remove_person},
+    index::{get_index},
+    show_all::{get_remove_stuff, post_remove_event, post_remove_person},
     update_event_and_person::{
         get_remove_participant_from_event, get_remove_prefect_from_event, get_update_event,
         post_update_event,
@@ -48,14 +48,14 @@ async fn main() {
     let db_url = std::env::var("DATABASE_URL").expect("DB URL must be set");
     let pool = Arc::new(
         PgPoolOptions::new()
-            .max_connections(5)
+            .max_connections(100)
             .connect(&db_url)
             .await
             .expect("cannot connect to DB"),
     );
 
     let app = Router::new()
-        .route(index::LOCATION, get(get_index))
+        .route("/", get(get_index))
         .route("/favicon.ico", get(get_favicon).head(get_favicon))
         .route("/manifest.json", get(get_manifest).head(get_manifest))
         .route("/sw.js", get(get_sw).head(get_sw))
@@ -63,26 +63,26 @@ async fn main() {
         .route("/512x512.png", get(get_512).head(get_512))
         .route("/256x256.png", get(get_256).head(get_256))
         .route(
-            add_event::LOCATION,
+            "/add_event",
             get(get_add_event_form).post(post_add_event_form),
         )
         .route(
             "/add_participant/:event_id/:participant_id",
-            get(get_add_participant_to_event),
+            post(post_add_participant_to_event),
         )
         .route(
             "/add_prefect/:event_id/:prefect_id",
-            get(get_add_prefect_to_event),
+            post(post_add_prefect_to_event),
         )
         .route(
-            add_person::LOCATION,
+            "/add_person",
             get(get_add_person).post(post_add_person),
         )
-        .route(show_all::LOCATION, get(get_remove_stuff))
+        .route( "/show_all", get(get_remove_stuff))
         .route("/remove_person", post(post_remove_person))
         .route("/remove_event", post(post_remove_event))
         .route("/remove_img/:id", get(delete_image))
-        .route(calendar::LOCATION, get(get_calendar_feed))
+        .route("/ical", get(get_calendar_feed))
         .route("/spreadsheet", get(get_spreadsheet))
         .route(
             "/update_event/:id",
@@ -103,7 +103,6 @@ async fn main() {
         .route("/add_image/:event_id", post(post_add_photo))
         .route("/get_all_imgs/:event_id", get(get_all_images))
         .route("/uploads/:img", get(serve_image))
-        // .layer(TraceLayer::new_for_http())
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think
         .with_state(pool);
 
