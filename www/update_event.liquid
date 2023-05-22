@@ -74,9 +74,8 @@
 <div class="row">
   <div class="col">
     <div class="card">
-      <div class="row card-body">
+      <div class="card-body">
         <h3 class="card-title">Potential</h3>
-        <div class="col">
           <h5>Prefects</h3>
           <div class="accordion" id="pot_pres">
             {% for form in prefects %}
@@ -96,19 +95,18 @@
                   data-bs-parent="pot_pres"
                   id="pot_pres_{{form.form}}">
                   <div class="accordion-body">
+                  <ul>
                     {% for person in form.people %}
-                      <a href="/add_prefect/{{event.id}}/{{person.id}}">
+                      <li><a href="/add_prefect/{{event.id}}/{{person.id}}">
                         Add {{ person.first_name }} {{ person.surname }}
-                      </a>
-                      <br>
+                      </a></li>
                     {% endfor %}
+                  </ul>
                   </div>
                 </div>
               </div>
             {% endfor %}
           </div>
-        </div>
-        <div class="col">
           <h5>Participants</h3>
 
           <div class="accordion" id="pot_part">
@@ -129,27 +127,26 @@
                   data-bs-parent="pot_part"
                   id="pot_part_{{form.form}}">
                   <div class="accordion-body">
+                  <ul>
                     {% for person in form.people %}
-                      <a href="/add_participant/{{event.id}}/{{person.id}}">
+                      <li><a href="/add_participant/{{event.id}}/{{person.id}}">
                         Add {{ person.first_name }} {{ person.surname }}
-                      </a>
-                      <br>
+                      </a></li>
                     {% endfor %}
+                  </ul>
                   </div>
                 </div>
               </div>
             {% endfor %}
           </div>
-        </div>
       </div>
     </div>
   </div>
   <div class="col">
     <div class="card">
-      <div class="row card-body">
+      <div class="card-body">
         <h3 class="card-title">Curent</h3>
 
-        <div class="col">
           <h3>Prefects</h3>
           <ul class="list-group list-group-flush">
             {% for form in existing_prefects %}
@@ -165,10 +162,8 @@
               {% endfor %}
             {% endfor %}
           </ul>
-        </div>
 
-        <div class="col">
-          <h3>Prefects</h3>
+          <h3>Participants</h3>
           <ul class="list-group list-group-flush">
             {% for form in existing_participants %}
               <li class="list-group-item">
@@ -184,7 +179,6 @@
             {% endfor %}
           </ul>
         </div>
-      </div>
     </div>
   </div>
 </div>
@@ -259,7 +253,7 @@
               id="photo"
               class="form-control"
               accept="image/bmp, image/exr, image/gif, image/hdr, image/ico, image/jpeg, image/png, image/qoi, image/tiff, image/webp"
-              required>
+              required multiple>
           </div>
 
           <button type="submit" class="btn btn-primary">Add photo.</button>

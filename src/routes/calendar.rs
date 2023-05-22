@@ -5,7 +5,6 @@ use crate::{error::KnotError, routes::DbEvent};
 use axum::{body::StreamBody, extract::State, http::header, response::IntoResponse};
 use chrono::Duration;
 use icalendar::{Calendar, Component, Event, EventLike};
-use serde::Serialize;
 use sqlx::{Pool, Postgres};
 use tokio::{fs::File, io::AsyncWriteExt};
 use tokio_util::io::ReaderStream;

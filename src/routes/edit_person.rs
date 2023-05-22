@@ -23,7 +23,7 @@ pub async fn get_edit_person(
 
     compile(
         "www/edit_person.liquid",
-        liquid::object!({"person": person}),
+        liquid::object!({ "person": person }),
     )
     .await
 }

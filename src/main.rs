@@ -23,15 +23,11 @@ use routes::{
         get_remove_participant_from_event, get_remove_prefect_from_event, get_update_event,
         post_update_event,
     },
-    edit_person::{get_edit_person, post_edit_person},
-    images::{get_all_images, post_add_photo, serve_image},
-    spreadsheets::get_spreadsheet,
-    update_event_and_person::delete_image, public::{get_manifest},
 };
 use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr, sync::Arc};
 
-use crate::routes::public::{get_512, get_256, get_sw, get_offline};
+use crate::routes::{public::{get_256, get_512, get_offline, get_sw, get_manifest}, update_event_and_person::delete_image, spreadsheets::get_spreadsheet, edit_person::{get_edit_person, post_edit_person}, images::{post_add_photo, get_all_images, serve_image}};
 
 #[macro_use]
 extern crate tracing;

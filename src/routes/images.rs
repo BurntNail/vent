@@ -22,51 +22,48 @@ pub async fn post_add_photo(
     State(pool): State<Arc<Pool<Postgres>>>,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, KnotError> {
-    let field = multipart
-        .next_field()
-        .await?
-        .ok_or(KnotError::MissingFormData)?;
+    while let Some(field) = multipart.next_field().await? {
+        let data = field.bytes().await?;
 
-    let data = field.bytes().await?;
+        let format = image::guess_format(&data)?;
+        let ext = format
+            .extensions_str()
+            .first()
+            .ok_or(KnotError::NoImageExtension(format))?;
 
-    let format = image::guess_format(&data)?;
-    let ext = format
-        .extensions_str()
-        .first()
-        .ok_or(KnotError::NoImageExtension(format))?;
+        let mut conn = pool.acquire().await?;
 
-    let mut conn = pool.acquire().await?;
-
-    let file_name = loop {
-        let key = format!("uploads/{:x}.{ext}", thread_rng().gen::<u128>());
-        if sqlx::query!(
-            r#"
+        let file_name = loop {
+            let key = format!("uploads/{:x}.{ext}", thread_rng().gen::<u128>());
+            if sqlx::query!(
+                r#"
     SELECT * FROM photos
     WHERE path = $1
             "#,
-            key
-        )
-        .fetch_optional(&mut conn)
-        .await?
-        .is_none()
-        {
-            break key;
-        }
-    };
+                key
+            )
+            .fetch_optional(&mut conn)
+            .await?
+            .is_none()
+            {
+                break key;
+            }
+        };
 
-    sqlx::query!(
-        r#"
+        sqlx::query!(
+            r#"
 INSERT INTO public.photos
 ("path", event_id)
 VALUES($1, $2)"#,
-        file_name,
-        event_id
-    )
-    .execute(&mut conn)
-    .await?;
+            file_name,
+            event_id
+        )
+        .execute(&mut conn)
+        .await?;
 
-    let mut file = File::create(file_name).await?;
-    file.write_all(&data).await?;
+        let mut file = File::create(file_name).await?;
+        file.write_all(&data).await?;
+    }
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }

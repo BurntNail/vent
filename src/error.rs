@@ -20,8 +20,6 @@ pub enum KnotError {
     ParseTime(#[from] chrono::ParseError),
     #[error("Error in Headers")]
     Headers(#[from] axum::http::header::InvalidHeaderValue),
-    #[error("Missing form data")]
-    MissingFormData,
     #[error("Multipart Error")]
     Multipart(#[from] axum::extract::multipart::MultipartError),
     #[error("Invalid Image")]
