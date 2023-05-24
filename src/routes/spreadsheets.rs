@@ -1,12 +1,13 @@
 use std::{collections::HashMap, sync::Arc};
 
-use axum::{body::StreamBody, extract::State, http::header, response::IntoResponse};
+use axum::{extract::State, response::IntoResponse};
 use csv_async::AsyncWriter;
 use sqlx::{Pool, Postgres};
 use tokio::fs::File;
-use tokio_util::io::ReaderStream;
 
 use crate::{error::KnotError, routes::DbPerson};
+
+use super::public::serve_static_file;
 
 pub async fn get_spreadsheet(
     State(pool): State<Arc<Pool<Postgres>>>,
@@ -72,16 +73,6 @@ SELECT * FROM people"#
     //not sure why, but need to re-read the file for this to work
     writer.flush().await?;
     drop(writer);
-    let body = StreamBody::new(ReaderStream::new(
-        File::open("student_spreadsheet.csv").await?,
-    ));
-    let headers = [
-        (header::CONTENT_TYPE, "text/csv; charset=utf-8"),
-        (
-            header::CONTENT_DISPOSITION,
-            "filename=\"student_spreadsheet.csv\"",
-        ),
-    ];
-
-    Ok((headers, body))
+    
+    serve_static_file("student_spreadsheet.csv").await
 }

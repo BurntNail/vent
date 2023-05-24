@@ -26,11 +26,41 @@ use routes::{
 };
 use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr, sync::Arc};
+use tower_http::trace::TraceLayer;
+use tokio::signal;
 
 use crate::routes::{public::{get_256, get_512, get_offline, get_sw, get_manifest}, update_event_and_person::delete_image, spreadsheets::get_spreadsheet, edit_person::{get_edit_person, post_edit_person}, images::{post_add_photo, get_all_images, serve_image}};
 
 #[macro_use]
 extern crate tracing;
+
+
+// https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+
+    warn!("signal received, starting graceful shutdown");
+}
 
 #[tokio::main]
 async fn main() {
@@ -99,6 +129,7 @@ async fn main() {
         .route("/add_image/:event_id", post(post_add_photo))
         .route("/get_all_imgs/:event_id", get(get_all_images))
         .route("/uploads/:img", get(serve_image))
+        .layer(TraceLayer::new_for_http())
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think
         .with_state(pool);
 
@@ -111,6 +142,7 @@ async fn main() {
 
     axum::Server::bind(&port)
         .serve(app.into_make_service())
+        .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();
 }

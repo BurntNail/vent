@@ -8,31 +8,37 @@ use std::path::PathBuf;
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 
+pub async fn serve_static_file (path: impl ToString) -> Result<impl IntoResponse, KnotError> {
+    let path = PathBuf::from(path.to_string());
+
+    let file = File::open(path.clone()).await?;
+    let file_size = file.metadata().await?.len();
+    let body = StreamBody::new(ReaderStream::new(file));
+
+    let ext = path.extension().ok_or(KnotError::MissingExt)?;
+    let mime = match ext.to_str().ok_or(KnotError::InvalidUTF8)? {
+        "json" => "application/json",
+        "js" => "application/javascript",
+        "ico" => "image/x-icon",
+        "png" => "image/png",
+        "html" => "text/html",
+        "ics" => "text/calendar",
+        "csv" => "text/csv",
+        unknown => Err(KnotError::UnknownMIME(unknown.into()))?,
+    }
+    .parse()?;
+
+    let mut headers = HeaderMap::new();
+    headers.insert(header::CONTENT_TYPE, mime);
+    headers.insert(header::CONTENT_LENGTH, file_size.into());
+
+    Ok((headers, body))
+}
+
 macro_rules! get_x {
     ($func_name:ident, $path:expr) => {
         pub async fn $func_name() -> Result<impl IntoResponse, KnotError> {
-            let path = PathBuf::from($path.to_string());
-
-            let file = File::open(path.clone()).await?;
-            let file_size = file.metadata().await?.len();
-            let body = StreamBody::new(ReaderStream::new(file));
-
-            let ext = path.extension().ok_or(KnotError::MissingExt)?;
-            let mime = match ext.to_str().ok_or(KnotError::InvalidUTF8)? {
-                "json" => "application/json",
-                "js" => "application/javascript",
-                "ico" => "image/x-icon",
-                "png" => "image/png",
-                "html" => "text/html",
-                unknown => Err(KnotError::UnknownMIME(unknown.into()))?,
-            }
-            .parse()?;
-
-            let mut headers = HeaderMap::new();
-            headers.insert(header::CONTENT_TYPE, mime);
-            headers.insert(header::CONTENT_LENGTH, file_size.into());
-
-            Ok((headers, body))
+            serve_static_file($path).await
         }
     };
 }

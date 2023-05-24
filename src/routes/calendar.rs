@@ -2,12 +2,13 @@
 
 use std::{sync::Arc, collections::HashMap};
 use crate::{error::KnotError, routes::DbEvent};
-use axum::{body::StreamBody, extract::State, http::header, response::IntoResponse};
+use axum::{extract::State, response::IntoResponse};
 use chrono::Duration;
 use icalendar::{Calendar, Component, Event, EventLike};
 use sqlx::{Pool, Postgres};
 use tokio::{fs::File, io::AsyncWriteExt};
-use tokio_util::io::ReaderStream;
+
+use super::public::serve_static_file;
 
 pub async fn get_calendar_feed(
     State(pool): State<Arc<Pool<Postgres>>>,
@@ -78,12 +79,5 @@ Prefects Attending: {prefects}"#
             .await?;
     }
 
-    //not sure why, but need to re-read the file for this to work
-    let body = StreamBody::new(ReaderStream::new(File::open("calendar.ics").await?));
-    let headers = [
-        (header::CONTENT_TYPE, "text/calendar; charset=utf-8"),
-        (header::CONTENT_DISPOSITION, "filename=\"calendar.ics\""),
-    ];
-
-    Ok((headers, body))
+    serve_static_file("calendar.ics").await
 }
