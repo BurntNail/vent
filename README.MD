@@ -1,6 +1,8 @@
 # Knot
 This is a project designed for managing events with 2 classes of people - those who can only attend, and those can both attend and supervise - and these are refered to as participants and prefects respectively. Anyone with the IP/Domain can view this server and edit the events, and it also publishes an endpoint to update an ICS subscription.
 
+This was originally engineered as a replacement to a brittle spreadsheet that didn't track photos or participants - participants were manually added to a separate spreadsheet, and photos were inconsistently named in a OneDrive folder.
+
 ![excel_ugh.png](excel_ugh.png)
 
 ## Setup/Installation
