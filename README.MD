@@ -1,6 +1,8 @@
 # Knot
 This is a project designed for managing events with 2 classes of people - those who can only attend, and those can both attend and supervise - and these are refered to as participants and prefects respectively. Anyone with the IP/Domain can view this server and edit the events, and it also publishes an endpoint to update an ICS subscription.
 
+![excel_ugh.png](excel_ugh.png)
+
 ## Setup/Installation
 
 ### Requirements
@@ -20,8 +22,25 @@ You need to have a `.env` file with the following variables set:
 I would highly reccomend a `tmux` based setup to run this without needing an active ssh session to run whilst away.
 1) Setup the postgres server - `devenv up`
 2) Run the postgres migrations - `sqlx migrate run`
-3) Run the binary - `cargo r --release` for production, or `cargo r` for development. In production to minimise downtime, I use `cargo b` rather than `cargo r` to quickly stop the old binary and launch into the new one without recompiling
+3) Run the binary - `cargo r --release` for production, or `cargo r` for development. In production to minimise downtime, I use `cargo b` rather than `cargo r` to quickly stop the old binary and launch into the new one without recompiling. 
 4) Enjoy!
+
+### Reccomendations
+I currently run this through [Caddy](https://caddyserver.com/) as a reverse proxy to get HTTPS certificates via [Let's Encrypt!](https://letsencrypt.org/).
+These are the contents of the [Caddyfile](https://caddyserver.com/docs/caddyfile) on the server that this runs on, redacted appropriately. This just runs via the default systemd service which takes the config from `/etc/caddy/Caddyfile`:
+```
+{
+    email EMAIL_ADDRESS #eg. a@b.com
+}
+
+# Refer to the Caddy docs for more information:
+# https://caddyserver.com/docs/caddyfile
+
+FULL_DOMAIN { #eg. mail.google.com
+    # Another common task is to set up a reverse proxy:
+    reverse_proxy 127.0.0.1:8080 # make sure this is set to a localhost address, and NOT your server's external IP
+}
+```
 
 
 ## Architecture
