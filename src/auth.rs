@@ -9,12 +9,12 @@ use axum_login::{
     extractors::AuthContext, secrecy::SecretVec, AuthUser, PostgresStore, RequireAuthorizationLayer,
 };
 use bcrypt::{hash, verify, DEFAULT_COST};
-use serde::{Deserialize};
+use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres, FromRow};
 
 use crate::{error::KnotError, liquid_utils::compile};
 
-#[derive(Deserialize, Clone, FromRow)]
+#[derive(Deserialize, Clone, FromRow, Serialize)]
 pub struct DbUser {
     id: i32,
     username: String,
@@ -49,7 +49,6 @@ pub async fn get_login_failure() -> Result<impl IntoResponse, KnotError> {
     compile("www/failed_auth.liquid", liquid::object!({})).await
 }
 
-#[axum::debug_handler]
 pub async fn post_login(
     mut auth: Auth,
     State(pool): State<Arc<Pool<Postgres>>>,

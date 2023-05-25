@@ -50,6 +50,15 @@
               <li class="nav-item">
                 <a class="nav-link" href="/show_all">See All</a>
               </li>
+              {% if is_logged_in %}
+              <li class="nav-item">
+                <a href="/logout" class="nav-link">{{user.username}} - Logout</a>
+              </li>
+              {% else %}
+              <li class="nav-item">
+                <a class="nav-link" href="/login">Login</a>
+              </li>
+              {% endif %}
             </div>
           </nav>
         </ul>
