@@ -4,7 +4,7 @@
 //!
 //! It serves a simple form, and handles post requests to add that event to the DB.
 
-use crate::{error::KnotError, liquid_utils::compile, auth::Auth};
+use crate::{auth::Auth, error::KnotError, liquid_utils::compile};
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},

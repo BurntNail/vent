@@ -10,8 +10,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
 
 use crate::{
+    auth::Auth,
     error::KnotError,
-    liquid_utils::{compile, EnvFormatter}, auth::Auth,
+    liquid_utils::{compile, EnvFormatter},
 };
 
 use super::DbPerson;
@@ -82,7 +83,6 @@ ORDER BY e.date
     } else {
         liquid::object!({ "people": people, "events": events, "is_logged_in": false })
     };
-
 
     compile("www/show_all.liquid", globals).await
 }

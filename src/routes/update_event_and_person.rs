@@ -1,8 +1,9 @@
 use super::FormEvent;
 use crate::{
+    auth::Auth,
     error::KnotError,
     liquid_utils::compile,
-    routes::{DbEvent, DbPerson}, auth::Auth,
+    routes::{DbEvent, DbPerson},
 };
 use axum::{
     extract::{Path, State},
@@ -241,7 +242,6 @@ WHERE event_id = $1
         "imgs": photos,
         "is_logged_in": false })
     };
-
 
     compile("www/update_event.liquid", globals).await
 }

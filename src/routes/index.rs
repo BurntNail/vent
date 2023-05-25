@@ -5,9 +5,10 @@ use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
 use crate::{
+    auth::Auth,
     error::KnotError,
     liquid_utils::{compile, EnvFormatter},
-    routes::DbEvent, auth::Auth,
+    routes::DbEvent,
 };
 
 #[allow(clippy::too_many_lines)]
@@ -126,8 +127,6 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
         }
     }
     happened_events.reverse();
-
-    
 
     let globals = if let Some(user) = auth.current_user {
         liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events, "is_logged_in": true, "user": user })

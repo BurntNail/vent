@@ -10,7 +10,7 @@ use axum_login::{
 };
 use bcrypt::{hash, verify, DEFAULT_COST};
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Postgres, FromRow};
+use sqlx::{FromRow, Pool, Postgres};
 
 use crate::{error::KnotError, liquid_utils::compile};
 

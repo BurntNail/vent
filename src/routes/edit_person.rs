@@ -9,9 +9,10 @@ use serde::Serialize;
 use sqlx::{Pool, Postgres};
 
 use crate::{
+    auth::Auth,
     error::KnotError,
     liquid_utils::{compile, EnvFormatter},
-    routes::DbPerson, auth::Auth,
+    routes::DbPerson,
 };
 
 use super::add_person::NoIDPerson;
@@ -76,12 +77,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1
         liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "is_logged_in": false })
     };
 
-
-    compile(
-        "www/edit_person.liquid",
-        globals,
-    )
-    .await
+    compile("www/edit_person.liquid", globals).await
 }
 
 pub async fn post_edit_person(
