@@ -77,5 +77,58 @@
   </div>
 </div>
 
+<br>
+
+<div class="row">
+  {% if person.is_prefect %}
+    <div class="col">
+      <div class="card">
+        <div class="card-body">
+          <h2 class="card-title">Events Supervised</h2>
+          <table class="table">
+            <thead>
+              <tr>
+                <td scope="col">Event</td>
+                <td scope="col">Date</td>
+              </tr>
+            </thead>
+            <tbody>
+              {% for event in supervised %}
+                <tr>
+                  <td scope="row"><a href="/update_event/{{event.id}}"></a>{{event.name}}</a></td>
+                  <td>{{event.date}}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+  <div class="col">
+    <div class="card">
+      <div class="card-body">
+        <h2 class="card-title">Events Attended</h2>
+        <table class="table">
+          <thead>
+            <tr>
+              <td scope="col">Event</td>
+              <td scope="col">Date</td>
+            </tr>
+          </thead>
+          <tbody>
+            {% for event in participated %}
+              <tr>
+                <td scope="row"><a href="/update_event/{{event.id}}"></a>{{event.name}}</a></td>
+                <td>{{event.date}}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 {% include "partials/footer.liquid" %}

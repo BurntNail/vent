@@ -5,9 +5,10 @@ use axum::{
     response::{IntoResponse, Redirect},
     Form,
 };
+use serde::Serialize;
 use sqlx::{Pool, Postgres};
 
-use crate::{error::KnotError, liquid_utils::compile, routes::DbPerson};
+use crate::{error::KnotError, liquid_utils::{compile, EnvFormatter}, routes::DbPerson};
 
 use super::add_person::NoIDPerson;
 
@@ -21,9 +22,43 @@ pub async fn get_edit_person(
         .fetch_one(&mut conn)
         .await?;
 
+    #[derive(Serialize)]
+    struct Event {
+        name: String,
+        date: String,
+        id: i32,
+    }
+
+    let events_supervised = sqlx::query!(
+        r#"
+SELECT date, event_name, id FROM events e 
+INNER JOIN prefect_events pe
+ON pe.event_id = e.id AND pe.prefect_id = $1
+        "#,
+        person.id
+    ).fetch_all(&mut conn).await?.into_iter().map(|r| Event {
+        name: r.event_name,
+        date: r.date.to_env_string(),
+        id: r.id,
+    }).collect::<Vec<_>>();
+
+    let events_participated = sqlx::query!(
+        r#"
+SELECT date, event_name, id FROM events e 
+INNER JOIN participant_events pe
+ON pe.event_id = e.id AND pe.participant_id = $1
+        "#,
+        person.id
+    ).fetch_all(&mut conn).await?.into_iter().map(|r| Event {
+        name: r.event_name,
+        date: r.date.to_env_string(),
+        id: r.id,
+    }).collect::<Vec<_>>();
+
+
     compile(
         "www/edit_person.liquid",
-        liquid::object!({ "person": person }),
+        liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated }),
     )
     .await
 }

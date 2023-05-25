@@ -2,9 +2,9 @@ use axum::{extract::State, response::IntoResponse};
 use chrono::Utc;
 use serde::Serialize;
 use sqlx::{Pool, Postgres};
-use std::{env, sync::Arc};
+use std::{sync::Arc};
 
-use crate::{error::KnotError, liquid_utils::compile, routes::DbEvent};
+use crate::{error::KnotError, liquid_utils::{compile, EnvFormatter}, routes::DbEvent};
 
 #[allow(clippy::too_many_lines)]
 pub async fn get_index(
@@ -36,12 +36,7 @@ pub async fn get_index(
             Self {
                 id,
                 event_name,
-                date: date
-                    .format(&env::var("DATE_TIME_FORMAT").unwrap_or_else(|e| {
-                        warn!(%e, "Missing DATE_TIME_FORMAT");
-                        "%c".into()
-                    }))
-                    .to_string(),
+                date: date.to_env_string(),
                 location,
                 teacher,
                 other_info: other_info.unwrap(),

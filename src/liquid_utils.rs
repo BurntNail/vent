@@ -3,8 +3,9 @@ use crate::{
     liquid_utils::partials::{init_partials, PARTIALS},
 };
 use axum::response::Html;
+use chrono::NaiveDateTime;
 use liquid::{Object, ParserBuilder};
-use std::{fmt::Debug, path::Path};
+use std::{fmt::Debug, path::Path, env};
 use tokio::fs::read_to_string;
 
 pub mod partials;
@@ -26,4 +27,17 @@ pub async fn compile(
     })
     .await??)
     .map(Html)
+}
+
+pub trait EnvFormatter {
+    fn to_env_string(&self) -> String;
+}
+impl EnvFormatter for NaiveDateTime {
+    fn to_env_string(&self) -> String {
+        self.format(&env::var("DATE_TIME_FORMAT").unwrap_or_else(|e| {
+            warn!(%e, "Missing DATE_TIME_FORMAT");
+            "%c".into()
+        }))
+        .to_string()
+    }
 }
