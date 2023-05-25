@@ -1,5 +1,6 @@
 use super::FormEvent;
 use crate::{
+    auth::Auth,
     error::KnotError,
     liquid_utils::compile,
     routes::{DbEvent, DbPerson},
@@ -16,6 +17,7 @@ use tokio::fs::remove_file;
 
 #[allow(clippy::too_many_lines)]
 pub async fn get_update_event(
+    auth: Auth,
     Path(event_id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
@@ -207,8 +209,8 @@ WHERE event_id = $1
     .fetch_all(&mut conn)
     .await?;
 
-    let globals = liquid::object!({
-        "event": liquid::object!({
+    let globals = if let Some(user) = auth.current_user {
+        liquid::object!({"event": liquid::object!({
             "id": id,
             "event_name": event_name,
             "date": date.to_string(),
@@ -221,8 +223,25 @@ WHERE event_id = $1
         "prefects": possible_prefects,
         "participants": possible_participants,
         "n_imgs": photos.len(),
-        "imgs": photos
-    });
+        "imgs": photos,
+        "is_logged_in": true, "user": user })
+    } else {
+        liquid::object!({ "event": liquid::object!({
+            "id": id,
+            "event_name": event_name,
+            "date": date.to_string(),
+            "location": location,
+            "teacher": teacher,
+            "other_info": other_info.unwrap_or_default()
+        }),
+        "existing_prefects": existing_prefects,
+        "existing_participants": existing_participants,
+        "prefects": possible_prefects,
+        "participants": possible_participants,
+        "n_imgs": photos.len(),
+        "imgs": photos,
+        "is_logged_in": false })
+    };
 
     compile("www/update_event.liquid", globals).await
 }

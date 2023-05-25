@@ -5,6 +5,7 @@
     clippy::cast_possible_truncation
 )]
 
+mod auth;
 mod error;
 mod liquid_utils;
 mod routes;
@@ -14,7 +15,12 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use axum_login::{
+    axum_sessions::{async_session::MemoryStore, SessionLayer},
+    AuthLayer,
+};
 use liquid_utils::partials::{init_partials, PARTIALS};
+use rand::{thread_rng, Rng};
 use routes::{
     add_event::{get_add_event_form, post_add_event_form},
     add_people_to_event::{post_add_participant_to_event, post_add_prefect_to_event},
@@ -33,12 +39,18 @@ use std::{env::var, net::SocketAddr, sync::Arc};
 use tokio::signal;
 use tower_http::trace::TraceLayer;
 
-use crate::routes::{
-    edit_person::{get_edit_person, post_edit_person},
-    images::{get_all_images, post_add_photo, serve_image},
-    public::{get_256, get_512, get_manifest, get_offline, get_sw},
-    spreadsheets::get_spreadsheet,
-    update_event_and_person::delete_image,
+use crate::{
+    auth::{
+        get_add_new_user, get_login, get_login_failure, post_add_new_user, post_login, post_logout,
+        RequireAuth, Store,
+    },
+    routes::{
+        edit_person::{get_edit_person, post_edit_person},
+        images::{get_all_images, post_add_photo, serve_image},
+        public::{get_256, get_512, get_manifest, get_offline, get_sw},
+        spreadsheets::get_spreadsheet,
+        update_event_and_person::delete_image, edit_user::{post_edit_user, get_edit_user},
+    },
 };
 
 #[macro_use]
@@ -81,35 +93,33 @@ async fn main() {
         .expect("unable to set partials");
 
     let db_url = std::env::var("DATABASE_URL").expect("DB URL must be set");
-    let pool = Arc::new(
-        PgPoolOptions::new()
-            .max_connections(100)
-            .connect(&db_url)
-            .await
-            .expect("cannot connect to DB"),
-    );
+    let pool = PgPoolOptions::new()
+        .max_connections(100)
+        .connect(&db_url)
+        .await
+        .expect("cannot connect to DB");
+
+    let secret = {
+        let mut rng = thread_rng();
+        let mut v = Vec::with_capacity(64);
+        v.append(&mut rng.gen::<[u8; 32]>().to_vec());
+        v.append(&mut rng.gen::<[u8; 32]>().to_vec());
+        v
+    };
+    let session_layer = SessionLayer::new(MemoryStore::new(), &secret);
+    let auth_layer = AuthLayer::new(Store::new(pool.clone()), &secret);
 
     let app = Router::new()
-        .route("/", get(get_index))
-        .route("/favicon.ico", get(get_favicon).head(get_favicon))
-        .route("/manifest.json", get(get_manifest).head(get_manifest))
-        .route("/sw.js", get(get_sw).head(get_sw))
-        .route("/offline.html", get(get_offline).head(get_offline))
-        .route("/512x512.png", get(get_512).head(get_512))
-        .route("/256x256.png", get(get_256).head(get_256))
+        .route("/add_participant", post(post_add_participant_to_event))
+        .route("/add_prefect", post(post_add_prefect_to_event))
+        .route("/add_person", get(get_add_person).post(post_add_person))
+        .route("/edit_user", get(get_edit_user).post(post_edit_user))
         .route(
             "/add_event",
             get(get_add_event_form).post(post_add_event_form),
         )
-        .route("/add_participant", post(post_add_participant_to_event))
-        .route("/add_prefect", post(post_add_prefect_to_event))
-        .route("/add_person", get(get_add_person).post(post_add_person))
-        .route("/show_all", get(get_remove_stuff))
         .route("/remove_person", post(post_remove_person))
         .route("/remove_event", post(post_remove_event))
-        .route("/remove_img/:id", get(delete_image))
-        .route("/ical", get(get_calendar_feed))
-        .route("/spreadsheet", get(get_spreadsheet))
         .route(
             "/update_event/:id",
             get(get_update_event).post(post_update_event),
@@ -129,10 +139,32 @@ async fn main() {
         .route("/add_image/:event_id", post(post_add_photo))
         .route("/get_all_imgs/:event_id", get(get_all_images))
         .route("/uploads/:img", get(serve_image))
+
+        .route_layer(RequireAuth::login())
+        .route(
+            "/add_new_user",
+            get(get_add_new_user).post(post_add_new_user),
+        )
+        .route("/", get(get_index))
+        .route("/favicon.ico", get(get_favicon).head(get_favicon))
+        .route("/manifest.json", get(get_manifest).head(get_manifest))
+        .route("/sw.js", get(get_sw).head(get_sw))
+        .route("/offline.html", get(get_offline).head(get_offline))
+        .route("/512x512.png", get(get_512).head(get_512))
+        .route("/256x256.png", get(get_256).head(get_256))
+        .route("/show_all", get(get_remove_stuff))
+        .route("/remove_img/:id", get(delete_image))
+        .route("/ical", get(get_calendar_feed))
+        .route("/spreadsheet", get(get_spreadsheet))
+        .route("/login_failure", get(get_login_failure))
+        .route("/login", get(get_login).post(post_login))
+        .route("/logout", get(post_logout))
         .layer(TraceLayer::new_for_http())
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think
-        .with_state(pool);
-
+        .layer(auth_layer)
+        .layer(session_layer)
+        .with_state(Arc::new(pool));
+    
     let port: SocketAddr = var("KNOT_SERVER_IP")
         .expect("need KNOT_SERVER_IP env var")
         .parse()

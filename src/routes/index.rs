@@ -5,6 +5,7 @@ use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
 use crate::{
+    auth::Auth,
     error::KnotError,
     liquid_utils::{compile, EnvFormatter},
     routes::DbEvent,
@@ -12,6 +13,7 @@ use crate::{
 
 #[allow(clippy::too_many_lines)]
 pub async fn get_index(
+    auth: Auth,
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
@@ -124,10 +126,13 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
             });
         }
     }
-
     happened_events.reverse();
 
-    let globals = liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events });
+    let globals = if let Some(user) = auth.current_user {
+        liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events, "is_logged_in": true, "user": user })
+    } else {
+        liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events, "is_logged_in": false })
+    };
 
     compile("www/index.liquid", globals).await
 }

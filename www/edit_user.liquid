@@ -1,0 +1,37 @@
+{% include "partials/header.liquid" %}
+
+<h1>Edit {{ user.username }}
+</h1>
+
+<div class="card">
+  <div class="card-body">
+    <form action="/edit_user" method="POST">
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="username">Username</span>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Username"
+          aria-label="Username"
+          aria-describedby="username"
+          name="username"
+          value="{{user.username}}"
+          required>
+      </div>
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="unhashed_password">New Password</span>
+        <input
+          type="password"
+          class="form-control"
+          placeholder="Password"
+          aria-label="Password"
+          aria-describedby="unhashed_password"
+          name="unhashed_password"
+          required>
+      </div>
+      <button type="submit" class="btn btn-primary">Edit!</button>
+    </form>
+  </div>
+</div>
+
+{% include "partials/footer.liquid" %}

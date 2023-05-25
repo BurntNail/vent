@@ -9,6 +9,7 @@ use serde::Serialize;
 use sqlx::{Pool, Postgres};
 
 use crate::{
+    auth::Auth,
     error::KnotError,
     liquid_utils::{compile, EnvFormatter},
     routes::DbPerson,
@@ -17,6 +18,7 @@ use crate::{
 use super::add_person::NoIDPerson;
 
 pub async fn get_edit_person(
+    auth: Auth,
     Path(id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
@@ -69,11 +71,13 @@ ON pe.event_id = e.id AND pe.participant_id = $1
     })
     .collect::<Vec<_>>();
 
-    compile(
-        "www/edit_person.liquid",
-        liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated }),
-    )
-    .await
+    let globals = if let Some(user) = auth.current_user {
+        liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "is_logged_in": true, "user": user })
+    } else {
+        liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "is_logged_in": false })
+    };
+
+    compile("www/edit_person.liquid", globals).await
 }
 
 pub async fn post_edit_person(
