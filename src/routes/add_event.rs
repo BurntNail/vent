@@ -1,7 +1,7 @@
 //! Page to deal with adding events.
-//! 
+//!
 //! NB: does not handle prefects/participants/images.
-//! 
+//!
 //! It serves a simple form, and handles post requests to add that event to the DB.
 
 use crate::{error::KnotError, liquid_utils::compile};
@@ -50,7 +50,8 @@ RETURNING id
         info
     )
     .fetch_one(&mut conn) //add the event to the db
-    .await?.id;
+    .await?
+    .id;
 
     Ok(Redirect::to(&format!("/update_event/{id}"))) //redirect to the relevant update event page for that event
 }

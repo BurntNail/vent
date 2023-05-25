@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 
-pub async fn serve_static_file (path: impl ToString) -> Result<impl IntoResponse, KnotError> {
+pub async fn serve_static_file(path: impl ToString) -> Result<impl IntoResponse, KnotError> {
     let path = PathBuf::from(path.to_string());
 
     let file = File::open(path.clone()).await?;

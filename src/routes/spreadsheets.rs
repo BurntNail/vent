@@ -73,6 +73,6 @@ SELECT * FROM people"#
     //not sure why, but need to re-read the file for this to work
     writer.flush().await?;
     drop(writer);
-    
+
     serve_static_file("student_spreadsheet.csv").await
 }

@@ -2,7 +2,7 @@ use axum::{extract::State, response::IntoResponse};
 use chrono::Utc;
 use serde::Serialize;
 use sqlx::{Pool, Postgres};
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 use crate::{error::KnotError, liquid_utils::compile, routes::DbEvent};
 
@@ -36,7 +36,12 @@ pub async fn get_index(
             Self {
                 id,
                 event_name,
-                date: date.format("%a %x @ %H:%M").to_string(),
+                date: date
+                    .format(&env::var("DATE_TIME_FORMAT").unwrap_or_else(|e| {
+                        warn!(%e, "Missing DATE_TIME_FORMAT");
+                        "%c".into()
+                    }))
+                    .to_string(),
                 location,
                 teacher,
                 other_info: other_info.unwrap(),

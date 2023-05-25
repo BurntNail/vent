@@ -15,9 +15,9 @@ use routes::{
     add_event::{get_add_event_form, post_add_event_form},
     add_people_to_event::{post_add_participant_to_event, post_add_prefect_to_event},
     add_person::{get_add_person, post_add_person},
-    calendar::{get_calendar_feed},
-    public::{get_favicon},
-    index::{get_index},
+    calendar::get_calendar_feed,
+    index::get_index,
+    public::get_favicon,
     show_all::{get_remove_stuff, post_remove_event, post_remove_person},
     update_event_and_person::{
         get_remove_participant_from_event, get_remove_prefect_from_event, get_update_event,
@@ -26,14 +26,19 @@ use routes::{
 };
 use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr, sync::Arc};
-use tower_http::trace::TraceLayer;
 use tokio::signal;
+use tower_http::trace::TraceLayer;
 
-use crate::routes::{public::{get_256, get_512, get_offline, get_sw, get_manifest}, update_event_and_person::delete_image, spreadsheets::get_spreadsheet, edit_person::{get_edit_person, post_edit_person}, images::{post_add_photo, get_all_images, serve_image}};
+use crate::routes::{
+    edit_person::{get_edit_person, post_edit_person},
+    images::{get_all_images, post_add_photo, serve_image},
+    public::{get_256, get_512, get_manifest, get_offline, get_sw},
+    spreadsheets::get_spreadsheet,
+    update_event_and_person::delete_image,
+};
 
 #[macro_use]
 extern crate tracing;
-
 
 // https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs
 async fn shutdown_signal() {
@@ -92,18 +97,9 @@ async fn main() {
             "/add_event",
             get(get_add_event_form).post(post_add_event_form),
         )
-        .route(
-            "/add_participant",
-            post(post_add_participant_to_event),
-        )
-        .route(
-            "/add_prefect",
-            post(post_add_prefect_to_event),
-        )
-        .route(
-            "/add_person",
-            get(get_add_person).post(post_add_person),
-        )
+        .route("/add_participant", post(post_add_participant_to_event))
+        .route("/add_prefect", post(post_add_prefect_to_event))
+        .route("/add_person", get(get_add_person).post(post_add_person))
         .route("/show_all", get(get_remove_stuff))
         .route("/remove_person", post(post_remove_person))
         .route("/remove_event", post(post_remove_event))

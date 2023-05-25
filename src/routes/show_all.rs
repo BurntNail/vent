@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 use axum::{
     extract::State,
@@ -37,7 +37,12 @@ impl From<SmolDbEvent> for SmolFormattedDbEvent {
         Self {
             id,
             event_name,
-            date: date.format("%x @ %H:%M").to_string(),
+            date: date
+                .format(&env::var("DATE_TIME_FORMAT").unwrap_or_else(|e| {
+                    warn!(%e, "Missing DATE_TIME_FORMAT");
+                    "%c".into()
+                }))
+                .to_string(),
         }
     }
 }

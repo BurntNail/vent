@@ -1,11 +1,11 @@
 //! Module that publishes an iCalendar file in a GET/HEAD method
 
-use std::{sync::Arc, collections::HashMap};
 use crate::{error::KnotError, routes::DbEvent};
 use axum::{extract::State, response::IntoResponse};
 use chrono::Duration;
 use icalendar::{Calendar, Component, Event, EventLike};
 use sqlx::{Pool, Postgres};
+use std::{collections::HashMap, sync::Arc};
 use tokio::{fs::File, io::AsyncWriteExt};
 
 use super::public::serve_static_file;
@@ -15,20 +15,24 @@ pub async fn get_calendar_feed(
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?; //get a database connection
 
-
-
-    let prefect_events = {   
+    let prefect_events = {
         let mut map: HashMap<i32, Vec<String>> = HashMap::new();
 
         let prefects = sqlx::query!(
             r#"
     SELECT id, first_name, surname FROM people p WHERE p.is_prefect = true"#
-            ).fetch_all(&mut conn).await?.into_iter().map(|x| (x.id, format!("{} {}", x.first_name, x.surname))).collect::<HashMap<_, _>>();
+        )
+        .fetch_all(&mut conn)
+        .await?
+        .into_iter()
+        .map(|x| (x.id, format!("{} {}", x.first_name, x.surname)))
+        .collect::<HashMap<_, _>>();
         let rels = sqlx::query!(
             r#"
     SELECT event_id, prefect_id FROM prefect_events"#
-        ).fetch_all(&mut conn).await?;
-
+        )
+        .fetch_all(&mut conn)
+        .await?;
 
         for rec in rels {
             if let Some(name) = prefects.get(&rec.event_id).cloned() {
@@ -38,7 +42,6 @@ pub async fn get_calendar_feed(
 
         map
     };
-
 
     let mut calendar = Calendar::new();
     for DbEvent {
@@ -53,7 +56,10 @@ pub async fn get_calendar_feed(
         .await?
     {
         let other_info = other_info.unwrap_or_default();
-        let prefects = prefect_events.get(&id).map(|x| x.join(", ")).unwrap_or_default();
+        let prefects = prefect_events
+            .get(&id)
+            .map(|x| x.join(", "))
+            .unwrap_or_default();
 
         calendar.push(
             Event::new()

@@ -19,6 +19,7 @@ You need to have a `.env` file with the following variables set:
  - `DATABASE_URL` - used for the postgres database (eg. `postgres://user@127.0.0.1:1111/user`)
  - `KNOT_SERVER_IP` - the IP the server should serve to (eg. `127.0.0.1:8080`)
  - You can also optionally have a `RUST_LOG` variable set to `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE` each of which shows all of the messages from the levels above (eg. `INFO` shows `ERROR` messages)
+ - You can also also optionally specify a `DATE_TIME_FORMAT` variable filled out with [appropriate format specifiers](https://docs.rs/chrono/0.4.24/chrono/format/strftime/index.html).
 
 ### Setup
 I would highly reccomend a `tmux` based setup to run this without needing an active ssh session to run whilst away.

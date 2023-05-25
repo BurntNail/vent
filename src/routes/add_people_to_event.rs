@@ -1,26 +1,28 @@
 //! Module that publishes 2 `POST` methods that deal with adding prefects and participants to events based off of path parameters. This is a fair bit easier than an invisible form.
 
-use std::sync::Arc;
 use crate::error::KnotError;
 use axum::{
-    extract::{State},
+    extract::{Form, State},
     response::{IntoResponse, Redirect},
 };
-use axum::extract::Form;
-use sqlx::{Pool, Postgres};
 use serde::Deserialize;
+use sqlx::{Pool, Postgres};
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct AddPerson {
-	person_id: i32,
-	event_id: i32
+    person_id: i32,
+    event_id: i32,
 }
 
 ///`POST` method that adds a prefect to an event
 #[axum::debug_handler]
 pub async fn post_add_prefect_to_event(
     State(pool): State<Arc<Pool<Postgres>>>,
-    Form(AddPerson {event_id, person_id: prefect_id}): Form<AddPerson>,
+    Form(AddPerson {
+        event_id,
+        person_id: prefect_id,
+    }): Form<AddPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?; //get a connection
 
@@ -34,7 +36,8 @@ AND event_id = $2"#,
     )
     .fetch_optional(&mut conn)
     .await?
-    .is_none() //if we can't find anything assoiated with this prefect and this event
+    .is_none()
+    //if we can't find anything assoiated with this prefect and this event
     {
         //then we add the prefect to the event
         sqlx::query!(
@@ -57,7 +60,10 @@ VALUES($1, $2);
 #[axum::debug_handler]
 pub async fn post_add_participant_to_event(
     State(pool): State<Arc<Pool<Postgres>>>,
-    Form(AddPerson {event_id, person_id: participant_id}): Form<AddPerson>,
+    Form(AddPerson {
+        event_id,
+        person_id: participant_id,
+    }): Form<AddPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?; //get db connection
 
@@ -71,7 +77,8 @@ AND event_id = $2"#,
     )
     .fetch_optional(&mut conn)
     .await?
-    .is_none() //if we can't find anything assoiated with this participant and this event
+    .is_none()
+    //if we can't find anything assoiated with this participant and this event
     {
         //then we add the participant to the event
         sqlx::query!(
