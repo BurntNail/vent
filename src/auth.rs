@@ -16,9 +16,9 @@ use crate::{error::KnotError, liquid_utils::compile};
 
 #[derive(Deserialize, Clone, FromRow, Serialize)]
 pub struct DbUser {
-    id: i32,
-    username: String,
-    hashed_password: String,
+    pub id: i32,
+    pub username: String,
+    pub hashed_password: String,
 }
 
 impl AuthUser<i32, ()> for DbUser {
@@ -37,8 +37,8 @@ pub type Store = PostgresStore<DbUser, ()>;
 
 #[derive(Deserialize)]
 pub struct LoginDetails {
-    username: String,
-    unhashed_password: String,
+    pub username: String,
+    pub unhashed_password: String,
 }
 
 pub async fn get_login() -> Result<impl IntoResponse, KnotError> {

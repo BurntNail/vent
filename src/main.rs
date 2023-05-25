@@ -49,7 +49,7 @@ use crate::{
         images::{get_all_images, post_add_photo, serve_image},
         public::{get_256, get_512, get_manifest, get_offline, get_sw},
         spreadsheets::get_spreadsheet,
-        update_event_and_person::delete_image,
+        update_event_and_person::delete_image, edit_user::{post_edit_user, get_edit_user},
     },
 };
 
@@ -113,6 +113,7 @@ async fn main() {
         .route("/add_participant", post(post_add_participant_to_event))
         .route("/add_prefect", post(post_add_prefect_to_event))
         .route("/add_person", get(get_add_person).post(post_add_person))
+        .route("/edit_user", get(get_edit_user).post(post_edit_user))
         .route(
             "/add_event",
             get(get_add_event_form).post(post_add_event_form),
@@ -138,6 +139,7 @@ async fn main() {
         .route("/add_image/:event_id", post(post_add_photo))
         .route("/get_all_imgs/:event_id", get(get_all_images))
         .route("/uploads/:img", get(serve_image))
+
         .route_layer(RequireAuth::login())
         .route(
             "/add_new_user",
@@ -162,7 +164,7 @@ async fn main() {
         .layer(auth_layer)
         .layer(session_layer)
         .with_state(Arc::new(pool));
-
+    
     let port: SocketAddr = var("KNOT_SERVER_IP")
         .expect("need KNOT_SERVER_IP env var")
         .parse()

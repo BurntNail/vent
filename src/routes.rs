@@ -9,6 +9,7 @@ pub mod public;
 pub mod show_all;
 pub mod spreadsheets;
 pub mod update_event_and_person;
+pub mod edit_user;
 
 use crate::error::KnotError;
 use chrono::NaiveDateTime;
