@@ -1,4 +1,4 @@
-name: Check, Test, Lint, Build
+name: Check, Test, Lint
 
 on: [pull_request]
 
