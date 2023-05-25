@@ -97,9 +97,13 @@
                   <div class="accordion-body">
                   <ul>
                     {% for person in form.people %}
-                      <li><a href="/add_prefect/{{event.id}}/{{person.id}}">
-                        Add {{ person.first_name }} {{ person.surname }}
-                      </a></li>
+                      <li>
+                      <form method="POST" action="/add_prefect">
+                      <input type="hidden" name="event_id" value="{{event.id}}">
+                      <input type="hidden" name="person_id" value="{{person.id}}">
+                      <button type="submit" class="btn btn-outline-info">Add {{person.first_name}} {{person.surname}}</button>
+                      </form>
+                      </li>
                     {% endfor %}
                   </ul>
                   </div>
@@ -129,9 +133,13 @@
                   <div class="accordion-body">
                   <ul>
                     {% for person in form.people %}
-                      <li><a href="/add_participant/{{event.id}}/{{person.id}}">
-                        Add {{ person.first_name }} {{ person.surname }}
-                      </a></li>
+                      <li>
+                      <form method="POST" action="/add_participant">
+                      <input type="hidden" name="event_id" value="{{event.id}}">
+                      <input type="hidden" name="participant_id" value="{{person.id}}">
+                      <button type="submit" class="btn btn-outline-info">Add {{person.first_name}} {{person.surname}}</button>
+                      </form>
+                      </li>
                     {% endfor %}
                   </ul>
                   </div>

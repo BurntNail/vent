@@ -93,18 +93,18 @@ async fn main() {
             get(get_add_event_form).post(post_add_event_form),
         )
         .route(
-            "/add_participant/:event_id/:participant_id",
+            "/add_participant",
             post(post_add_participant_to_event),
         )
         .route(
-            "/add_prefect/:event_id/:prefect_id",
+            "/add_prefect",
             post(post_add_prefect_to_event),
         )
         .route(
             "/add_person",
             get(get_add_person).post(post_add_person),
         )
-        .route( "/show_all", get(get_remove_stuff))
+        .route("/show_all", get(get_remove_stuff))
         .route("/remove_person", post(post_remove_person))
         .route("/remove_event", post(post_remove_event))
         .route("/remove_img/:id", get(delete_image))

@@ -121,6 +121,8 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
         }
     }
 
+    happened_events.reverse();
+
     let globals = liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events });
 
     compile("www/index.liquid", globals).await

@@ -3,15 +3,24 @@
 use std::sync::Arc;
 use crate::error::KnotError;
 use axum::{
-    extract::{Path, State},
+    extract::{State},
     response::{IntoResponse, Redirect},
 };
+use axum::extract::Form;
 use sqlx::{Pool, Postgres};
+use serde::Deserialize;
 
-///`POST` method that adds a prefect associated with the given `prefect_id` (seconnd argument) to a given `event_id` (first argument). Ensures to avoid duplicates.
+#[derive(Deserialize)]
+pub struct AddPerson {
+	person_id: i32,
+	event_id: i32
+}
+
+///`POST` method that adds a prefect to an event
+#[axum::debug_handler]
 pub async fn post_add_prefect_to_event(
     State(pool): State<Arc<Pool<Postgres>>>,
-    Path((event_id, prefect_id)): Path<(i32, i32)>,
+    Form(AddPerson {event_id, person_id: prefect_id}): Form<AddPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?; //get a connection
 
@@ -44,10 +53,11 @@ VALUES($1, $2);
     Ok(Redirect::to(&format!("/update_event/{event_id}"))) //redirect back to the update event page
 }
 
-///`POST` method that adds a prefect associated with the given `participant_id` (seconnd argument) to a given `event_id` (first argument). Ensures to avoid duplicates.
+///`POST` method that adds a participant
+#[axum::debug_handler]
 pub async fn post_add_participant_to_event(
     State(pool): State<Arc<Pool<Postgres>>>,
-    Path((event_id, participant_id)): Path<(i32, i32)>,
+    Form(AddPerson {event_id, person_id: participant_id}): Form<AddPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?; //get db connection
 
