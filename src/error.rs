@@ -6,6 +6,7 @@ use axum::{
 
 #[derive(thiserror::Error, Debug)]
 pub enum KnotError {
+    //external errors
     #[error("Database Error")]
     Sqlx(#[from] sqlx::Error),
     #[error("Liquid Error")]
@@ -30,6 +31,12 @@ pub enum KnotError {
     Zip(#[from] ZipError),
     #[error("Error with XLSX")]
     Csv(#[from] rust_xlsxwriter::XlsxError),
+    #[error("Error with Encrypting")]
+    Bcrypt(#[from] bcrypt::BcryptError),
+    #[error("Random Eyre Error")]
+    Eyre(#[from] eyre::Error), //thanks axum_login ;)
+
+    // internal errors
     #[error("Missing File: {0:?}")]
     MissingFile(String),
     #[error("Missing Extension")]
