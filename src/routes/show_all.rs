@@ -37,7 +37,7 @@ impl From<SmolDbEvent> for SmolFormattedDbEvent {
         Self {
             id,
             event_name,
-            date: date.format("%d/%m/%Y @ %H:%M").to_string(),
+            date: date.format("%x @ %H:%M").to_string(),
         }
     }
 }

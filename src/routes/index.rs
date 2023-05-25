@@ -36,7 +36,7 @@ pub async fn get_index(
             Self {
                 id,
                 event_name,
-                date: date.format("%d/%m/%Y @ %H:%M").to_string(),
+                date: date.format("%a %x @ %H:%M").to_string(),
                 location,
                 teacher,
                 other_info: other_info.unwrap(),
