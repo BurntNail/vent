@@ -28,8 +28,8 @@ pub enum KnotError {
     NoImageExtension(image::ImageFormat),
     #[error("Error creating Zip File")]
     Zip(#[from] ZipError),
-    #[error("Error with CSV")]
-    Csv(#[from] csv_async::Error),
+    #[error("Error with XLSX")]
+    Csv(#[from] rust_xlsxwriter::XlsxError),
     #[error("Missing File: {0:?}")]
     MissingFile(String),
     #[error("Missing Extension")]

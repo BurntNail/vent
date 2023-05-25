@@ -24,6 +24,7 @@ pub async fn serve_static_file(path: impl ToString) -> Result<impl IntoResponse,
         "html" => "text/html",
         "ics" => "text/calendar",
         "csv" => "text/csv",
+        "xlsx" => "application/vnd.ms-excel",
         unknown => Err(KnotError::UnknownMIME(unknown.into()))?,
     }
     .parse()?;

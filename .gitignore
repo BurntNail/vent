@@ -7,4 +7,5 @@ devenv.local.nix
 .env
 *.ics
 *.csv
+*.xslx
 uploads/*

@@ -13,6 +13,7 @@ This project requires:
  - `cargo-sqlx` installed via `cargo` - this is used for postgres migrations
  - `devenv` - this is used for the postgres server
  - `libssl-dev` - this is used for the axum server
+ - `clang` - this is used for the spreadsheet export
 
 ### Environment
 You need to have a `.env` file with the following variables set:
