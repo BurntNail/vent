@@ -136,7 +136,7 @@
                       <li>
                       <form method="POST" action="/add_participant">
                       <input type="hidden" name="event_id" value="{{event.id}}">
-                      <input type="hidden" name="participant_id" value="{{person.id}}">
+                      <input type="hidden" name="person_id" value="{{person.id}}">
                       <button type="submit" class="btn btn-outline-info">Add {{person.first_name}} {{person.surname}}</button>
                       </form>
                       </li>
@@ -179,7 +179,7 @@
               </li>
               {% for person in form.people %}
                 <li class="list-group-item">
-                  <a href="/remove_prefect_from_event/{{person.relation_id}}">
+                  <a href="/remove_participant_from_event/{{person.relation_id}}">
                     Remove {{ person.first_name }} {{ person.surname }}
                   </a>
                 </li>
