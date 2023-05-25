@@ -262,9 +262,14 @@ WHERE id=$1
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
 
+#[derive(Deserialize)]
+pub struct Removal {
+    relation_id: i32,
+}
+
 pub async fn get_remove_prefect_from_event(
-    Path(relation_id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
+    Form(Removal { relation_id }): Form<Removal>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
 
@@ -282,8 +287,8 @@ RETURNING event_id
     Ok(Redirect::to(&format!("/update_event/{id}")))
 }
 pub async fn get_remove_participant_from_event(
-    Path(relation_id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
+    Form(Removal { relation_id }): Form<Removal>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
 

@@ -115,12 +115,12 @@ async fn main() {
             get(get_edit_person).post(post_edit_person),
         )
         .route(
-            "/remove_prefect_from_event/:relation_id",
-            get(get_remove_prefect_from_event),
+            "/remove_prefect_from_event",
+            post(get_remove_prefect_from_event),
         )
         .route(
-            "/remove_participant_from_event/:relation_id",
-            get(get_remove_participant_from_event),
+            "/remove_participant_from_event",
+            post(get_remove_participant_from_event),
         )
         .route("/add_image/:event_id", post(post_add_photo))
         .route("/get_all_imgs/:event_id", get(get_all_images))

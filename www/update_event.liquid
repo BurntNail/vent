@@ -95,23 +95,19 @@
                 data-bs-parent="pot_pres"
                 id="pot_pres_{{form.form}}">
                 <div class="accordion-body">
-                  <ul>
-                    {% for person in form.people %}
-                      <li>
-                        <form method="POST" action="/add_prefect">
-                          <input
-                            type="hidden"
-                            name="event_id"
-                            value="{{event.id}}">
-                          <input
-                            type="hidden"
-                            name="person_id"
-                            value="{{person.id}}">
-                          <button type="submit" class="btn btn-outline-info">Add {{ person.first_name }} {{ person.surname }}</button>
-                        </form>
-                      </li>
-                    {% endfor %}
-                  </ul>
+                  {% for person in form.people %}
+                    <form method="POST" action="/add_prefect">
+                      <input
+                        type="hidden"
+                        name="event_id"
+                        value="{{event.id}}">
+                      <input
+                        type="hidden"
+                        name="person_id"
+                        value="{{person.id}}">
+                      <button type="submit" class="btn btn-link">Add {{ person.first_name }} {{ person.surname }}</button>
+                    </form>
+                  {% endfor %}
                 </div>
               </div>
             </div>
@@ -137,23 +133,19 @@
                 data-bs-parent="pot_part"
                 id="pot_part_{{form.form}}">
                 <div class="accordion-body">
-                  <ul>
-                    {% for person in form.people %}
-                      <li>
-                        <form method="POST" action="/add_participant">
-                          <input
-                            type="hidden"
-                            name="event_id"
-                            value="{{event.id}}">
-                          <input
-                            type="hidden"
-                            name="person_id"
-                            value="{{person.id}}">
-                          <button type="submit" class="btn btn-outline-info">Add {{ person.first_name }} {{ person.surname }}</button>
-                        </form>
-                      </li>
-                    {% endfor %}
-                  </ul>
+                  {% for person in form.people %}
+                    <form method="POST" action="/add_participant">
+                      <input
+                        type="hidden"
+                        name="event_id"
+                        value="{{event.id}}">
+                      <input
+                        type="hidden"
+                        name="person_id"
+                        value="{{person.id}}">
+                      <button type="submit" class="btn btn-link">Add {{ person.first_name }} {{ person.surname }}</button>
+                    </form>
+                  {% endfor %}
                 </div>
               </div>
             </div>
@@ -175,9 +167,13 @@
             </li>
             {% for person in form.people %}
               <li class="list-group-item">
-                <a href="/remove_prefect_from_event/{{person.relation_id}}">
-                  Remove {{ person.first_name }} {{ person.surname }}
-                </a>
+                <form action="/remove_prefect_from_event" method="POST">
+                  <input
+                    type="hidden"
+                    name="relation_id"
+                    value="{{person.relation_id}}">
+                  <button type="submit" class="btn btn-link">Remove {{ person.first_name }} {{ person.surname }}</button>
+                </form>
               </li>
             {% endfor %}
           {% endfor %}
@@ -191,9 +187,13 @@
             </li>
             {% for person in form.people %}
               <li class="list-group-item">
-                <a href="/remove_participant_from_event/{{person.relation_id}}">
-                  Remove {{ person.first_name }} {{ person.surname }}
-                </a>
+                <form action="/remove_participant_from_event" method="POST">
+                  <input
+                    type="hidden"
+                    name="relation_id"
+                    value="{{person.relation_id}}">
+                  <button type="submit" class="btn btn-link">Remove {{ person.first_name }} {{ person.surname }}</button>
+                </form>
               </li>
             {% endfor %}
           {% endfor %}
