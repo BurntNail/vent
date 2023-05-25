@@ -11,12 +11,13 @@ use sqlx::{Pool, Postgres};
 use crate::{
     error::KnotError,
     liquid_utils::{compile, EnvFormatter},
-    routes::DbPerson,
+    routes::DbPerson, auth::Auth,
 };
 
 use super::add_person::NoIDPerson;
 
 pub async fn get_edit_person(
+    auth: Auth,
     Path(id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
@@ -69,9 +70,16 @@ ON pe.event_id = e.id AND pe.participant_id = $1
     })
     .collect::<Vec<_>>();
 
+    let globals = if let Some(user) = auth.current_user {
+        liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "is_logged_in": true, "user": user })
+    } else {
+        liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "is_logged_in": false })
+    };
+
+
     compile(
         "www/edit_person.liquid",
-        liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated }),
+        globals,
     )
     .await
 }

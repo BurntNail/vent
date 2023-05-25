@@ -11,7 +11,7 @@ use sqlx::{Pool, Postgres};
 
 use crate::{
     error::KnotError,
-    liquid_utils::{compile, EnvFormatter},
+    liquid_utils::{compile, EnvFormatter}, auth::Auth,
 };
 
 use super::DbPerson;
@@ -46,6 +46,7 @@ impl From<SmolDbEvent> for SmolFormattedDbEvent {
 }
 
 pub async fn get_remove_stuff(
+    auth: Auth,
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
@@ -76,10 +77,12 @@ ORDER BY e.date
     .map(SmolFormattedDbEvent::from)
     .collect();
 
-    let globals = liquid::object!({
-        "people": people,
-        "events": events
-    });
+    let globals = if let Some(user) = auth.current_user {
+        liquid::object!({ "people": people, "events": events, "is_logged_in": true, "user": user })
+    } else {
+        liquid::object!({ "people": people, "events": events, "is_logged_in": false })
+    };
+
 
     compile("www/show_all.liquid", globals).await
 }

@@ -1,6 +1,6 @@
 //! Module that deals with adding a person - publishes a `GET` method with a form, and a `POST` method that deals with the form.
 
-use crate::{error::KnotError, liquid_utils::compile};
+use crate::{error::KnotError, liquid_utils::compile, auth::Auth};
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
@@ -11,8 +11,15 @@ use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
 ///`GET` function to display the add person form
-pub async fn get_add_person() -> Result<impl IntoResponse, KnotError> {
-    compile("www/add_person.liquid", liquid::object!({})).await
+pub async fn get_add_person(auth: Auth) -> Result<impl IntoResponse, KnotError> {
+    let globals = if let Some(user) = auth.current_user {
+        liquid::object!({ "is_logged_in": true, "user": user })
+    } else {
+        liquid::object!({ "is_logged_in": false })
+    };
+
+
+    compile("www/add_person.liquid", globals).await
 }
 
 #[derive(Deserialize)]

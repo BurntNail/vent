@@ -102,6 +102,12 @@ VALUES($1, $2);
     Ok(Redirect::to("/"))
 }
 
-pub async fn get_add_new_user() -> Result<impl IntoResponse, KnotError> {
-    compile("www/add_new_user.liquid", liquid::object!({})).await
+pub async fn get_add_new_user(auth: Auth) -> Result<impl IntoResponse, KnotError> {
+    let globals = if let Some(user) = auth.current_user {
+        liquid::object!({ "is_logged_in": true, "user": user })
+    } else {
+        liquid::object!({ "is_logged_in": false })
+    };
+
+    compile("www/add_new_user.liquid", globals).await
 }
