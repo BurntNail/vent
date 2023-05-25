@@ -1,12 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
-
 use axum::{extract::State, response::IntoResponse};
-use csv_async::AsyncWriter;
 use sqlx::{Pool, Postgres};
-use tokio::fs::File;
-
+use tokio::{task};
+use rust_xlsxwriter::{Workbook, Format, Color, FormatAlign};
 use crate::{error::KnotError, routes::DbPerson};
-
 use super::public::serve_static_file;
 
 pub async fn get_spreadsheet(
@@ -20,59 +17,85 @@ SELECT * FROM people"#
     )
     .fetch_all(&mut conn)
     .await?;
+    let mut events = sqlx::query!(
+        r#"
+SELECT * FROM events"#
+    )
+    .fetch_all(&mut conn)
+    .await?;
+    events.sort_by_key(|r| r.date);
 
-    let prefect_relationships: HashMap<i32, usize> = {
-        let mut map = HashMap::new();
-        sqlx::query!("SELECT prefect_id FROM prefect_events")
+        let mut participant_relationships = HashMap::new();
+        sqlx::query!("SELECT participant_id, event_id FROM participant_events")
             .fetch_all(&mut conn)
             .await?
             .into_iter()
-            .for_each(|x| *map.entry(x.prefect_id).or_insert(0_usize) += 1);
-        map
-    };
-    let participant_relationships: HashMap<i32, usize> = {
-        let mut map = HashMap::new();
-        sqlx::query!("SELECT participant_id FROM participant_events")
-            .fetch_all(&mut conn)
-            .await?
-            .into_iter()
-            .for_each(|x| *map.entry(x.participant_id).or_insert(0_usize) += 1);
-        map
-    };
+            .for_each(|x| participant_relationships.entry(x.participant_id).or_insert(vec![]).push(x.event_id));
+    drop(conn);
 
-    let mut writer = AsyncWriter::from_writer(File::create("student_spreadsheet.csv").await?);
-    writer
-        .write_record(&[
-            "First Name",
-            "Surname",
-            "Form",
-            "House Events",
-            "House Events supervised",
-        ])
-        .await?;
+    task::spawn_blocking(move || -> Result<(), KnotError> {
+        let mut workbook = Workbook::new();
 
-    for DbPerson {
-        first_name,
-        surname,
-        is_prefect: _,
-        id,
-        form,
-    } in people
-    {
-        //NB: originally had fun stuff with SQL but way faster to cache in rust
-        let tbw = &[
-            first_name,
-            surname,
-            form,
-            participant_relationships.get(&id).unwrap_or(&0).to_string(),
-            prefect_relationships.get(&id).unwrap_or(&0).to_string(),
-        ];
-        writer.write_record(tbw).await?;
-    }
+        let title_fmt = Format::new()
+            .set_background_color(Color::Gray)
+            .set_align(FormatAlign::Center)
+            .set_align(FormatAlign::VerticalCenter)
+            .set_bold();
+        let event_fmt = Format::new()
+            .set_background_color(Color::Yellow)
+            .set_rotation(90);
+        let person_fmt = Format::new()
+            .set_background_color(Color::Green);
 
-    //not sure why, but need to re-read the file for this to work
-    writer.flush().await?;
-    drop(writer);
 
-    serve_static_file("student_spreadsheet.csv").await
+        let sheet = workbook.add_worksheet();
+
+        sheet.write_with_format(2, 0, "Name", &title_fmt)?;
+        sheet.write_with_format(2, 1, "Form", &title_fmt)?;
+        sheet.write_with_format(2, 2, "Total Events", &title_fmt)?;
+
+        sheet.merge_range(0, 0, 0, 2, "Event Name", &title_fmt)?;
+        sheet.merge_range(1, 0, 1, 2, "Event Date", &title_fmt)?;
+
+        let mut events_to_check = vec![];
+
+        for (col, event) in events.into_iter().enumerate() {
+            let col = col as u16 + 3;
+            sheet.write_with_format(0, col, &event.event_name, &event_fmt)?;
+            sheet.write_with_format(1, col, &event.date.format("%d/%m/%Y").to_string(), &event_fmt)?;
+            events_to_check.push((col, event.id));
+        }
+
+        for (
+            row,
+            DbPerson {
+                first_name,
+                surname,
+                is_prefect: _,
+                id,
+                form,
+            },
+        ) in people.into_iter().enumerate().map(|(row, db)| (row + 3, db))
+        {
+            let row = row as u32;
+
+            let pr = participant_relationships.remove(&id).unwrap_or_default();
+            sheet.write_with_format(row, 0, format!("{first_name} {surname}"), &person_fmt)?;
+            sheet.write_with_format(row, 1, &form, &person_fmt)?;
+            sheet.write_with_format(row, 2, &pr.len().to_string(), &person_fmt)?;
+
+            for (col, event_id) in &events_to_check {
+                if pr.contains(event_id) {
+                    sheet.write(row, *col, 1.0)?;
+                }
+            }
+        }
+
+        workbook.save("student_spreadsheet.xlsx")?;
+
+        Ok(())
+    })
+    .await??;
+
+    serve_static_file("student_spreadsheet.xlsx").await
 }

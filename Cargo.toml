@@ -28,3 +28,4 @@ rand = "0.8.5"
 async_zip = { version = "0.0.15", features = ["tokio", "tokio-fs", "deflate"] }
 csv-async = { version = "1.2.6", features = ["tokio"] }
 tower-http = { version = "0.4.0", features = ["trace"] }
+rust_xlsxwriter = "0.39.0"

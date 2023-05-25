@@ -1,5 +1,5 @@
 #![warn(clippy::all, clippy::pedantic)]
-#![allow(clippy::module_name_repetitions, clippy::items_after_statements)]
+#![allow(clippy::module_name_repetitions, clippy::items_after_statements, clippy::cast_possible_truncation)]
 
 mod error;
 mod liquid_utils;
