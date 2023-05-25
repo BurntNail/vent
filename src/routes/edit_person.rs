@@ -8,7 +8,11 @@ use axum::{
 use serde::Serialize;
 use sqlx::{Pool, Postgres};
 
-use crate::{error::KnotError, liquid_utils::{compile, EnvFormatter}, routes::DbPerson};
+use crate::{
+    error::KnotError,
+    liquid_utils::{compile, EnvFormatter},
+    routes::DbPerson,
+};
 
 use super::add_person::NoIDPerson;
 
@@ -36,11 +40,16 @@ INNER JOIN prefect_events pe
 ON pe.event_id = e.id AND pe.prefect_id = $1
         "#,
         person.id
-    ).fetch_all(&mut conn).await?.into_iter().map(|r| Event {
+    )
+    .fetch_all(&mut conn)
+    .await?
+    .into_iter()
+    .map(|r| Event {
         name: r.event_name,
         date: r.date.to_env_string(),
         id: r.id,
-    }).collect::<Vec<_>>();
+    })
+    .collect::<Vec<_>>();
 
     let events_participated = sqlx::query!(
         r#"
@@ -49,12 +58,16 @@ INNER JOIN participant_events pe
 ON pe.event_id = e.id AND pe.participant_id = $1
         "#,
         person.id
-    ).fetch_all(&mut conn).await?.into_iter().map(|r| Event {
+    )
+    .fetch_all(&mut conn)
+    .await?
+    .into_iter()
+    .map(|r| Event {
         name: r.event_name,
         date: r.date.to_env_string(),
         id: r.id,
-    }).collect::<Vec<_>>();
-
+    })
+    .collect::<Vec<_>>();
 
     compile(
         "www/edit_person.liquid",

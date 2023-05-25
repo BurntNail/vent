@@ -1,22 +1,25 @@
-use std::{collections::HashMap, sync::Arc};
-use axum::{extract::State, response::IntoResponse};
-use sqlx::{Pool, Postgres};
-use tokio::{task};
-use rust_xlsxwriter::{Workbook, Format, Color, FormatAlign};
-use crate::{error::KnotError, routes::DbPerson};
 use super::public::serve_static_file;
+use crate::{error::KnotError, routes::DbPerson};
+use axum::{extract::State, response::IntoResponse};
+use rust_xlsxwriter::{Color, Format, FormatAlign, Workbook};
+use sqlx::{Pool, Postgres};
+use std::{collections::HashMap, sync::Arc};
+use tokio::task;
 
 pub async fn get_spreadsheet(
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
-    let people = sqlx::query_as!(
+    let mut people = sqlx::query_as!(
         DbPerson,
         r#"
 SELECT * FROM people"#
     )
     .fetch_all(&mut conn)
     .await?;
+    people.sort_by_key(|x| x.surname.clone());
+    people.sort_by_key(|x| x.form.clone());
+
     let mut events = sqlx::query!(
         r#"
 SELECT * FROM events"#
@@ -25,12 +28,17 @@ SELECT * FROM events"#
     .await?;
     events.sort_by_key(|r| r.date);
 
-        let mut participant_relationships = HashMap::new();
-        sqlx::query!("SELECT participant_id, event_id FROM participant_events")
-            .fetch_all(&mut conn)
-            .await?
-            .into_iter()
-            .for_each(|x| participant_relationships.entry(x.participant_id).or_insert(vec![]).push(x.event_id));
+    let mut participant_relationships = HashMap::new();
+    sqlx::query!("SELECT participant_id, event_id FROM participant_events")
+        .fetch_all(&mut conn)
+        .await?
+        .into_iter()
+        .for_each(|x| {
+            participant_relationships
+                .entry(x.participant_id)
+                .or_insert(vec![])
+                .push(x.event_id);
+        });
     drop(conn);
 
     task::spawn_blocking(move || -> Result<(), KnotError> {
@@ -44,9 +52,7 @@ SELECT * FROM events"#
         let event_fmt = Format::new()
             .set_background_color(Color::Yellow)
             .set_rotation(90);
-        let person_fmt = Format::new()
-            .set_background_color(Color::Green);
-
+        let person_fmt = Format::new().set_background_color(Color::Green);
 
         let sheet = workbook.add_worksheet();
 
@@ -62,7 +68,12 @@ SELECT * FROM events"#
         for (col, event) in events.into_iter().enumerate() {
             let col = col as u16 + 3;
             sheet.write_with_format(0, col, &event.event_name, &event_fmt)?;
-            sheet.write_with_format(1, col, &event.date.format("%d/%m/%Y").to_string(), &event_fmt)?;
+            sheet.write_with_format(
+                1,
+                col,
+                &event.date.format("%d/%m/%Y").to_string(),
+                &event_fmt,
+            )?;
             events_to_check.push((col, event.id));
         }
 
@@ -75,7 +86,10 @@ SELECT * FROM events"#
                 id,
                 form,
             },
-        ) in people.into_iter().enumerate().map(|(row, db)| (row + 3, db))
+        ) in people
+            .into_iter()
+            .enumerate()
+            .map(|(row, db)| (row + 3, db))
         {
             let row = row as u32;
 

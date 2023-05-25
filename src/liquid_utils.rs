@@ -5,7 +5,7 @@ use crate::{
 use axum::response::Html;
 use chrono::NaiveDateTime;
 use liquid::{Object, ParserBuilder};
-use std::{fmt::Debug, path::Path, env};
+use std::{env, fmt::Debug, path::Path};
 use tokio::fs::read_to_string;
 
 pub mod partials;

@@ -1,4 +1,4 @@
-use std::{sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     extract::State,
@@ -9,7 +9,10 @@ use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
 
-use crate::{error::KnotError, liquid_utils::{compile, EnvFormatter}};
+use crate::{
+    error::KnotError,
+    liquid_utils::{compile, EnvFormatter},
+};
 
 use super::DbPerson;
 
@@ -37,7 +40,7 @@ impl From<SmolDbEvent> for SmolFormattedDbEvent {
         Self {
             id,
             event_name,
-            date: date.to_env_string()
+            date: date.to_env_string(),
         }
     }
 }

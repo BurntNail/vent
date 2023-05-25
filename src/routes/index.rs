@@ -2,9 +2,13 @@ use axum::{extract::State, response::IntoResponse};
 use chrono::Utc;
 use serde::Serialize;
 use sqlx::{Pool, Postgres};
-use std::{sync::Arc};
+use std::sync::Arc;
 
-use crate::{error::KnotError, liquid_utils::{compile, EnvFormatter}, routes::DbEvent};
+use crate::{
+    error::KnotError,
+    liquid_utils::{compile, EnvFormatter},
+    routes::DbEvent,
+};
 
 #[allow(clippy::too_many_lines)]
 pub async fn get_index(
