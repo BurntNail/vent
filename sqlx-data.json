@@ -1,5 +1,77 @@
 {
   "db": "PostgreSQL",
+  "0361d8a907151c80e0756e07509c055cca4c784c340eebd8f8449130bceb34c8": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "is_prefect",
+          "ordinal": 1,
+          "type_info": "Bool"
+        },
+        {
+          "name": "first_name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "form",
+          "ordinal": 4,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\nSELECT *\nFROM people p\nWHERE p.is_prefect = true\n"
+  },
+  "059c46a2bff7a0924de0f9e83d6be3db2964c31632c7e54c6be2dda4bec1ec1a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "date",
+          "ordinal": 2,
+          "type_info": "Timestamp"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\nSELECT id, event_name, date\nFROM events e\nORDER BY e.date\n        "
+  },
   "0ace8b2949b053a97c2a88b0cf5b1607ab6cd14737ee13001314ca6923ebcc55": {
     "describe": {
       "columns": [
@@ -72,6 +144,32 @@
     },
     "query": "SELECT * FROM events"
   },
+  "1394356b70fc3cf67aac7fb7a751a820c9e1b77179326d59b2a88229cc63152d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "path",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "id",
+          "ordinal": 1,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\nSELECT path, id FROM photos\nWHERE event_id = $1\n        "
+  },
   "182b514a4ef72381bb7899dce7558c39b29457e646577b099fc2a221d4df7fd2": {
     "describe": {
       "columns": [
@@ -92,36 +190,6 @@
     },
     "query": "\nDELETE FROM participant_events WHERE relation_id = $1 \nRETURNING event_id\n"
   },
-  "19dc33ab9c68b763f434ea1f7fbb5398b4f2fe4b02346812ea596a87d189c14a": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        },
-        {
-          "name": "person_name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "is_prefect",
-          "ordinal": 2,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "\nSELECT p.id, p.person_name, p.is_prefect\nFROM people p\n"
-  },
   "25e2aab818eb7e1b41728499980b688462933175765626661afd55293416e23a": {
     "describe": {
       "columns": [],
@@ -134,36 +202,6 @@
       }
     },
     "query": "\nINSERT INTO public.prefect_events\n(prefect_id, event_id)\nVALUES($1, $2);            \n            "
-  },
-  "287a582692f7805861d4897f88338b1ddb2ab50cd25d7a811f360ce33eb5635e": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        },
-        {
-          "name": "person_name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "is_prefect",
-          "ordinal": 2,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "\nSELECT *\nFROM people\n        "
   },
   "2b14b8ef413d20f1ec07b5f14568d9c67226c4b6d5db3a74383382c6a470db32": {
     "describe": {
@@ -198,11 +236,102 @@
     },
     "query": "\nSELECT * FROM public.prefect_events\nWHERE prefect_id = $1\nAND event_id = $2"
   },
-  "3a15a48f832842b84499325829de48955cd169a0a5e9efd481d1f1788377cfff": {
+  "2b43b916cad5d4f5354ba03aa65088ea071dd511946b3e32a809e3ee60b9e0a8": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Text",
+          "Timestamp",
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "\nUPDATE public.events\nSET event_name=$2, date=$3, location=$4, teacher=$5, other_info=$6\nWHERE id=$1\n        "
+  },
+  "301245cd7ec25cfee91050cb7d9081bbc359d6969bfdc568eb4f14bef91aeb24": {
     "describe": {
       "columns": [
         {
-          "name": "person_name",
+          "name": "first_name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "form",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\nSELECT p.first_name, p.surname, p.form\nFROM people p\nINNER JOIN events e ON e.id = $1\nINNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $1\n            "
+  },
+  "3516eecb7c5c7a99ac0468055ada5a82fb58edc3d28bb51d19e02fe5ae67fe90": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "is_prefect",
+          "ordinal": 1,
+          "type_info": "Bool"
+        },
+        {
+          "name": "first_name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "form",
+          "ordinal": 4,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\nSELECT *\nFROM people p\n"
+  },
+  "3d481e488039cd2bb614d5508b02f79531f6c60ecf0be5bfd94f5e519519b766": {
+    "describe": {
+      "columns": [
+        {
+          "name": "path",
           "ordinal": 0,
           "type_info": "Text"
         }
@@ -216,7 +345,51 @@
         ]
       }
     },
-    "query": "\nSELECT p.person_name\nFROM people p\nINNER JOIN events e ON e.id = $1\nINNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1\n            "
+    "query": "\nSELECT path FROM public.photos\nWHERE event_id = $1"
+  },
+  "3ead69a0c01f6a841bbc45d590c0c498b94ff89ac6cdcebe9143ef2d1b1c839f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "first_name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "relation_id",
+          "ordinal": 2,
+          "type_info": "Int4"
+        },
+        {
+          "name": "id",
+          "ordinal": 3,
+          "type_info": "Int4"
+        },
+        {
+          "name": "form",
+          "ordinal": 4,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\nSELECT p.first_name, p.surname, pe.relation_id, p.id, p.form\nFROM people p\nINNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.id\n"
   },
   "4e090b1e5ff25fc8d1cfc29556080735412d1ecff74012acc12269fec36d2f0f": {
     "describe": {
@@ -231,16 +404,22 @@
     },
     "query": "\nINSERT INTO public.participant_events\n(participant_id, event_id)\nVALUES($1, $2);            \n            "
   },
-  "5cb01b6fad6dd9de640580d8c34062e49e7787fc5f6be24632277d4f9488edb6": {
+  "53f49d19f8086730e9a1ebea0c05954021f566ddfde81003199c007cbd7f2add": {
     "describe": {
       "columns": [
         {
-          "name": "person_name",
+          "name": "path",
           "ordinal": 0,
           "type_info": "Text"
+        },
+        {
+          "name": "event_id",
+          "ordinal": 1,
+          "type_info": "Int4"
         }
       ],
       "nullable": [
+        false,
         false
       ],
       "parameters": {
@@ -249,34 +428,9 @@
         ]
       }
     },
-    "query": "\nSELECT p.person_name\nFROM people p\nINNER JOIN events e ON e.id = $1\nINNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $1\n            "
+    "query": "\nDELETE FROM public.photos\nWHERE id=$1\nRETURNING path, event_id"
   },
-  "5ebda985fa7e236918d950566bde91b83b38a2e11e775c2ad10fea3c94e93fec": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
-      }
-    },
-    "query": "\n    DELETE FROM public.people\n    WHERE id=$1\n            "
-  },
-  "69ec6f06ca22a69cc04e31c8dd40999be8b5be43d69ed354f7e45ba419c99317": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Bool"
-        ]
-      }
-    },
-    "query": "\nINSERT INTO public.people\n(person_name, is_prefect)\nVALUES($1, $2);    \n    "
-  },
-  "7a7b4941930c7a2065f2b60b3422c2c282558e82caf2bb27370fc1124620ad2b": {
+  "747b5a9de53783e1bb5aa0622d8af58cf03c36ca07b91828cffd1954c7e26499": {
     "describe": {
       "columns": [
         {
@@ -285,17 +439,29 @@
           "type_info": "Int4"
         },
         {
-          "name": "event_name",
+          "name": "is_prefect",
           "ordinal": 1,
+          "type_info": "Bool"
+        },
+        {
+          "name": "first_name",
+          "ordinal": 2,
           "type_info": "Text"
         },
         {
-          "name": "date",
-          "ordinal": 2,
-          "type_info": "Timestamp"
+          "name": "surname",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "form",
+          "ordinal": 4,
+          "type_info": "Text"
         }
       ],
       "nullable": [
+        false,
+        false,
         false,
         false,
         false
@@ -304,39 +470,20 @@
         "Left": []
       }
     },
-    "query": "\nSELECT id, event_name, date\nFROM events\n        "
+    "query": "\nSELECT * FROM people"
   },
-  "80367822792017ae859cee30ef1d8c73fefe177c5c230dca7a0b0ca0ca337efe": {
+  "845100180dc6aa57ef6676ad62889568d790e1fc250a19b5109af02fd10c57f9": {
     "describe": {
-      "columns": [
-        {
-          "name": "person_name",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "relation_id",
-          "ordinal": 1,
-          "type_info": "Int4"
-        },
-        {
-          "name": "id",
-          "ordinal": 2,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
+      "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
+          "Text",
           "Int4"
         ]
       }
     },
-    "query": "\nSELECT p.person_name, pe.relation_id, p.id\nFROM people p\nINNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.id"
+    "query": "\nINSERT INTO public.photos\n(\"path\", event_id)\nVALUES($1, $2)"
   },
   "895e2bd083d988270e272a5443b6cc7d426c3cc8b571f4640fbf30bd31a433a2": {
     "describe": {
@@ -370,6 +517,38 @@
       }
     },
     "query": "\nSELECT * FROM public.participant_events\nWHERE participant_id = $1\nAND event_id = $2"
+  },
+  "8fa6ea87635a06da7616d1e99f4dc2f61df57b2378d4eb9708b1f4f813257e76": {
+    "describe": {
+      "columns": [
+        {
+          "name": "first_name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "form",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\nSELECT p.first_name, p.surname, p.form\nFROM people p\nINNER JOIN events e ON e.id = $1\nINNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1\n            "
   },
   "965da25f335b8b89ec15923462f420184cb1128e460adf256afaadc36ef3481c": {
     "describe": {
@@ -421,6 +600,53 @@
     },
     "query": "\nSELECT * FROM events WHERE id = $1\n"
   },
+  "a07227a4de0554319907b6f43ab367dd52c639ae97aa5cb2b02cf4c442cb7bd9": {
+    "describe": {
+      "columns": [
+        {
+          "name": "date",
+          "ordinal": 0,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "event_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "id",
+          "ordinal": 2,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\nSELECT date, event_name, id FROM events e \nINNER JOIN prefect_events pe\nON pe.event_id = e.id AND pe.prefect_id = $1\n        "
+  },
+  "a138cd62efdb64f9bd65326fe4ad069a37e39d7a3fd798b8653ac3afff57638c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Bool",
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "\nINSERT INTO public.people\n(is_prefect, first_name, surname, form)\nVALUES($1, $2, $3, $4);    \n    "
+  },
   "a175525df71240b66d1ccb5ace032fb217b6a82c51ec5361b4b92bdd0bd57b69": {
     "describe": {
       "columns": [],
@@ -433,7 +659,111 @@
     },
     "query": "\n    DELETE FROM public.events\n    WHERE id=$1\n            "
   },
-  "be9edfba0d03663443bdf1db36d7eda9a6780fbfb81ebb7cae93f8ef995e609d": {
+  "a1fe13573fb164d0c838a57df5e64de3a04c90a10c960b579d56ea7405fd8d8a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "event_id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "prefect_id",
+          "ordinal": 1,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n    SELECT event_id, prefect_id FROM prefect_events"
+  },
+  "a884a61c9f96f8e4beaafff703464f8eae666445bd7c27cbbe00a0b9caa5a66c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "first_name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "relation_id",
+          "ordinal": 2,
+          "type_info": "Int4"
+        },
+        {
+          "name": "id",
+          "ordinal": 3,
+          "type_info": "Int4"
+        },
+        {
+          "name": "form",
+          "ordinal": 4,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\nSELECT p.first_name, p.surname, pe.relation_id, p.id, p.form\nFROM people p\nINNER JOIN prefect_events pe ON pe.event_id = $1 AND pe.prefect_id = p.id\n"
+  },
+  "b737710c9e3c9b9028f88c58e2e637108d637fcfbe86f77afa4dd59bc90be7b6": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\nDELETE FROM public.people\nWHERE id=$1\n            "
+  },
+  "b7fbea3137c5e7f88d06868fd2a220a85512463cea122d760369482e5a28befe": {
+    "describe": {
+      "columns": [
+        {
+          "name": "participant_id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event_id",
+          "ordinal": 1,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT participant_id, event_id FROM participant_events"
+  },
+  "b888ba58e6fd1a333fd2e467cf78e8ed96ce254d79f13dae22ef26d7c612804e": {
     "describe": {
       "columns": [
         {
@@ -442,14 +772,14 @@
           "type_info": "Int4"
         },
         {
-          "name": "person_name",
+          "name": "path",
           "ordinal": 1,
           "type_info": "Text"
         },
         {
-          "name": "is_prefect",
+          "name": "event_id",
           "ordinal": 2,
-          "type_info": "Bool"
+          "type_info": "Int4"
         }
       ],
       "nullable": [
@@ -458,10 +788,12 @@
         false
       ],
       "parameters": {
-        "Left": []
+        "Left": [
+          "Text"
+        ]
       }
     },
-    "query": "\nSELECT p.id, p.person_name, p.is_prefect\nFROM people p\nWHERE p.is_prefect = true"
+    "query": "\n    SELECT * FROM photos\n    WHERE path = $1\n            "
   },
   "d250bafba96a48e39a8bc32dd67cc84a4363da8886a46659216c5f3c80a32dc1": {
     "describe": {
@@ -511,26 +843,86 @@
     },
     "query": "\nSELECT *\nFROM events\nORDER BY events.date\n        "
   },
-  "e04d69b31bcc775ac297ed263a64a96f316add17b6a9559a7ca92b5c8ae89383": {
+  "d49f966c7c73218465cfe996cdc58a67f021a54eb1e645f7a5109024c6e97c10": {
     "describe": {
       "columns": [
         {
-          "name": "person_name",
+          "name": "id",
           "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event_name",
+          "ordinal": 1,
           "type_info": "Text"
         },
         {
-          "name": "relation_id",
-          "ordinal": 1,
-          "type_info": "Int4"
+          "name": "date",
+          "ordinal": 2,
+          "type_info": "Timestamp"
         },
         {
-          "name": "id",
-          "ordinal": 2,
-          "type_info": "Int4"
+          "name": "location",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "teacher",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "other_info",
+          "ordinal": 5,
+          "type_info": "Text"
         }
       ],
       "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\nSELECT * FROM events"
+  },
+  "dfde2f7873f55b1fc6b9f9b428f4937db7e6c788af411fb51c2898465d704693": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "is_prefect",
+          "ordinal": 1,
+          "type_info": "Bool"
+        },
+        {
+          "name": "first_name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "form",
+          "ordinal": 4,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
         false,
         false,
         false
@@ -541,7 +933,7 @@
         ]
       }
     },
-    "query": "\nSELECT p.person_name, pe.relation_id, p.id\nFROM people p\nINNER JOIN prefect_events pe ON pe.event_id = $1 AND pe.prefect_id = p.id"
+    "query": "SELECT * FROM people WHERE id = $1"
   },
   "e79518b095388865b266ac6f35b1c1063256200f83d1f0f2c30fdc7e4810d794": {
     "describe": {
@@ -562,5 +954,125 @@
       }
     },
     "query": "\nDELETE FROM prefect_events WHERE relation_id = $1 \nRETURNING event_id\n"
+  },
+  "e858da28a62683ef17bbefa00e0f67c74dfc858f13d7e660f033a0397e135faa": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "first_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n    SELECT id, first_name, surname FROM people p WHERE p.is_prefect = true"
+  },
+  "ede1fd4b1fed2b34a191e15b7fa38472ed4eb03a787ea31dea28dc1aa8726945": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Text",
+          "Text",
+          "Text",
+          "Bool"
+        ]
+      }
+    },
+    "query": "\nUPDATE public.people\nSET is_prefect=$5, first_name=$2, surname=$3, form=$4\nWHERE id=$1\n        "
+  },
+  "eeb2895e33af7f98f4914ebde0b74c287721ca16daf4cdea552ad25a765c8c56": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "is_prefect",
+          "ordinal": 1,
+          "type_info": "Bool"
+        },
+        {
+          "name": "first_name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "form",
+          "ordinal": 4,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\nSELECT *\nFROM people p\n        "
+  },
+  "f88e26dd72d22d794301709cb15b823f636c8bd8cc5146c0c986b7d47de31e4f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "date",
+          "ordinal": 0,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "event_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "id",
+          "ordinal": 2,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\nSELECT date, event_name, id FROM events e \nINNER JOIN participant_events pe\nON pe.event_id = e.id AND pe.participant_id = $1\n        "
   }
 }
