@@ -76,77 +76,89 @@
     <div class="card">
       <div class="card-body">
         <h3 class="card-title">Potential</h3>
-          <h5>Prefects</h3>
-          <div class="accordion" id="pot_pres">
-            {% for form in prefects %}
-              <div class="accordion-item">
-                <h2 class="accordion-header">
-                  <button
-                    class="accordion-button collapsed"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#pot_pres_{{form.form}}"
-                    aria-controls="pot_pres_{{form.form}}">
-                    {{ form.form }}
-                  </button>
-                </h2>
-                <div
-                  class="accordion-collapse collapse"
-                  data-bs-parent="pot_pres"
-                  id="pot_pres_{{form.form}}">
-                  <div class="accordion-body">
+        <h5>Prefects</h3>
+        <div class="accordion" id="pot_pres">
+          {% for form in prefects %}
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button
+                  class="accordion-button collapsed"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#pot_pres_{{form.form}}"
+                  aria-controls="pot_pres_{{form.form}}">
+                  {{ form.form }}
+                </button>
+              </h2>
+              <div
+                class="accordion-collapse collapse"
+                data-bs-parent="pot_pres"
+                id="pot_pres_{{form.form}}">
+                <div class="accordion-body">
                   <ul>
                     {% for person in form.people %}
                       <li>
-                      <form method="POST" action="/add_prefect">
-                      <input type="hidden" name="event_id" value="{{event.id}}">
-                      <input type="hidden" name="person_id" value="{{person.id}}">
-                      <button type="submit" class="btn btn-outline-info">Add {{person.first_name}} {{person.surname}}</button>
-                      </form>
+                        <form method="POST" action="/add_prefect">
+                          <input
+                            type="hidden"
+                            name="event_id"
+                            value="{{event.id}}">
+                          <input
+                            type="hidden"
+                            name="person_id"
+                            value="{{person.id}}">
+                          <button type="submit" class="btn btn-outline-info">Add {{ person.first_name }} {{ person.surname }}</button>
+                        </form>
                       </li>
                     {% endfor %}
                   </ul>
-                  </div>
                 </div>
               </div>
-            {% endfor %}
-          </div>
-          <h5>Participants</h3>
+            </div>
+          {% endfor %}
+        </div>
+        <h5>Participants</h3>
 
-          <div class="accordion" id="pot_part">
-            {% for form in participants %}
-              <div class="accordion-item">
-                <h2 class="accordion-header">
-                  <button
-                    class="accordion-button collapsed"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#pot_part_{{form.form}}"
-                    aria-controls="pot_part_{{form.form}}">
-                    {{ form.form }}
-                  </button>
-                </h2>
-                <div
-                  class="accordion-collapse collapse"
-                  data-bs-parent="pot_part"
-                  id="pot_part_{{form.form}}">
-                  <div class="accordion-body">
+        <div class="accordion" id="pot_part">
+          {% for form in participants %}
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button
+                  class="accordion-button collapsed"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#pot_part_{{form.form}}"
+                  aria-controls="pot_part_{{form.form}}">
+                  {{ form.form }}
+                </button>
+              </h2>
+              <div
+                class="accordion-collapse collapse"
+                data-bs-parent="pot_part"
+                id="pot_part_{{form.form}}">
+                <div class="accordion-body">
                   <ul>
                     {% for person in form.people %}
                       <li>
-                      <form method="POST" action="/add_participant">
-                      <input type="hidden" name="event_id" value="{{event.id}}">
-                      <input type="hidden" name="person_id" value="{{person.id}}">
-                      <button type="submit" class="btn btn-outline-info">Add {{person.first_name}} {{person.surname}}</button>
-                      </form>
+                        <form method="POST" action="/add_participant">
+                          <input
+                            type="hidden"
+                            name="event_id"
+                            value="{{event.id}}">
+                          <input
+                            type="hidden"
+                            name="person_id"
+                            value="{{person.id}}">
+                          <button type="submit" class="btn btn-outline-info">Add {{ person.first_name }} {{ person.surname }}</button>
+                        </form>
                       </li>
                     {% endfor %}
                   </ul>
-                  </div>
                 </div>
               </div>
-            {% endfor %}
-          </div>
+            </div>
+          {% endfor %}
+        </div>
       </div>
     </div>
   </div>
@@ -155,38 +167,38 @@
       <div class="card-body">
         <h3 class="card-title">Curent</h3>
 
-          <h3>Prefects</h3>
-          <ul class="list-group list-group-flush">
-            {% for form in existing_prefects %}
+        <h3>Prefects</h3>
+        <ul class="list-group list-group-flush">
+          {% for form in existing_prefects %}
+            <li class="list-group-item">
+              <b>{{ form.form }}</b>
+            </li>
+            {% for person in form.people %}
               <li class="list-group-item">
-                <b>{{ form.form }}</b>
+                <a href="/remove_prefect_from_event/{{person.relation_id}}">
+                  Remove {{ person.first_name }} {{ person.surname }}
+                </a>
               </li>
-              {% for person in form.people %}
-                <li class="list-group-item">
-                  <a href="/remove_prefect_from_event/{{person.relation_id}}">
-                    Remove {{ person.first_name }} {{ person.surname }}
-                  </a>
-                </li>
-              {% endfor %}
             {% endfor %}
-          </ul>
+          {% endfor %}
+        </ul>
 
-          <h3>Participants</h3>
-          <ul class="list-group list-group-flush">
-            {% for form in existing_participants %}
+        <h3>Participants</h3>
+        <ul class="list-group list-group-flush">
+          {% for form in existing_participants %}
+            <li class="list-group-item">
+              <b>{{ form.form }}</b>
+            </li>
+            {% for person in form.people %}
               <li class="list-group-item">
-                <b>{{ form.form }}</b>
+                <a href="/remove_participant_from_event/{{person.relation_id}}">
+                  Remove {{ person.first_name }} {{ person.surname }}
+                </a>
               </li>
-              {% for person in form.people %}
-                <li class="list-group-item">
-                  <a href="/remove_participant_from_event/{{person.relation_id}}">
-                    Remove {{ person.first_name }} {{ person.surname }}
-                  </a>
-                </li>
-              {% endfor %}
             {% endfor %}
-          </ul>
-        </div>
+          {% endfor %}
+        </ul>
+      </div>
     </div>
   </div>
 </div>
@@ -261,7 +273,8 @@
               id="photo"
               class="form-control"
               accept="image/bmp, image/exr, image/gif, image/hdr, image/ico, image/jpeg, image/png, image/qoi, image/tiff, image/webp"
-              required multiple>
+              required
+              multiple>
           </div>
 
           <button type="submit" class="btn btn-primary">Add photo.</button>
