@@ -15,7 +15,9 @@
           name="first_name"
           id="first_name"
           value="{{person.first_name}}"
-          required>
+          required {% unless is_logged_in %}
+          disabled
+          {% endunless %}>
       </div>
       <div class="input-group mb-3">
         <span class="input-group-text" id="surname">Surname:
@@ -26,7 +28,9 @@
           name="surname"
           id="surname"
           value="{{person.surname}}"
-          required>
+          required {% unless is_logged_in %}
+          disabled
+          {% endunless %}>
       </div>
       <div class="input-group mb-3">
         <span class="input-group-text" id="form">Form:
@@ -36,7 +40,9 @@
           class="form-control"
           name="form"
           id="form"
-          value="{{person.form}}">
+          value="{{person.form}}" {% unless is_logged_in %}
+          disabled
+          {% endunless %}>
       </div>
 
       <div class="input-group mb-3">
@@ -49,6 +55,8 @@
             value="false"
             {% unless person.is_prefect %}
             checked
+            {% endunless %} {% unless is_logged_in %}
+            disabled
             {% endunless %}>
           <label class="form-check-label" for="is_not">
             Is not a prefect.
@@ -64,7 +72,9 @@
             value="true"
             {% if person.is_prefect %}
             checked
-            {% endif %}>
+            {% endif %} {% unless is_logged_in %}
+            disabled
+            {% endunless %}>
           <label class="form-check-label" for="is">
             Is a prefect.
           </label>
@@ -72,7 +82,9 @@
       </div>
 
 
-      <button type="submit" class="btn btn-primary">Edit person.</button>
+      <button type="submit" class="btn btn-primary" {% unless is_logged_in %}
+      disabled
+      {% endunless %}>Edit person.</button>
     </form>
   </div>
 </div>

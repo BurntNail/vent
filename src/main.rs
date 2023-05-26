@@ -46,10 +46,11 @@ use crate::{
     },
     routes::{
         edit_person::{get_edit_person, post_edit_person},
+        edit_user::{get_edit_user, post_edit_user},
         images::{get_all_images, post_add_photo, serve_image},
         public::{get_256, get_512, get_manifest, get_offline, get_sw},
         spreadsheets::get_spreadsheet,
-        update_event_and_person::delete_image, edit_user::{post_edit_user, get_edit_user},
+        update_event_and_person::delete_image,
     },
 };
 
@@ -121,14 +122,6 @@ async fn main() {
         .route("/remove_person", post(post_remove_person))
         .route("/remove_event", post(post_remove_event))
         .route(
-            "/update_event/:id",
-            get(get_update_event).post(post_update_event),
-        )
-        .route(
-            "/edit_person/:id",
-            get(get_edit_person).post(post_edit_person),
-        )
-        .route(
             "/remove_prefect_from_event",
             post(get_remove_prefect_from_event),
         )
@@ -139,13 +132,21 @@ async fn main() {
         .route("/add_image/:event_id", post(post_add_photo))
         .route("/get_all_imgs/:event_id", get(get_all_images))
         .route("/uploads/:img", get(serve_image))
-
-        .route_layer(RequireAuth::login())
+        .route("/remove_img/:id", get(delete_image))
         .route(
             "/add_new_user",
             get(get_add_new_user).post(post_add_new_user),
         )
+        .route_layer(RequireAuth::login()) //^ REQUIRE AUTH ^
         .route("/", get(get_index))
+        .route(
+            "/edit_person/:id",
+            get(get_edit_person).post(post_edit_person),
+        )
+        .route(
+            "/update_event/:id",
+            get(get_update_event).post(post_update_event),
+        )
         .route("/favicon.ico", get(get_favicon).head(get_favicon))
         .route("/manifest.json", get(get_manifest).head(get_manifest))
         .route("/sw.js", get(get_sw).head(get_sw))
@@ -153,7 +154,6 @@ async fn main() {
         .route("/512x512.png", get(get_512).head(get_512))
         .route("/256x256.png", get(get_256).head(get_256))
         .route("/show_all", get(get_remove_stuff))
-        .route("/remove_img/:id", get(delete_image))
         .route("/ical", get(get_calendar_feed))
         .route("/spreadsheet", get(get_spreadsheet))
         .route("/login_failure", get(get_login_failure))
@@ -164,7 +164,7 @@ async fn main() {
         .layer(auth_layer)
         .layer(session_layer)
         .with_state(Arc::new(pool));
-    
+
     let port: SocketAddr = var("KNOT_SERVER_IP")
         .expect("need KNOT_SERVER_IP env var")
         .parse()
