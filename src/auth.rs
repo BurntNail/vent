@@ -14,14 +14,24 @@ use sqlx::{FromRow, Pool, Postgres};
 
 use crate::{error::KnotError, liquid_utils::compile};
 
+#[derive(sqlx::Type, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Serialize, Deserialize)]
+#[sqlx(type_name = "user_role", rename_all="lowercase")]
+pub enum PermissionsRole {
+    Participant,
+    Prefect,
+    Admin,
+    Dev,
+}
+
 #[derive(Deserialize, Clone, FromRow, Serialize)]
 pub struct DbUser {
     pub id: i32,
     pub username: String,
     pub hashed_password: String,
+    pub permissions: PermissionsRole,
 }
 
-impl AuthUser<i32, ()> for DbUser {
+impl AuthUser<i32, PermissionsRole> for DbUser {
     fn get_id(&self) -> i32 {
         self.id
     }
@@ -29,11 +39,15 @@ impl AuthUser<i32, ()> for DbUser {
     fn get_password_hash(&self) -> axum_login::secrecy::SecretVec<u8> {
         SecretVec::new(self.hashed_password.clone().into())
     }
+
+    fn get_role(&self) -> Option<PermissionsRole> {
+        Some(self.permissions)
+    }    
 }
 
-pub type Auth = AuthContext<i32, DbUser, Store>;
-pub type RequireAuth = RequireAuthorizationLayer<i32, DbUser>;
-pub type Store = PostgresStore<DbUser, ()>;
+pub type Auth = AuthContext<i32, DbUser, Store, PermissionsRole>;
+pub type RequireAuth = RequireAuthorizationLayer<i32, DbUser, PermissionsRole>;
+pub type Store = PostgresStore<DbUser, PermissionsRole>;
 
 #[derive(Deserialize)]
 pub struct LoginDetails {
@@ -58,7 +72,7 @@ pub async fn post_login(
     }): Form<LoginDetails>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
-    let db_user = sqlx::query_as!(DbUser, "SELECT * FROM users WHERE username = $1", username)
+    let db_user = sqlx::query_as!(DbUser, r#"SELECT id, username, hashed_password, permissions as "permissions: _" FROM users WHERE username = $1"#, username) //https://github.com/launchbadge/sqlx/issues/1004
         .fetch_one(&mut conn)
         .await?;
     Ok(Redirect::to(
