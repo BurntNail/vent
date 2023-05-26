@@ -4,7 +4,6 @@ pub mod add_person;
 pub mod calendar;
 pub mod edit_user;
 pub mod edit_person;
-pub mod edit_user;
 pub mod images;
 pub mod index;
 pub mod public;
