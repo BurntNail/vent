@@ -15,7 +15,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use axum_login::{.
+use axum_login::{
     axum_sessions::{async_session::MemoryStore, SessionLayer},
     AuthLayer,
 };
