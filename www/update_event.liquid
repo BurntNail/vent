@@ -98,80 +98,99 @@
         <div class="card-body">
           <h3 class="card-title">Potential</h3>
           <h5>Prefects</h3>
-          <div class="accordion" id="pot_pres">
-            {% for form in prefects %}
-              <div class="accordion-item">
-                <h2 class="accordion-header">
-                  <button
-                    class="accordion-button collapsed"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#pot_pres_{{form.form}}"
-                    aria-controls="pot_pres_{{form.form}}">
-                    {{ form.form }}
-                  </button>
-                </h2>
-                <div
-                  class="accordion-collapse collapse"
-                  data-bs-parent="pot_pres"
-                  id="pot_pres_{{form.form}}">
-                  <div class="accordion-body">
-                    {% for person in form.people %}
-                      <form method="POST" action="/add_prefect">
-                        <input
-                          type="hidden"
-                          name="event_id"
-                          value="{{event.id}}">
-                        <input
-                          type="hidden"
-                          name="person_id"
-                          value="{{person.id}}">
-                        <button type="submit" class="btn btn-link">Add {{ person.first_name }} {{ person.surname }}</button>
-                      </form>
-                    {% endfor %}
+          <form method="POST" action="/add_prefect">
+            <div class="accordion" id="pot_pres">
+              {% for form in prefects %}
+                <div class="accordion-item">
+                  <h2 class="accordion-header">
+                    <button
+                      class="accordion-button collapsed"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#pot_pres_{{form.form}}"
+                      aria-controls="pot_pres_{{form.form}}">
+                      {{ form.form }}
+                    </button>
+                  </h2>
+                  <div
+                    class="accordion-collapse collapse"
+                    data-bs-parent="pot_pres"
+                    id="pot_pres_{{form.form}}">
+                    <div class="accordion-body">
+                      {% for person in form.people %}
+                        <div class="form-check">
+                          <input
+                            type="checkbox"
+                            name="person_ids"
+                            id="{{person.first_name}}_{{person.surname}}_prefect_checkbox"
+                            class="form-check-input"
+                            value="{{person.id}}">
+                          <label
+                            for=""
+                            class="form-check-label"
+                            for="{{person.first_name}}_{{person.surname}}_prefect_checkbox">{{ person.first_name }} {{ person.surname }}</label>
+                        </div>
+                      {% endfor %}
+                    </div>
                   </div>
                 </div>
-              </div>
-            {% endfor %}
-          </div>
+              {% endfor %}
+            </div>
+
+            <input
+              type="hidden"
+              name="event_id"
+              value="{{event.id}}">
+            <button type="submit" class="btn btn-link">Add selected prefects.</button>
+
+
+          </form>
 
           <h5>Participants</h3>
 
           <div class="accordion" id="pot_part">
-            {% for form in participants %}
-              <div class="accordion-item">
-                <h2 class="accordion-header">
-                  <button
-                    class="accordion-button collapsed"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#pot_part_{{form.form}}"
-                    aria-controls="pot_part_{{form.form}}">
-                    {{ form.form }}
-                  </button>
-                </h2>
-                <div
-                  class="accordion-collapse collapse"
-                  data-bs-parent="pot_part"
-                  id="pot_part_{{form.form}}">
-                  <div class="accordion-body">
-                    {% for person in form.people %}
-                      <form method="POST" action="/add_participant">
-                        <input
-                          type="hidden"
-                          name="event_id"
-                          value="{{event.id}}">
-                        <input
-                          type="hidden"
-                          name="person_id"
-                          value="{{person.id}}">
-                        <button type="submit" class="btn btn-link">Add {{ person.first_name }} {{ person.surname }}</button>
-                      </form>
-                    {% endfor %}
+            <form method="POST" action="/add_participant">
+              {% for form in participants %}
+                <div class="accordion-item">
+                  <h2 class="accordion-header">
+                    <button
+                      class="accordion-button collapsed"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#pot_part_{{form.form}}"
+                      aria-controls="pot_part_{{form.form}}">
+                      {{ form.form }}
+                    </button>
+                  </h2>
+                  <div
+                    class="accordion-collapse collapse"
+                    data-bs-parent="pot_part"
+                    id="pot_part_{{form.form}}">
+                    <div class="accordion-body">
+                      {% for person in form.people %}
+                        <div class="form-check">
+                          <input
+                            type="checkbox"
+                            name="person_ids"
+                            id="{{person.first_name}}_{{person.surname}}_participant_checkbox"
+                            class="form-check-input"
+                            value="{{person.id}}">
+                          <label
+                            for=""
+                            class="form-check-label"
+                            for="{{person.first_name}}_{{person.surname}}_participant_checkbox">{{ person.first_name }} {{ person.surname }}</label>
+                        </div>
+                      {% endfor %}
+                    </div>
                   </div>
                 </div>
-              </div>
-            {% endfor %}
+              {% endfor %}
+              <input
+                type="hidden"
+                name="event_id"
+                value="{{event.id}}">
+              <button type="submit" class="btn btn-link">Add selected people.</button>
+            </form>
           </div>
         </div>
       </div>
