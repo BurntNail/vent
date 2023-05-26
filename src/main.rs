@@ -38,6 +38,7 @@ use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr, sync::Arc};
 use tokio::signal;
 use tower_http::trace::TraceLayer;
+use auth::PermissionsRole;
 
 use crate::{
     auth::{
@@ -111,33 +112,40 @@ async fn main() {
     let auth_layer = AuthLayer::new(Store::new(pool.clone()), &secret);
 
     let app = Router::new()
-        .route("/add_participant", post(post_add_participant_to_event))
-        .route("/add_prefect", post(post_add_prefect_to_event))
+        .route(
+            "/add_new_user",
+            get(get_add_new_user).post(post_add_new_user),
+        )
+        .route_layer(RequireAuth::login_with_role(PermissionsRole::Dev..)) //dev
+
         .route("/add_person", get(get_add_person).post(post_add_person))
-        .route("/edit_user", get(get_edit_user).post(post_edit_user))
+        .route("/remove_person", post(post_remove_person))
+        .route_layer(RequireAuth::login_with_role(PermissionsRole::Admin..)) //admin
+
         .route(
             "/add_event",
             get(get_add_event_form).post(post_add_event_form),
         )
-        .route("/remove_person", post(post_remove_person))
+        .route("/add_prefect", post(post_add_prefect_to_event))
         .route("/remove_event", post(post_remove_event))
         .route(
             "/remove_prefect_from_event",
             post(get_remove_prefect_from_event),
         )
+        .route("/add_image/:event_id", post(post_add_photo))
+        .route("/remove_img/:id", get(delete_image))
+        .route_layer(RequireAuth::login_with_role(PermissionsRole::Prefect..)) //prefect
+
+        .route("/add_participant", post(post_add_participant_to_event))
         .route(
             "/remove_participant_from_event",
             post(get_remove_participant_from_event),
         )
-        .route("/add_image/:event_id", post(post_add_photo))
         .route("/get_all_imgs/:event_id", get(get_all_images))
         .route("/uploads/:img", get(serve_image))
-        .route("/remove_img/:id", get(delete_image))
-        .route(
-            "/add_new_user",
-            get(get_add_new_user).post(post_add_new_user),
-        )
-        .route_layer(RequireAuth::login()) //^ REQUIRE AUTH ^
+        .route("/edit_user", get(get_edit_user).post(post_edit_user))
+        .route_layer(RequireAuth::login()) //^ REQUIRE LOGIN ^
+
         .route("/", get(get_index))
         .route(
             "/edit_person/:id",

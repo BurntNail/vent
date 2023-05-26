@@ -44,6 +44,13 @@
               <li class="nav-item">
                 <a class="nav-link" href="/show_all">See All</a>
               </li>
+
+              {% if auth.permissions["dev_access"] %}
+                <li class="nav-item">
+                  <a class="nav-link" href="/add_new_user">Add New User</a>
+                </li>  
+              {% endif %}
+
               {% if auth.permissions["edit_people"] %}
               <li class="nav-item dropdown">
                 <li class="nav-item">
