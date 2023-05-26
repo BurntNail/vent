@@ -1,6 +1,6 @@
 use crate::{
     error::KnotError,
-    liquid_utils::partials::{init_partials, PARTIALS},
+    liquid_utils::partials::{PARTIALS},
 };
 use axum::response::Html;
 use chrono::NaiveDateTime;
@@ -16,7 +16,7 @@ pub async fn compile(
     globals: Object,
 ) -> Result<Html<String>, KnotError> {
     let liquid = read_to_string(path).await?;
-    let partial_compiler = PARTIALS.get_or_init(init_partials).await.to_compiler();
+    let partial_compiler = PARTIALS.read().await.to_compiler();
 
     Ok(tokio::task::spawn_blocking(move || {
         ParserBuilder::with_stdlib()

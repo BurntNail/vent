@@ -1360,6 +1360,7 @@ dependencies = [
  "icalendar",
  "image",
  "liquid",
+ "once_cell",
  "rand",
  "rust_xlsxwriter",
  "serde",

@@ -1,29 +1,53 @@
-use std::ffi::{OsStr, OsString};
+use std::{ffi::{OsStr, OsString}, collections::HashMap, borrow::Cow};
 
-use liquid::partials::{EagerCompiler, InMemorySource};
-use tokio::{fs::read_to_string, sync::OnceCell};
+use axum::response::{IntoResponse, Redirect};
+use liquid::partials::{EagerCompiler, PartialSource};
+use once_cell::sync::Lazy;
+use tokio::{fs::read_to_string, sync::{RwLock}};
 use walkdir::{DirEntry, WalkDir};
 
 ///Struct to hold all the partials - then I can use a convenience function to easily get a [`PartialCompiler`]
-#[derive(Debug)]
-pub struct Partials(InMemorySource);
+#[derive(Debug, Clone, Default)]
+pub struct Partials(HashMap<String, String>);
 
 impl Partials {
     ///Get an [`EagerCompiler`] from the `self`
-    ///
-    ///NB: This will not reflect any file changes, the server needs to be restarted for that.
-    pub fn to_compiler(&self) -> EagerCompiler<InMemorySource> {
-        EagerCompiler::new(self.0.clone())
+    pub fn to_compiler(&self) -> EagerCompiler<Self> {
+        EagerCompiler::new(self.clone())
+    }
+
+    pub async fn reload (&mut self) {
+        self.0 = get_partials().await;
     }
 }
 
+impl PartialSource for Partials {
+    fn contains(&self, name: &str) -> bool {
+        self.0.contains_key(name)
+    }
+
+    fn names(&self) -> Vec<&str> {
+        self.0.keys().map(String::as_str).collect()
+    }
+
+    fn try_get<'a>(&'a self, name: &str) -> Option<Cow<'a, str>> {
+        self.0.get(name).map(|s| s.as_str().into())
+    }
+}
+
+
 ///Static variable to store all of the partials
-pub static PARTIALS: OnceCell<Partials> = OnceCell::const_new();
+pub static PARTIALS: Lazy<RwLock<Partials>> = Lazy::new(|| RwLock::new(Partials::default()));
+
+pub async fn reload_partials () -> impl IntoResponse {
+    PARTIALS.write().await.reload().await;
+    Redirect::to("/")
+}
 
 ///Async function to get `Partials` - used to set [`PARTIALS`]
 ///
 /// Looks for the Partials in `www/partials/`, and sets their `liquid` names to be in the `partials/` directory, and accepts `html`, and `liquid` extensions
-pub async fn init_partials() -> Partials {
+async fn get_partials() -> HashMap<String, String> {
     ///The directory which contains the partials
     const PARTIALS_DIR: &str = "www/partials/";
     ///The name that the partials will have for use in embedding, eg. "www/partials/li.liquid" would be referenced as `{% include "partials/li.liquid" %}`
@@ -36,7 +60,7 @@ pub async fn init_partials() -> Partials {
         .map(OsString::from) //get OsStrings from the allowed extensions
         .collect::<Vec<_>>(); //must do outside of const as this is not const
 
-    let mut in_memory_source = InMemorySource::new(); //make a new source
+    let mut in_memory_source = HashMap::new(); //make a new source
 
     for partial in WalkDir::new(PARTIALS_DIR)
         .into_iter() //for every file in PARTIALS_DIR
@@ -54,7 +78,7 @@ pub async fn init_partials() -> Partials {
             Ok(source) => {
                 info!(?partial, "Got partial");
                 if let Some(name) = partial.file_name().and_then(OsStr::to_str) {
-                    in_memory_source.add(LIQUID_PARTIALS_NAME.to_string() + name, source);
+                    in_memory_source.insert(LIQUID_PARTIALS_NAME.to_string() + name, source);
                 //add partial
                 } else {
                     error!("Got partial, could not transform name to UTF-8");
@@ -66,5 +90,5 @@ pub async fn init_partials() -> Partials {
         }
     }
 
-    Partials(in_memory_source) //return partials
+    in_memory_source
 }
