@@ -15,7 +15,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use axum_login::{
+use axum_login::{.
     axum_sessions::{async_session::MemoryStore, SessionLayer},
     AuthLayer,
 };
@@ -165,7 +165,7 @@ async fn main() {
         .layer(session_layer)
         .with_state(Arc::new(pool));
 
-    let port: SocketAddr = var("KNOT_SERVER_IP")
+  let port: SocketAddr = var("KNOT_SERVER_IP")
         .expect("need KNOT_SERVER_IP env var")
         .parse()
         .expect("need KNOT_SERVER_IP to be valid");
