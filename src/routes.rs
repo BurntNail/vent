@@ -2,6 +2,7 @@ pub mod add_event;
 pub mod add_people_to_event;
 pub mod add_person;
 pub mod calendar;
+pub mod edit_user;
 pub mod edit_person;
 pub mod edit_user;
 pub mod images;
