@@ -13,8 +13,6 @@ use super::public::serve_static_file;
 pub async fn get_calendar_feed(
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?; //get a database connection
-
     let prefect_events = {
         let mut map: HashMap<i32, Vec<String>> = HashMap::new();
 
@@ -22,7 +20,7 @@ pub async fn get_calendar_feed(
             r#"
     SELECT id, first_name, surname FROM people p WHERE p.is_prefect = true"#
         )
-        .fetch_all(&mut conn)
+        .fetch_all(pool.as_ref())
         .await?
         .into_iter()
         .map(|x| (x.id, format!("{} {}", x.first_name, x.surname)))
@@ -31,7 +29,7 @@ pub async fn get_calendar_feed(
             r#"
     SELECT event_id, prefect_id FROM prefect_events"#
         )
-        .fetch_all(&mut conn)
+        .fetch_all(pool.as_ref())
         .await?;
 
         for rec in rels {
@@ -52,7 +50,7 @@ pub async fn get_calendar_feed(
         teacher,
         other_info,
     } in sqlx::query_as!(DbEvent, r#"SELECT * FROM events"#)
-        .fetch_all(&mut conn)
+        .fetch_all(pool.as_ref())
         .await?
     {
         let other_info = other_info.unwrap_or_default();

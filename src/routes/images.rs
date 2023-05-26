@@ -31,8 +31,6 @@ pub async fn post_add_photo(
             .first()
             .ok_or(KnotError::NoImageExtension(format))?;
 
-        let mut conn = pool.acquire().await?;
-
         let file_name = loop {
             let key = format!("uploads/{:x}.{ext}", thread_rng().gen::<u128>());
             if sqlx::query!(
@@ -42,7 +40,7 @@ pub async fn post_add_photo(
             "#,
                 key
             )
-            .fetch_optional(&mut conn)
+            .fetch_optional(pool.as_ref())
             .await?
             .is_none()
             {
@@ -58,7 +56,7 @@ VALUES($1, $2)"#,
             file_name,
             event_id
         )
-        .execute(&mut conn)
+        .execute(pool.as_ref())
         .await?;
 
         let mut file = File::create(file_name).await?;
@@ -94,20 +92,16 @@ pub async fn get_all_images(
     Path(event_id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
-
     let files_to_find = sqlx::query!(
         r#"
 SELECT path FROM public.photos
 WHERE event_id = $1"#,
         event_id
     )
-    .fetch_all(&mut conn)
+    .fetch_all(pool.as_ref())
     .await?
     .into_iter()
     .map(|x| x.path);
-
-    drop(conn);
 
     let file_name = {
         fn get_existing() -> Vec<String> {

@@ -1,6 +1,6 @@
 {% include "partials/header.liquid" %}
 
-<h1>Edit {{ user.username }}
+<h1>Edit {{ auth.user.username }}
 </h1>
 
 <div class="card">
@@ -15,7 +15,7 @@
           aria-label="Username"
           aria-describedby="username"
           name="username"
-          value="{{user.username}}"
+          value="{{auth.user.username}}"
           required>
       </div>
       <div class="input-group mb-3">

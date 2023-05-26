@@ -5,7 +5,7 @@ use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
 use crate::{
-    auth::Auth,
+    auth::{get_auth_object, Auth},
     error::KnotError,
     liquid_utils::{compile, EnvFormatter},
     routes::DbEvent,
@@ -16,8 +16,6 @@ pub async fn get_index(
     auth: Auth,
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
-
     #[derive(Serialize)]
     struct HTMLEvent {
         pub id: i32,
@@ -62,6 +60,7 @@ pub async fn get_index(
         event: HTMLEvent,
         participants: usize,
         prefects: usize,
+        no_photos: usize,
     }
 
     let mut happened_events = vec![];
@@ -77,9 +76,10 @@ FROM events
 ORDER BY events.date
         "#
     )
-    .fetch_all(&mut conn)
+    .fetch_all(pool.as_ref())
     .await?
     {
+        //TODO: cache using HashMaps etc
         let date = event.date;
         let event = HTMLEvent::from(event);
 
@@ -94,7 +94,7 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
             "#,
             event_id
         )
-        .fetch_all(&mut conn)
+        .fetch_all(pool.as_ref())
         .await?
         .len();
 
@@ -108,31 +108,32 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
             "#,
             event_id
         )
-        .fetch_all(&mut conn)
+        .fetch_all(pool.as_ref())
         .await?
         .len();
+
+        let photos = sqlx::query!("SELECT FROM photos WHERE event_id = $1", event_id)
+            .fetch_all(pool.as_ref())
+            .await?
+            .len();
 
         if date < now {
             happened_events.push(WholeEvent {
                 event,
                 participants,
                 prefects,
+                no_photos: photos,
             });
         } else {
             events_to_happen.push(WholeEvent {
                 event,
                 participants,
                 prefects,
+                no_photos: photos,
             });
         }
     }
     happened_events.reverse();
 
-    let globals = if let Some(user) = auth.current_user {
-        liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events, "is_logged_in": true, "user": user })
-    } else {
-        liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events, "is_logged_in": false })
-    };
-
-    compile("www/index.liquid", globals).await
+    compile("www/index.liquid", liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events, "auth": get_auth_object(auth) })).await
 }

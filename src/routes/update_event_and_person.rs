@@ -1,6 +1,6 @@
 use super::FormEvent;
 use crate::{
-    auth::Auth,
+    auth::{get_auth_object, Auth},
     error::KnotError,
     liquid_utils::compile,
     routes::{DbEvent, DbPerson},
@@ -21,8 +21,6 @@ pub async fn get_update_event(
     Path(event_id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
-
     let DbEvent {
         id,
         event_name,
@@ -37,7 +35,7 @@ SELECT * FROM events WHERE id = $1
 "#,
         event_id
     )
-    .fetch_one(&mut conn)
+    .fetch_one(pool.as_ref())
     .await?;
     let date = date.to_string();
 
@@ -71,7 +69,7 @@ INNER JOIN prefect_events pe ON pe.event_id = $1 AND pe.prefect_id = p.id
 "#,
         event_id
     )
-    .fetch_all(&mut conn)
+    .fetch_all(pool.as_ref())
     .await?
     {
         existing_prefects
@@ -102,7 +100,7 @@ INNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.i
 "#,
         event_id
     )
-    .fetch_all(&mut conn)
+    .fetch_all(pool.as_ref())
     .await?
     {
         existing_participants
@@ -132,7 +130,7 @@ FROM people p
 WHERE p.is_prefect = true
 "#
     )
-    .fetch_all(&mut conn)
+    .fetch_all(pool.as_ref())
     .await?
     .into_iter()
     .filter(|p| {
@@ -166,7 +164,7 @@ SELECT *
 FROM people p
 "#
     )
-    .fetch_all(&mut conn)
+    .fetch_all(pool.as_ref())
     .await?
     .into_iter()
     .filter(|p| {
@@ -206,51 +204,34 @@ WHERE event_id = $1
         "#,
         event_id
     )
-    .fetch_all(&mut conn)
+    .fetch_all(pool.as_ref())
     .await?;
 
-    let globals = if let Some(user) = auth.current_user {
+    compile(
+        "www/update_event.liquid",
         liquid::object!({"event": liquid::object!({
-            "id": id,
-            "event_name": event_name,
-            "date": date.to_string(),
-            "location": location,
-            "teacher": teacher,
-            "other_info": other_info.unwrap_or_default()
-        }),
-        "existing_prefects": existing_prefects,
-        "existing_participants": existing_participants,
-        "prefects": possible_prefects,
-        "participants": possible_participants,
-        "n_imgs": photos.len(),
-        "imgs": photos,
-        "is_logged_in": true, "user": user })
-    } else {
-        liquid::object!({ "event": liquid::object!({
-            "id": id,
-            "event_name": event_name,
-            "date": date.to_string(),
-            "location": location,
-            "teacher": teacher,
-            "other_info": other_info.unwrap_or_default()
-        }),
-        "existing_prefects": existing_prefects,
-        "existing_participants": existing_participants,
-        "prefects": possible_prefects,
-        "participants": possible_participants,
-        "n_imgs": photos.len(),
-        "imgs": photos,
-        "is_logged_in": false })
-    };
-
-    compile("www/update_event.liquid", globals).await
+        "id": id,
+        "event_name": event_name,
+        "date": date.to_string(),
+        "location": location,
+        "teacher": teacher,
+        "other_info": other_info.unwrap_or_default()
+    }),
+    "existing_prefects": existing_prefects,
+    "existing_participants": existing_participants,
+    "prefects": possible_prefects,
+    "participants": possible_participants,
+    "n_imgs": photos.len(),
+    "imgs": photos,
+    "auth": get_auth_object(auth) }),
+    )
+    .await
 }
 pub async fn post_update_event(
     Path(event_id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
     Form(event): Form<FormEvent>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
 
     let DbEvent {
         id: _id,
@@ -275,7 +256,7 @@ WHERE id=$1
         teacher,
         other_info
     )
-    .execute(&mut conn)
+    .execute(pool.as_ref())
     .await?;
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
@@ -290,7 +271,6 @@ pub async fn get_remove_prefect_from_event(
     State(pool): State<Arc<Pool<Postgres>>>,
     Form(Removal { relation_id }): Form<Removal>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
 
     let id = sqlx::query!(
         r#"
@@ -299,7 +279,7 @@ RETURNING event_id
 "#,
         relation_id
     )
-    .fetch_one(&mut conn)
+    .fetch_one(pool.as_ref())
     .await?
     .event_id;
 
@@ -309,8 +289,6 @@ pub async fn get_remove_participant_from_event(
     State(pool): State<Arc<Pool<Postgres>>>,
     Form(Removal { relation_id }): Form<Removal>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
-
     let id = sqlx::query!(
         r#"
 DELETE FROM participant_events WHERE relation_id = $1 
@@ -318,7 +296,7 @@ RETURNING event_id
 "#,
         relation_id
     )
-    .fetch_one(&mut conn)
+    .fetch_one(pool.as_ref())
     .await?
     .event_id;
 
@@ -329,7 +307,6 @@ pub async fn delete_image(
     Path(img_id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
     let event = sqlx::query!(
         r#"
 DELETE FROM public.photos
@@ -337,7 +314,7 @@ WHERE id=$1
 RETURNING path, event_id"#,
         img_id
     )
-    .fetch_one(&mut conn)
+    .fetch_one(pool.as_ref())
     .await?;
 
     remove_file(event.path).await?;
