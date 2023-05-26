@@ -42,16 +42,16 @@
                   href="/">Home</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="/add_person">Add Person</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="/add_event">Add Event</a>
-              </li>
-              <li class="nav-item">
                 <a class="nav-link" href="/show_all">See All</a>
               </li>
               {% if is_logged_in %}
               <li class="nav-item dropdown">
+                <li class="nav-item">
+                  <a class="nav-link" href="/add_person">Add Person</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="/add_event">Add Event</a>
+                </li>  
                 <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{user.username}}</a>
                 <ul class="dropdown-menu">
                   <li>

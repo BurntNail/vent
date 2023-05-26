@@ -18,7 +18,10 @@
           id="name"
           class="form-control"
           value="{{event.event_name}}"
-          required>
+          required
+          {% unless is_logged_in %}
+          disabled
+          {% endunless %}>
       </div>
       <div class="input-group mb-3">
         <span class="input-group-text" id="date">Start Time:
@@ -29,7 +32,10 @@
           name="date"
           class="form-control"
           value="{{event.date}}"
-          required>
+          required
+          {% unless is_logged_in %}
+          disabled
+          {% endunless %}>
       </div>
       <div class="input-group mb-3">
         <span class="input-group-text" id="location">Location:
@@ -40,7 +46,10 @@
           name="location"
           class="form-control"
           value="{{event.location}}"
-          required>
+          required
+          {% unless is_logged_in %}
+          disabled
+          {% endunless %}>
       </div>
       <div class="input-group mb-3">
         <span class="input-group-text" id="teacher">Teacher:
@@ -51,7 +60,10 @@
           name="teacher"
           class="form-control"
           value="{{event.teacher}}"
-          required>
+          required
+          {% unless is_logged_in %}
+          disabled
+          {% endunless %}>
       </div>
       <div class="input-group mb-3">
         <span class="input-group-text" id="info">Other Information:
@@ -61,10 +73,18 @@
           id="info"
           name="info"
           class="form-control"
-          value="{{event.other_info}}">
+          value="{{event.other_info}}"
+          {% unless is_logged_in %}
+          disabled
+          {% endunless %}>
       </div>
 
-      <button type="submit" class="btn btn-primary">Update Event.</button>
+      <button
+        type="submit"
+        class="btn btn-primary"
+        {% unless is_logged_in %}
+        disabled
+        {% endunless %}>Update Event.</button>
     </form>
   </div>
 </div>
@@ -72,132 +92,153 @@
 <br>
 
 <div class="row">
-  <div class="col">
-    <div class="card">
-      <div class="card-body">
-        <h3 class="card-title">Potential</h3>
-        <h5>Prefects</h3>
-        <div class="accordion" id="pot_pres">
-          {% for form in prefects %}
-            <div class="accordion-item">
-              <h2 class="accordion-header">
-                <button
-                  class="accordion-button collapsed"
-                  type="button"
-                  data-bs-toggle="collapse"
-                  data-bs-target="#pot_pres_{{form.form}}"
-                  aria-controls="pot_pres_{{form.form}}">
-                  {{ form.form }}
-                </button>
-              </h2>
-              <div
-                class="accordion-collapse collapse"
-                data-bs-parent="pot_pres"
-                id="pot_pres_{{form.form}}">
-                <div class="accordion-body">
-                  {% for person in form.people %}
-                    <form method="POST" action="/add_prefect">
-                      <input
-                        type="hidden"
-                        name="event_id"
-                        value="{{event.id}}">
-                      <input
-                        type="hidden"
-                        name="person_id"
-                        value="{{person.id}}">
-                      <button type="submit" class="btn btn-link">Add {{ person.first_name }} {{ person.surname }}</button>
-                    </form>
-                  {% endfor %}
+  {% if is_logged_in %}
+    <div class="col">
+      <div class="card">
+        <div class="card-body">
+          <h3 class="card-title">Potential</h3>
+          <h5>Prefects</h3>
+          <div class="accordion" id="pot_pres">
+            {% for form in prefects %}
+              <div class="accordion-item">
+                <h2 class="accordion-header">
+                  <button
+                    class="accordion-button collapsed"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#pot_pres_{{form.form}}"
+                    aria-controls="pot_pres_{{form.form}}">
+                    {{ form.form }}
+                  </button>
+                </h2>
+                <div
+                  class="accordion-collapse collapse"
+                  data-bs-parent="pot_pres"
+                  id="pot_pres_{{form.form}}">
+                  <div class="accordion-body">
+                    {% for person in form.people %}
+                      <form method="POST" action="/add_prefect">
+                        <input
+                          type="hidden"
+                          name="event_id"
+                          value="{{event.id}}">
+                        <input
+                          type="hidden"
+                          name="person_id"
+                          value="{{person.id}}">
+                        <button type="submit" class="btn btn-link">Add {{ person.first_name }} {{ person.surname }}</button>
+                      </form>
+                    {% endfor %}
+                  </div>
                 </div>
               </div>
-            </div>
-          {% endfor %}
-        </div>
-        <h5>Participants</h3>
+            {% endfor %}
+          </div>
 
-        <div class="accordion" id="pot_part">
-          {% for form in participants %}
-            <div class="accordion-item">
-              <h2 class="accordion-header">
-                <button
-                  class="accordion-button collapsed"
-                  type="button"
-                  data-bs-toggle="collapse"
-                  data-bs-target="#pot_part_{{form.form}}"
-                  aria-controls="pot_part_{{form.form}}">
-                  {{ form.form }}
-                </button>
-              </h2>
-              <div
-                class="accordion-collapse collapse"
-                data-bs-parent="pot_part"
-                id="pot_part_{{form.form}}">
-                <div class="accordion-body">
-                  {% for person in form.people %}
-                    <form method="POST" action="/add_participant">
-                      <input
-                        type="hidden"
-                        name="event_id"
-                        value="{{event.id}}">
-                      <input
-                        type="hidden"
-                        name="person_id"
-                        value="{{person.id}}">
-                      <button type="submit" class="btn btn-link">Add {{ person.first_name }} {{ person.surname }}</button>
-                    </form>
-                  {% endfor %}
+          <h5>Participants</h3>
+
+          <div class="accordion" id="pot_part">
+            {% for form in participants %}
+              <div class="accordion-item">
+                <h2 class="accordion-header">
+                  <button
+                    class="accordion-button collapsed"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#pot_part_{{form.form}}"
+                    aria-controls="pot_part_{{form.form}}">
+                    {{ form.form }}
+                  </button>
+                </h2>
+                <div
+                  class="accordion-collapse collapse"
+                  data-bs-parent="pot_part"
+                  id="pot_part_{{form.form}}">
+                  <div class="accordion-body">
+                    {% for person in form.people %}
+                      <form method="POST" action="/add_participant">
+                        <input
+                          type="hidden"
+                          name="event_id"
+                          value="{{event.id}}">
+                        <input
+                          type="hidden"
+                          name="person_id"
+                          value="{{person.id}}">
+                        <button type="submit" class="btn btn-link">Add {{ person.first_name }} {{ person.surname }}</button>
+                      </form>
+                    {% endfor %}
+                  </div>
                 </div>
               </div>
-            </div>
-          {% endfor %}
+            {% endfor %}
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  {% endif %}
   <div class="col">
     <div class="card">
       <div class="card-body">
-        <h3 class="card-title">Curent</h3>
+        <h3 class="card-title">Current</h3>
 
         <h3>Prefects</h3>
-        <ul class="list-group list-group-flush">
-          {% for form in existing_prefects %}
-            <li class="list-group-item">
-              <b>{{ form.form }}</b>
-            </li>
-            {% for person in form.people %}
+        {% if existing_prefects.size > 0 %}
+          <ul class="list-group list-group-flush">
+            {% for form in existing_prefects %}
               <li class="list-group-item">
-                <form action="/remove_prefect_from_event" method="POST">
-                  <input
-                    type="hidden"
-                    name="relation_id"
-                    value="{{person.relation_id}}">
-                  <button type="submit" class="btn btn-link">Remove {{ person.first_name }} {{ person.surname }}</button>
-                </form>
+                <b>{{ form.form }}</b>
               </li>
+              {% for person in form.people %}
+                <li class="list-group-item">
+                  {% if is_logged_in %}
+                    <form action="/remove_prefect_from_event" method="POST">
+                      <input
+                        type="hidden"
+                        name="relation_id"
+                        value="{{person.relation_id}}">
+                      <button type="submit" class="btn btn-link">Remove {{ person.first_name }} {{ person.surname }}</button>
+                    </form>
+                  {% else %}
+                    {{ person.first_name }} {{ person.surname }}
+                  {% endif %}
+                </li>
+              {% endfor %}
             {% endfor %}
-          {% endfor %}
-        </ul>
+          </ul>
+        {% else %}
+          <p>No prefects yet.</p>
+          <br>
+        {% endif %}
 
         <h3>Participants</h3>
-        <ul class="list-group list-group-flush">
-          {% for form in existing_participants %}
-            <li class="list-group-item">
-              <b>{{ form.form }}</b>
-            </li>
-            {% for person in form.people %}
+        {% if existing_participants.size > 0 %}
+          <ul class="list-group list-group-flush">
+            {% for form in existing_participants %}
               <li class="list-group-item">
-                <form action="/remove_participant_from_event" method="POST">
-                  <input
-                    type="hidden"
-                    name="relation_id"
-                    value="{{person.relation_id}}">
-                  <button type="submit" class="btn btn-link">Remove {{ person.first_name }} {{ person.surname }}</button>
-                </form>
+                <b>{{ form.form }}</b>
               </li>
+              {% for person in form.people %}
+                <li class="list-group-item">
+                  {% if is_logged_in %}
+                    <form action="/remove_participant_from_event" method="POST">
+                      <input
+                        type="hidden"
+                        name="relation_id"
+                        value="{{person.relation_id}}">
+                      <button type="submit" class="btn btn-link">Remove {{ person.first_name }} {{ person.surname }}</button>
+                    </form>
+                  {% else %}
+                    {{ person.first_name }} {{ person.surname }}
+                  {% endif %}
+                </li>
+              {% endfor %}
             {% endfor %}
-          {% endfor %}
-        </ul>
+          </ul>
+        {% else %}
+          <p>No participants yet.</p>
+          <br>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -209,78 +250,83 @@
   <div class="card-body">
     <h2 class="card-title">Existing Images</h2>
 
-    <a href="/get_all_imgs/{{event.id}}" class="btn btn-primary">Download as zip.</a>
+    {% if is_logged_in %}
+      <a href="/get_all_imgs/{{event.id}}" class="btn btn-primary">Download as zip.</a>
 
-    <br>
+      <br>
 
-    {% if n_imgs == 0 %}
-      <p>No Images yet</p>
-    {% else %}
-      <div id="imagesCarousel" class="carousel slide carousel-fade">
-        <div class="carousel-inner">
-          {% for img in imgs %}
-            {% if forloop.first %}
-              {% assign class = "carousel-item active" %}
-            {% else %}
-              {% assign class = "carousel-item" %}
-            {% endif %}
-            <div class="{{class}}">
-              <img
-                src="/{{img.path}}"
-                class="d-block w-100 h-100"
-                alt="Photo of people playing sports">
-              <div class="carousel-caption d-none d-md-block">
-                <a href="/remove_img/{{img.id}}" class="btn btn-danger">Remove Image</a>
+      {% if n_imgs == 0 %}
+        <p>No Images yet</p>
+      {% else %}
+        <div id="imagesCarousel" class="carousel slide carousel-fade">
+          <div class="carousel-inner">
+            {% for img in imgs %}
+              {% if forloop.first %}
+                {% assign class = "carousel-item active" %}
+              {% else %}
+                {% assign class = "carousel-item" %}
+              {% endif %}
+              <div class="{{class}}">
+                <img
+                  src="/{{img.path}}"
+                  class="d-block w-100 h-100"
+                  alt="Photo of people playing sports">
+                <div class="carousel-caption d-none d-md-block">
+                  <a href="/remove_img/{{img.id}}" class="btn btn-danger">Remove Image</a>
+                </div>
               </div>
-            </div>
-          {% endfor %}
-        </div>
-
-        {% if n_imgs > 1 %}
-          <button
-            class="carousel-control-prev"
-            type="button"
-            data-bs-target="#imagesCarousel"
-            data-bs-slide="prev">
-            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Previous</span>
-          </button>
-          <button
-            class="carousel-control-next"
-            type="button"
-            data-bs-target="#imagesCarousel"
-            data-bs-slide="next">
-            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Next</span>
-          </button>
-        {% endif %}
-      </div>
-    {% endif %}
-
-    <br>
-
-    <div class="card">
-      <div class="card-body">
-        <form
-          action="/add_image/{{event.id}}"
-          method="POST"
-          enctype=multipart/form-data>
-          <div class="mb-3">
-            <label for="photo" class="form-label">Add Photo:</label>
-            <input
-              type="file"
-              name="photo"
-              id="photo"
-              class="form-control"
-              accept="image/bmp, image/exr, image/gif, image/hdr, image/ico, image/jpeg, image/png, image/qoi, image/tiff, image/webp"
-              required
-              multiple>
+            {% endfor %}
           </div>
 
-          <button type="submit" class="btn btn-primary">Add photo.</button>
-        </form>
+          {% if n_imgs > 1 %}
+            <button
+              class="carousel-control-prev"
+              type="button"
+              data-bs-target="#imagesCarousel"
+              data-bs-slide="prev">
+              <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Previous</span>
+            </button>
+            <button
+              class="carousel-control-next"
+              type="button"
+              data-bs-target="#imagesCarousel"
+              data-bs-slide="next">
+              <span class="carousel-control-next-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Next</span>
+            </button>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <br>
+
+      <div class="card">
+        <div class="card-body">
+          <form
+            action="/add_image/{{event.id}}"
+            method="POST"
+            enctype=multipart/form-data>
+            <div class="mb-3">
+              <label for="photo" class="form-label">Add Photo:</label>
+              <input
+                type="file"
+                name="photo"
+                id="photo"
+                class="form-control"
+                accept="image/bmp, image/exr, image/gif, image/hdr, image/ico, image/jpeg, image/png, image/qoi, image/tiff, image/webp"
+                required
+                multiple>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Add photo.</button>
+          </form>
+        </div>
       </div>
-    </div>
+    {% else %}
+      <p class="warning">You must login to view images.</p>
+    {% endif %}
+
   </div>
 </div>
 

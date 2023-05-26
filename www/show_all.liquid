@@ -1,6 +1,6 @@
 {% include "partials/header.liquid" %}
 
-<h2>Remove People</h2>
+<h2>People</h2>
 
 <table class="table">
   <thead>
@@ -11,11 +11,13 @@
       <th scope="col">
         Form
       </th>
+      {% if is_logged_in %}
+        <th scope="col">
+          Remove
+        </th>
+      {% endif %}
       <th scope="col">
-        Remove
-      </th>
-      <th scope="col">
-        Edit
+        View/Edit
       </th>
     </tr>
   </thead>
@@ -36,15 +38,17 @@
         <td>
           {{ person.form }}
         </td>
-        <td>
-          <form method="POST" action="/remove_person">
-            <input
-              type="hidden"
-              name="person_id"
-              value="{{person.id}}">
-            <button type="submit" class="btn btn-danger">Remove Person.</button>
-          </form>
-        </td>
+        {% if is_logged_in %}
+          <td>
+            <form method="POST" action="/remove_person">
+              <input
+                type="hidden"
+                name="person_id"
+                value="{{person.id}}">
+              <button type="submit" class="btn btn-danger">Remove Person.</button>
+            </form>
+          </td>
+        {% endif %}
         <td>
           <a href="/edit_person/{{person.id}}" class="btn btn-secondary">View/Edit Person.</a>
         </td>
@@ -65,11 +69,13 @@
       <th scope="col">
         Date
       </th>
+      {% if is_logged_in %}
+        <th scope="col">
+          Remove
+        </th>
+      {% endif %}
       <th scope="col">
-        Remove
-      </th>
-      <th scope="col">
-        Edit
+        View/Edit
       </th>
     </tr>
   </thead>
@@ -81,15 +87,17 @@
         <td>
           {{ event.date }}
         </td>
-        <td>
-          <form method="POST" action="/remove_event">
-            <input
-              type="hidden"
-              name="event_id"
-              value="{{event.id}}">
-            <button type="submit" class="btn btn-danger">Remove Event.</button>
-          </form>
-        </td>
+        {% if is_logged_in %}
+          <td>
+            <form method="POST" action="/remove_event">
+              <input
+                type="hidden"
+                name="event_id"
+                value="{{event.id}}">
+              <button type="submit" class="btn btn-danger">Remove Event.</button>
+            </form>
+          </td>
+        {% endif %}
         <td>
           <a href="/update_event/{{event.id}}" class="btn btn-secondary">View/Edit Event.</a>
         </td>
