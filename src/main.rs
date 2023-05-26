@@ -19,7 +19,7 @@ use axum_login::{
     axum_sessions::{async_session::MemoryStore, SessionLayer},
     AuthLayer,
 };
-use liquid_utils::partials::{init_partials, PARTIALS};
+use liquid_utils::partials::{PARTIALS};
 use rand::{thread_rng, Rng};
 use routes::{
     add_event::{get_add_event_form, post_add_event_form},
@@ -39,7 +39,6 @@ use std::{env::var, net::SocketAddr, sync::Arc};
 use tokio::signal;
 use tower_http::trace::TraceLayer;
 use auth::PermissionsRole;
-
 use crate::{
     auth::{
         get_add_new_user, get_login, get_login_failure, post_add_new_user, post_login, post_logout,
@@ -52,7 +51,7 @@ use crate::{
         public::{get_256, get_512, get_manifest, get_offline, get_sw},
         spreadsheets::get_spreadsheet,
         update_event_and_person::delete_image,
-    },
+    }, liquid_utils::partials::reload_partials,
 };
 
 #[macro_use]
@@ -90,9 +89,7 @@ async fn main() {
     dotenvy::dotenv().expect("unable to get env variables");
     tracing_subscriber::fmt::init();
 
-    PARTIALS
-        .set(init_partials().await)
-        .expect("unable to set partials");
+    PARTIALS.write().await.reload().await;
 
     let db_url = std::env::var("DATABASE_URL").expect("DB URL must be set");
     let pool = PgPoolOptions::new()
@@ -112,7 +109,9 @@ async fn main() {
     let auth_layer = AuthLayer::new(Store::new(pool.clone()), &secret);
 
     let app = Router::new()
-        // .route_layer(RequireAuth::login_with_role(PermissionsRole::Dev..)) //dev ^
+        .route("/reload_partials", get(reload_partials))
+        .route_layer(RequireAuth::login_with_role(PermissionsRole::Dev..)) //dev ^
+
         .route(
             "/add_new_user",
             get(get_add_new_user).post(post_add_new_user),

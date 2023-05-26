@@ -64,6 +64,13 @@
                 </li>  
               {% endif %}
 
+              {% if auth.permissions["dev_access"] %}
+              <li class="nav-item">
+                <a class="nav-link" href="/reload_partials">Reload Partials</a>
+              </li>  
+            {% endif %}
+
+
               {% unless auth.role == "visitor" %}
                 <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{auth.user.username}}</a>
                 <ul class="dropdown-menu">
