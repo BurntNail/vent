@@ -55,6 +55,13 @@ pub struct LoginDetails {
     pub unhashed_password: String,
 }
 
+#[derive(Deserialize)]
+pub struct NewUserDetails {
+    pub username: String,
+    pub unhashed_password: String,
+    pub permissions: PermissionsRole
+}
+
 pub async fn get_login(auth: Auth) -> Result<impl IntoResponse, KnotError> {
     compile("www/login.liquid", liquid::object!({"auth": get_auth_object(auth)})).await
 }
@@ -93,10 +100,11 @@ pub async fn post_logout(mut auth: Auth) -> Result<impl IntoResponse, KnotError>
 
 pub async fn post_add_new_user(
     State(pool): State<Arc<Pool<Postgres>>>,
-    Form(LoginDetails {
+    Form(NewUserDetails {
         username: name,
         unhashed_password,
-    }): Form<LoginDetails>,
+        permissions
+    }): Form<NewUserDetails>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut conn = pool.acquire().await?;
 
@@ -104,11 +112,12 @@ pub async fn post_add_new_user(
     sqlx::query!(
         r#"
 INSERT INTO public.users
-(username, hashed_password)
-VALUES($1, $2);
+(username, hashed_password, permissions)
+VALUES($1, $2, $3);
     "#,
         name,
-        hashed
+        hashed,
+        permissions as _
     )
     .execute(&mut conn)
     .await?;

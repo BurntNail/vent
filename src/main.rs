@@ -112,15 +112,14 @@ async fn main() {
     let auth_layer = AuthLayer::new(Store::new(pool.clone()), &secret);
 
     let app = Router::new()
+        // .route_layer(RequireAuth::login_with_role(PermissionsRole::Dev..)) //dev ^
         .route(
             "/add_new_user",
             get(get_add_new_user).post(post_add_new_user),
         )
-        .route_layer(RequireAuth::login_with_role(PermissionsRole::Dev..)) //dev
-
         .route("/add_person", get(get_add_person).post(post_add_person))
         .route("/remove_person", post(post_remove_person))
-        .route_layer(RequireAuth::login_with_role(PermissionsRole::Admin..)) //admin
+        .route_layer(RequireAuth::login_with_role(PermissionsRole::Admin..)) //admin ^
 
         .route(
             "/add_event",
@@ -134,7 +133,7 @@ async fn main() {
         )
         .route("/add_image/:event_id", post(post_add_photo))
         .route("/remove_img/:id", get(delete_image))
-        .route_layer(RequireAuth::login_with_role(PermissionsRole::Prefect..)) //prefect
+        .route_layer(RequireAuth::login_with_role(PermissionsRole::Prefect..)) //prefect ^
 
         .route("/add_participant", post(post_add_participant_to_event))
         .route(
