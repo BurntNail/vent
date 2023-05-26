@@ -62,6 +62,7 @@ pub async fn get_index(
         event: HTMLEvent,
         participants: usize,
         prefects: usize,
+        no_photos: usize,
     }
 
     let mut happened_events = vec![];
@@ -79,7 +80,7 @@ ORDER BY events.date
     )
     .fetch_all(&mut conn)
     .await?
-    {
+    { //TODO: cache using HashMaps etc
         let date = event.date;
         let event = HTMLEvent::from(event);
 
@@ -112,17 +113,23 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
         .await?
         .len();
 
+        let photos = sqlx::query!(
+"SELECT FROM photos WHERE event_id = $1", event_id
+        ).fetch_all(&mut conn).await?.len();
+
         if date < now {
             happened_events.push(WholeEvent {
                 event,
                 participants,
                 prefects,
+                no_photos: photos
             });
         } else {
             events_to_happen.push(WholeEvent {
                 event,
                 participants,
                 prefects,
+                no_photos: photos
             });
         }
     }

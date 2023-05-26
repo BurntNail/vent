@@ -32,6 +32,10 @@
 
 <br>
 
+<div class="alert alert-info">
+  Numbers: <i>Number of Prefects / Number of Participants / Number of Photos</i>
+</div>
+
 <h2>Future Events</h2>
 
 <table class="table">
@@ -39,7 +43,7 @@
     <tr>
       <th scope="col">Name</th>
       <th scope="col">Date/Time</th>
-      <th scope="col">People</th>
+      <th scope="col">Numbers</th>
     </tr>
   </thead>
   <tbody>
@@ -50,7 +54,7 @@
         </td>
         <td>{{ row.event.date }}</td>
         <td>
-          {{ row.prefects }}/{{ row.participants }}
+          {{ row.prefects }}/{{ row.participants }}/{{row.no_photos}}
         </td>
         </tr>
         {% if is_logged_in %}
@@ -87,7 +91,7 @@
     <tr>
       <th scope="col">Name</th>
       <th scope="col">Date/Time</th>
-      <th scope="col">People</th>
+      <th scope="col">Numbers</th>
     </tr>
   </thead>
   <tbody>
@@ -98,7 +102,7 @@
         </td>
         <td>{{ row.event.date }}</td>
         <td>
-          {{ row.prefects }}/{{ row.participants }}
+          {{ row.prefects }}/{{ row.participants }}/{{ row.no_photos }}
         </td>
 		</tr>
 		{% if is_logged_in %}
