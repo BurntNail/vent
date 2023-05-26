@@ -22,10 +22,8 @@ pub async fn get_edit_person(
     Path(id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
-
     let person = sqlx::query_as!(DbPerson, r#"SELECT * FROM people WHERE id = $1"#, id)
-        .fetch_one(&mut conn)
+        .fetch_one(pool.as_ref())
         .await?;
 
     #[derive(Serialize)]
@@ -43,7 +41,7 @@ ON pe.event_id = e.id AND pe.prefect_id = $1
         "#,
         person.id
     )
-    .fetch_all(&mut conn)
+    .fetch_all(pool.as_ref())
     .await?
     .into_iter()
     .map(|r| Event {
@@ -61,7 +59,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1
         "#,
         person.id
     )
-    .fetch_all(&mut conn)
+    .fetch_all(pool.as_ref())
     .await?
     .into_iter()
     .map(|r| Event {
@@ -84,8 +82,6 @@ pub async fn post_edit_person(
         is_prefect,
     }): Form<NoIDPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
-
     sqlx::query!(
         r#"
 UPDATE public.people
@@ -98,7 +94,7 @@ WHERE id=$1
         form,
         is_prefect
     )
-    .execute(&mut conn)
+    .execute(pool.as_ref())
     .await?;
 
     Ok(Redirect::to(&format!("/edit_person/{id}")))

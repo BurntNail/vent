@@ -29,8 +29,6 @@ pub async fn post_edit_user(
         unhashed_password,
     }): Form<LoginDetails>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
-
     let current_id = auth.current_user.unwrap().id;
     let hashed = hash(&unhashed_password, DEFAULT_COST)?;
 
@@ -44,7 +42,7 @@ WHERE id=$3;
         hashed,
         current_id
     )
-    .execute(&mut conn)
+    .execute(pool.as_ref())
     .await?;
 
     Ok(Redirect::to("/"))

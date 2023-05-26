@@ -9,13 +9,12 @@ use tokio::task;
 pub async fn get_spreadsheet(
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
     let mut people = sqlx::query_as!(
         DbPerson,
         r#"
 SELECT * FROM people"#
     )
-    .fetch_all(&mut conn)
+    .fetch_all(pool.as_ref())
     .await?;
     people.sort_by_key(|x| x.surname.clone());
     people.sort_by_key(|x| x.form.clone());
@@ -24,13 +23,13 @@ SELECT * FROM people"#
         r#"
 SELECT * FROM events"#
     )
-    .fetch_all(&mut conn)
+    .fetch_all(pool.as_ref())
     .await?;
     events.sort_by_key(|r| r.date);
 
     let mut participant_relationships = HashMap::new();
     sqlx::query!("SELECT participant_id, event_id FROM participant_events")
-        .fetch_all(&mut conn)
+        .fetch_all(pool.as_ref())
         .await?
         .into_iter()
         .for_each(|x| {
@@ -39,7 +38,6 @@ SELECT * FROM events"#
                 .or_insert(vec![])
                 .push(x.event_id);
         });
-    drop(conn);
 
     task::spawn_blocking(move || -> Result<(), KnotError> {
         let mut workbook = Workbook::new();
