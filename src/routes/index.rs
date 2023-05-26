@@ -16,8 +16,6 @@ pub async fn get_index(
     auth: Auth,
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
-
     #[derive(Serialize)]
     struct HTMLEvent {
         pub id: i32,
@@ -78,7 +76,7 @@ FROM events
 ORDER BY events.date
         "#
     )
-    .fetch_all(&mut conn)
+    .fetch_all(pool.as_ref())
     .await?
     {
         //TODO: cache using HashMaps etc
@@ -96,7 +94,7 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
             "#,
             event_id
         )
-        .fetch_all(&mut conn)
+        .fetch_all(pool.as_ref())
         .await?
         .len();
 
@@ -110,12 +108,12 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
             "#,
             event_id
         )
-        .fetch_all(&mut conn)
+        .fetch_all(pool.as_ref())
         .await?
         .len();
 
         let photos = sqlx::query!("SELECT FROM photos WHERE event_id = $1", event_id)
-            .fetch_all(&mut conn)
+            .fetch_all(pool.as_ref())
             .await?
             .len();
 

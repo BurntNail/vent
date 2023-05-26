@@ -33,8 +33,6 @@ pub async fn post_add_event_form(
     State(pool): State<Arc<Pool<Postgres>>>,
     Form(event): Form<FormEvent>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?; //get a database connection
-
     let DbEvent {
         id: _,
         event_name,
@@ -57,7 +55,7 @@ RETURNING id
         teacher,
         info
     )
-    .fetch_one(&mut conn) //add the event to the db
+    .fetch_one(pool.as_ref()) //add the event to the db
     .await?
     .id;
 

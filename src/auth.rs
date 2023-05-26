@@ -78,9 +78,8 @@ pub async fn post_login(
         unhashed_password,
     }): Form<LoginDetails>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
     let db_user = sqlx::query_as!(DbUser, r#"SELECT id, username, hashed_password, permissions as "permissions: _" FROM users WHERE username = $1"#, username) //https://github.com/launchbadge/sqlx/issues/1004
-        .fetch_one(&mut conn)
+        .fetch_one(pool.as_ref())
         .await?;
     Ok(Redirect::to(
         if verify(unhashed_password, &db_user.hashed_password)? {
@@ -106,8 +105,6 @@ pub async fn post_add_new_user(
         permissions
     }): Form<NewUserDetails>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
-
     let hashed = hash(&unhashed_password, DEFAULT_COST)?;
     sqlx::query!(
         r#"
@@ -119,7 +116,7 @@ VALUES($1, $2, $3);
         hashed,
         permissions as _
     )
-    .execute(&mut conn)
+    .execute(pool.as_ref())
     .await?;
 
     Ok(Redirect::to("/"))

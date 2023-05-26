@@ -25,8 +25,6 @@ pub async fn post_add_prefect_to_event(
         person_ids,
     }): Form<AddPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?; //get a connection
-
     for prefect_id in person_ids {
         if sqlx::query!(
             r#"
@@ -36,7 +34,7 @@ pub async fn post_add_prefect_to_event(
             prefect_id,
             event_id
         )
-        .fetch_optional(&mut conn)
+        .fetch_optional(pool.as_ref())
         .await?
         .is_none()
         //if we can't find anything assoiated with this prefect and this event
@@ -51,7 +49,7 @@ pub async fn post_add_prefect_to_event(
                 prefect_id,
                 event_id
             )
-            .execute(&mut conn)
+            .execute(pool.as_ref())
             .await?;
         }
     }
@@ -68,8 +66,6 @@ pub async fn post_add_participant_to_event(
         person_ids,
     }): Form<AddPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?; //get db connection
-
     for participant_id in person_ids {
         if sqlx::query!(
             r#"
@@ -79,7 +75,7 @@ pub async fn post_add_participant_to_event(
             participant_id,
             event_id
         )
-        .fetch_optional(&mut conn)
+        .fetch_optional(pool.as_ref())
         .await?
         .is_none()
         //if we can't find anything assoiated with this participant and this event
@@ -94,7 +90,7 @@ pub async fn post_add_participant_to_event(
                 participant_id,
                 event_id
             )
-            .execute(&mut conn)
+            .execute(pool.as_ref())
             .await?;
         }
     }

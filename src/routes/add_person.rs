@@ -40,8 +40,6 @@ pub async fn post_add_person(
         is_prefect,
     }): Form<NoIDPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut conn = pool.acquire().await?;
-
     sqlx::query!(
         r#"
 INSERT INTO public.people
@@ -53,7 +51,7 @@ VALUES($1, $2, $3, $4);
         surname,
         form,
     )
-    .execute(&mut conn)
+    .execute(pool.as_ref())
     .await?;
 
     Ok(Redirect::to("/add_person"))
