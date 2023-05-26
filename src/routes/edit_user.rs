@@ -8,19 +8,17 @@ use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
 use crate::{
-    auth::{Auth, LoginDetails},
+    auth::{get_auth_object, Auth, LoginDetails},
     error::KnotError,
     liquid_utils::compile,
 };
 
 pub async fn get_edit_user(auth: Auth) -> Result<impl IntoResponse, KnotError> {
-    let globals = if let Some(user) = auth.current_user {
-        liquid::object!({ "is_logged_in": true, "user": user })
-    } else {
-        liquid::object!({ "is_logged_in": false })
-    };
-
-    compile("www/edit_user.liquid", globals).await
+    compile(
+        "www/edit_user.liquid",
+        liquid::object!({"auth": get_auth_object(auth)}),
+    )
+    .await
 }
 
 pub async fn post_edit_user(

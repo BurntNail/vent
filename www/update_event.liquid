@@ -19,7 +19,7 @@
           class="form-control"
           value="{{event.event_name}}"
           required
-          {% unless is_logged_in %}
+          {% unless auth.permissions["edit_events"] %}
           disabled
           {% endunless %}>
       </div>
@@ -33,7 +33,7 @@
           class="form-control"
           value="{{event.date}}"
           required
-          {% unless is_logged_in %}
+          {% unless auth.permissions["edit_events"] %}
           disabled
           {% endunless %}>
       </div>
@@ -47,7 +47,7 @@
           class="form-control"
           value="{{event.location}}"
           required
-          {% unless is_logged_in %}
+          {% unless auth.permissions["edit_events"] %}
           disabled
           {% endunless %}>
       </div>
@@ -61,7 +61,7 @@
           class="form-control"
           value="{{event.teacher}}"
           required
-          {% unless is_logged_in %}
+          {% unless auth.permissions["edit_events"] %}
           disabled
           {% endunless %}>
       </div>
@@ -74,7 +74,7 @@
           name="info"
           class="form-control"
           value="{{event.other_info}}"
-          {% unless is_logged_in %}
+          {% unless auth.permissions["edit_events"] %}
           disabled
           {% endunless %}>
       </div>
@@ -82,7 +82,7 @@
       <button
         type="submit"
         class="btn btn-primary"
-        {% unless is_logged_in %}
+        {% unless auth.permissions["edit_events"] %}
         disabled
         {% endunless %}>Update Event.</button>
     </form>
@@ -92,11 +92,12 @@
 <br>
 
 <div class="row">
-  {% if is_logged_in %}
-    <div class="col">
-      <div class="card">
-        <div class="card-body">
-          <h3 class="card-title">Potential</h3>
+  <div class="col">
+    <div class="card">
+      <div class="card-body">
+        <h3 class="card-title">Potential</h3>
+        {% if auth.permissions["edit_prefects_on_events"] %}
+
           <h5>Prefects</h3>
           <form method="POST" action="/add_prefect">
             <div class="accordion" id="pot_pres">
@@ -145,11 +146,14 @@
 
 
           </form>
+        {% endif %}
+        {% if auth.permissions["edit_participants_on_events"] %}
+
 
           <h5>Participants</h3>
 
-          <div class="accordion" id="pot_part">
-            <form method="POST" action="/add_participant">
+          <form method="POST" action="/add_participant">
+            <div class="accordion" id="pot_part">
               {% for form in participants %}
                 <div class="accordion-item">
                   <h2 class="accordion-header">
@@ -185,17 +189,18 @@
                   </div>
                 </div>
               {% endfor %}
-              <input
-                type="hidden"
-                name="event_id"
-                value="{{event.id}}">
-              <button type="submit" class="btn btn-link">Add selected people.</button>
-            </form>
-          </div>
-        </div>
+            </div>
+            <input
+              type="hidden"
+              name="event_id"
+              value="{{event.id}}">
+            <button type="submit" class="btn btn-link">Add selected people.</button>
+
+          </form>
+        {% endif %}
       </div>
     </div>
-  {% endif %}
+  </div>
   <div class="col">
     <div class="card">
       <div class="card-body">
@@ -210,7 +215,7 @@
               </li>
               {% for person in form.people %}
                 <li class="list-group-item">
-                  {% if is_logged_in %}
+                  {% if auth.permissions["edit_prefects_on_events"] %}
                     <form action="/remove_prefect_from_event" method="POST">
                       <input
                         type="hidden"
@@ -239,7 +244,7 @@
               </li>
               {% for person in form.people %}
                 <li class="list-group-item">
-                  {% if is_logged_in %}
+                  {% if auth.permissions["edit_participants_on_events"] %}
                     <form action="/remove_participant_from_event" method="POST">
                       <input
                         type="hidden"
@@ -269,7 +274,7 @@
   <div class="card-body">
     <h2 class="card-title">Existing Images</h2>
 
-    {% if is_logged_in %}
+    {% if auth.permissions["see_photos"] %}
       <a href="/get_all_imgs/{{event.id}}" class="btn btn-primary">Download as zip.</a>
 
       <br>

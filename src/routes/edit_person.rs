@@ -9,7 +9,7 @@ use serde::Serialize;
 use sqlx::{Pool, Postgres};
 
 use crate::{
-    auth::Auth,
+    auth::{get_auth_object, Auth},
     error::KnotError,
     liquid_utils::{compile, EnvFormatter},
     routes::DbPerson,
@@ -71,13 +71,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1
     })
     .collect::<Vec<_>>();
 
-    let globals = if let Some(user) = auth.current_user {
-        liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "is_logged_in": true, "user": user })
-    } else {
-        liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "is_logged_in": false })
-    };
-
-    compile("www/edit_person.liquid", globals).await
+    compile("www/edit_person.liquid", liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "auth": get_auth_object(auth) })).await
 }
 
 pub async fn post_edit_person(

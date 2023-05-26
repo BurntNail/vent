@@ -2,7 +2,7 @@
 
 use crate::error::KnotError;
 use axum::{
-    extract::{State},
+    extract::State,
     response::{IntoResponse, Redirect},
 };
 use axum_extra::extract::Form;

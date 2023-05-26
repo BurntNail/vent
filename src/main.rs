@@ -165,7 +165,7 @@ async fn main() {
         .layer(session_layer)
         .with_state(Arc::new(pool));
 
-  let port: SocketAddr = var("KNOT_SERVER_IP")
+    let port: SocketAddr = var("KNOT_SERVER_IP")
         .expect("need KNOT_SERVER_IP env var")
         .parse()
         .expect("need KNOT_SERVER_IP to be valid");

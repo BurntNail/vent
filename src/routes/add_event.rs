@@ -4,7 +4,11 @@
 //!
 //! It serves a simple form, and handles post requests to add that event to the DB.
 
-use crate::{auth::Auth, error::KnotError, liquid_utils::compile};
+use crate::{
+    auth::{get_auth_object, Auth},
+    error::KnotError,
+    liquid_utils::compile,
+};
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
@@ -17,13 +21,11 @@ use super::{DbEvent, FormEvent};
 
 ///`GET` method for the `add_event` form - just compiles and returns the liquid `www/add_event.liquid`
 pub async fn get_add_event_form(auth: Auth) -> Result<impl IntoResponse, KnotError> {
-    let globals = if let Some(user) = auth.current_user {
-        liquid::object!({ "is_logged_in": true, "user": user })
-    } else {
-        liquid::object!({ "is_logged_in": false })
-    };
-
-    compile("www/add_event.liquid", globals).await
+    compile(
+        "www/add_event.liquid",
+        liquid::object!({"auth": get_auth_object(auth)}),
+    )
+    .await
 }
 
 ///`POST` method to add an event from a form to the database. Redirects back to the [`get_add_event_form`]

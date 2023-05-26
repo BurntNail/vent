@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
 
 use crate::{
-    auth::Auth,
+    auth::{get_auth_object, Auth},
     error::KnotError,
     liquid_utils::{compile, EnvFormatter},
 };
@@ -78,13 +78,11 @@ ORDER BY e.date
     .map(SmolFormattedDbEvent::from)
     .collect();
 
-    let globals = if let Some(user) = auth.current_user {
-        liquid::object!({ "people": people, "events": events, "is_logged_in": true, "user": user })
-    } else {
-        liquid::object!({ "people": people, "events": events, "is_logged_in": false })
-    };
-
-    compile("www/show_all.liquid", globals).await
+    compile(
+        "www/show_all.liquid",
+        liquid::object!({ "people": people, "events": events, "auth": get_auth_object(auth) }),
+    )
+    .await
 }
 
 #[derive(Deserialize)]

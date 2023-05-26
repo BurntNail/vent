@@ -1,6 +1,6 @@
 use super::FormEvent;
 use crate::{
-    auth::Auth,
+    auth::{get_auth_object, Auth},
     error::KnotError,
     liquid_utils::compile,
     routes::{DbEvent, DbPerson},
@@ -209,41 +209,25 @@ WHERE event_id = $1
     .fetch_all(&mut conn)
     .await?;
 
-    let globals = if let Some(user) = auth.current_user {
+    compile(
+        "www/update_event.liquid",
         liquid::object!({"event": liquid::object!({
-            "id": id,
-            "event_name": event_name,
-            "date": date.to_string(),
-            "location": location,
-            "teacher": teacher,
-            "other_info": other_info.unwrap_or_default()
-        }),
-        "existing_prefects": existing_prefects,
-        "existing_participants": existing_participants,
-        "prefects": possible_prefects,
-        "participants": possible_participants,
-        "n_imgs": photos.len(),
-        "imgs": photos,
-        "is_logged_in": true, "user": user })
-    } else {
-        liquid::object!({ "event": liquid::object!({
-            "id": id,
-            "event_name": event_name,
-            "date": date.to_string(),
-            "location": location,
-            "teacher": teacher,
-            "other_info": other_info.unwrap_or_default()
-        }),
-        "existing_prefects": existing_prefects,
-        "existing_participants": existing_participants,
-        "prefects": possible_prefects,
-        "participants": possible_participants,
-        "n_imgs": photos.len(),
-        "imgs": photos,
-        "is_logged_in": false })
-    };
-
-    compile("www/update_event.liquid", globals).await
+        "id": id,
+        "event_name": event_name,
+        "date": date.to_string(),
+        "location": location,
+        "teacher": teacher,
+        "other_info": other_info.unwrap_or_default()
+    }),
+    "existing_prefects": existing_prefects,
+    "existing_participants": existing_participants,
+    "prefects": possible_prefects,
+    "participants": possible_participants,
+    "n_imgs": photos.len(),
+    "imgs": photos,
+    "auth": get_auth_object(auth) }),
+    )
+    .await
 }
 pub async fn post_update_event(
     Path(event_id): Path<i32>,
