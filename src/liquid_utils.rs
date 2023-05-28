@@ -1,10 +1,7 @@
-use crate::{
-    error::KnotError,
-    liquid_utils::partials::{PARTIALS}, PROJECT_NAME,
-};
+use crate::{error::KnotError, liquid_utils::partials::PARTIALS, PROJECT_NAME};
 use axum::response::Html;
 use chrono::NaiveDateTime;
-use liquid::{Object, ParserBuilder, model::Value};
+use liquid::{model::Value, Object, ParserBuilder};
 use std::{env, fmt::Debug, path::Path};
 use tokio::fs::read_to_string;
 

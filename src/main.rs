@@ -58,7 +58,8 @@ use tower_http::trace::TraceLayer;
 #[macro_use]
 extern crate tracing;
 
-pub static PROJECT_NAME: String = var("INSTANCE_NAME").unwrap_or_else(|_e| "House Events Manager".into());
+pub static PROJECT_NAME: String =
+    var("INSTANCE_NAME").unwrap_or_else(|_e| "House Events Manager".into());
 
 // https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs
 async fn shutdown_signal() {
