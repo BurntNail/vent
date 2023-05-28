@@ -59,15 +59,23 @@ pub struct LoginDetails {
 pub struct NewUserDetails {
     pub username: String,
     pub unhashed_password: String,
-    pub permissions: PermissionsRole
+    pub permissions: PermissionsRole,
 }
 
 pub async fn get_login(auth: Auth) -> Result<impl IntoResponse, KnotError> {
-    compile("www/login.liquid", liquid::object!({"auth": get_auth_object(auth)})).await
+    compile(
+        "www/login.liquid",
+        liquid::object!({"auth": get_auth_object(auth)}),
+    )
+    .await
 }
 
 pub async fn get_login_failure(auth: Auth) -> Result<impl IntoResponse, KnotError> {
-    compile("www/failed_auth.liquid", liquid::object!({"auth": get_auth_object(auth)})).await
+    compile(
+        "www/failed_auth.liquid",
+        liquid::object!({"auth": get_auth_object(auth)}),
+    )
+    .await
 }
 
 pub async fn post_login(
@@ -102,7 +110,7 @@ pub async fn post_add_new_user(
     Form(NewUserDetails {
         username: name,
         unhashed_password,
-        permissions
+        permissions,
     }): Form<NewUserDetails>,
 ) -> Result<impl IntoResponse, KnotError> {
     let hashed = hash(&unhashed_password, DEFAULT_COST)?;

@@ -1,7 +1,4 @@
-use crate::{
-    error::KnotError,
-    liquid_utils::partials::{PARTIALS},
-};
+use crate::{error::KnotError, liquid_utils::partials::PARTIALS};
 use axum::response::Html;
 use chrono::NaiveDateTime;
 use liquid::{Object, ParserBuilder};
