@@ -16,12 +16,24 @@ use tokio::{
 use tokio_util::io::ReaderStream;
 use walkdir::WalkDir;
 
+use super::public::serve_static_file;
+
 #[axum::debug_handler]
 pub async fn post_add_photo(
     Path(event_id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, KnotError> {
+    sqlx::query!(
+        r#"
+UPDATE events
+SET zip_file = NULL
+WHERE id = $1"#,
+        event_id
+    )
+    .execute(pool.as_ref())
+    .await?;
+
     while let Some(field) = multipart.next_field().await? {
         let data = field.bytes().await?;
 
@@ -92,6 +104,24 @@ pub async fn get_all_images(
     Path(event_id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
+    trace!(%event_id, "Checking for existing zip");
+    if let Some(file_name) = sqlx::query!(
+        r#"
+SELECT zip_file
+FROM events
+WHERE id = $1"#,
+        event_id
+    )
+    .fetch_one(pool.as_ref())
+    .await?
+    .zip_file
+    {
+        trace!(?file_name, %event_id, "Found existing zip file");
+        return serve_static_file(file_name).await;
+    }
+    info!(%event_id, "Creating new zip file");
+
+
     let files_to_find = sqlx::query!(
         r#"
 SELECT path FROM public.photos
@@ -161,15 +191,16 @@ WHERE event_id = $1"#,
     writer.close().await?;
     drop(file);
 
-    let body = StreamBody::new(ReaderStream::new(File::open(&file_name).await?));
+    sqlx::query!(
+        r#"
+UPDATE events
+SET zip_file = $1
+WHERE id = $2"#,
+        &file_name,
+        event_id
+    )
+    .execute(pool.as_ref())
+    .await?;
 
-    let headers = [
-        (header::CONTENT_TYPE, "application/zip".into()),
-        (
-            header::CONTENT_DISPOSITION,
-            format!("filename=\"{file_name}\""),
-        ),
-    ];
-
-    Ok((headers, body))
+    serve_static_file(file_name).await
 }

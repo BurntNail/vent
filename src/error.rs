@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use async_zip::error::ZipError;
 use axum::{
     http::StatusCode,
@@ -39,10 +41,8 @@ pub enum KnotError {
     // internal errors
     #[error("Missing File: {0:?}")]
     MissingFile(String),
-    #[error("Missing Extension")]
-    MissingExt,
-    #[error("Unknown MIME Type for Extension: {0:?}")]
-    UnknownMIME(String),
+    #[error("Unknown MIME Type for File: {0:?}")]
+    UnknownMIME(PathBuf),
     #[error("Encountered Invalid UTF-8")]
     InvalidUTF8,
 }

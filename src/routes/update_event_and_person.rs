@@ -29,7 +29,7 @@ pub async fn get_update_event(
         location,
         teacher,
         other_info,
-        zip_file: _
+        zip_file: _,
     } = sqlx::query_as!(
         DbEvent,
         r#"
@@ -232,7 +232,13 @@ WHERE event_id = $1
 pub async fn post_update_event(
     Path(event_id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
-    Form(FormEvent { name, date, location, teacher, info }): Form<FormEvent>,
+    Form(FormEvent {
+        name,
+        date,
+        location,
+        teacher,
+        info,
+    }): Form<FormEvent>,
 ) -> Result<impl IntoResponse, KnotError> {
     let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M")?;
 
@@ -264,7 +270,6 @@ pub async fn get_remove_prefect_from_event(
     State(pool): State<Arc<Pool<Postgres>>>,
     Form(Removal { relation_id }): Form<Removal>,
 ) -> Result<impl IntoResponse, KnotError> {
-
     let id = sqlx::query!(
         r#"
 DELETE FROM prefect_events WHERE relation_id = $1 
@@ -308,6 +313,16 @@ RETURNING path, event_id"#,
         img_id
     )
     .fetch_one(pool.as_ref())
+    .await?;
+
+    sqlx::query!(
+        r#"
+UPDATE events
+SET zip_file = NULL
+WHERE id = $1"#,
+        event.event_id
+    )
+    .execute(pool.as_ref())
     .await?;
 
     remove_file(event.path).await?;
