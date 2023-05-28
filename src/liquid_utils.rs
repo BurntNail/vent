@@ -15,7 +15,7 @@ pub async fn compile(
     let liquid = read_to_string(path).await?;
     let partial_compiler = PARTIALS.read().await.to_compiler();
 
-    globals.insert("instance_name".into(), Value::scalar(&PROJECT_NAME));
+    globals.insert("instance_name".into(), Value::scalar(PROJECT_NAME.as_str()));
 
     Ok(tokio::task::spawn_blocking(move || {
         ParserBuilder::with_stdlib()

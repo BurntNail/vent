@@ -4,6 +4,7 @@ use axum::{
     http::StatusCode,
     response::{Html, IntoResponse},
 };
+use once_cell::sync::Lazy;
 use std::{env::var, path::PathBuf};
 
 #[derive(thiserror::Error, Debug)]
@@ -49,15 +50,15 @@ pub enum KnotError {
 
 impl IntoResponse for KnotError {
     fn into_response(self) -> axum::response::Response {
-        static TS_URL: String =
-            var("TECH_SUPPORT").unwrap_or_else(|_e| "https://google.com".into());
+        static TS_URL: Lazy<String> =
+            Lazy::new(|| var("TECH_SUPPORT").unwrap_or_else(|_e| "https://google.com".into()));
 
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Html(format!(
                 include_str!("../www/server_error.html"),
-                instance_name = PROJECT_NAME,
-                tech_support = TS_URL,
+                instance_name = PROJECT_NAME.as_str(),
+                tech_support = TS_URL.as_str(),
                 error = self
             )),
         )

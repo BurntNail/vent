@@ -36,6 +36,7 @@ use axum_login::{
     AuthLayer,
 };
 use liquid_utils::partials::PARTIALS;
+use once_cell::sync::Lazy;
 use rand::{thread_rng, Rng};
 use routes::{
     add_event::{get_add_event_form, post_add_event_form},
@@ -58,8 +59,8 @@ use tower_http::trace::TraceLayer;
 #[macro_use]
 extern crate tracing;
 
-pub static PROJECT_NAME: String =
-    var("INSTANCE_NAME").unwrap_or_else(|_e| "House Events Manager".into());
+pub static PROJECT_NAME: Lazy<String> =
+    Lazy::new(|| var("INSTANCE_NAME").unwrap_or_else(|_e| "House Events Manager".into()));
 
 // https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs
 async fn shutdown_signal() {
