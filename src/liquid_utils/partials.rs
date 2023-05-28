@@ -1,9 +1,13 @@
-use std::{ffi::{OsStr, OsString}, collections::HashMap, borrow::Cow};
+use std::{
+    borrow::Cow,
+    collections::HashMap,
+    ffi::{OsStr, OsString},
+};
 
 use axum::response::{IntoResponse, Redirect};
 use liquid::partials::{EagerCompiler, PartialSource};
 use once_cell::sync::Lazy;
-use tokio::{fs::read_to_string, sync::{RwLock}};
+use tokio::{fs::read_to_string, sync::RwLock};
 use walkdir::{DirEntry, WalkDir};
 
 ///Struct to hold all the partials - then I can use a convenience function to easily get a [`PartialCompiler`]
@@ -16,7 +20,7 @@ impl Partials {
         EagerCompiler::new(self.clone())
     }
 
-    pub async fn reload (&mut self) {
+    pub async fn reload(&mut self) {
         self.0 = get_partials().await;
     }
 }
@@ -35,11 +39,10 @@ impl PartialSource for Partials {
     }
 }
 
-
 ///Static variable to store all of the partials
 pub static PARTIALS: Lazy<RwLock<Partials>> = Lazy::new(|| RwLock::new(Partials::default()));
 
-pub async fn reload_partials () -> impl IntoResponse {
+pub async fn reload_partials() -> impl IntoResponse {
     PARTIALS.write().await.reload().await;
     Redirect::to("/")
 }

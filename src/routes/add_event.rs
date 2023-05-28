@@ -4,6 +4,7 @@
 //!
 //! It serves a simple form, and handles post requests to add that event to the DB.
 
+use super::FormEvent;
 use crate::{
     auth::{get_auth_object, Auth},
     error::KnotError,
@@ -17,7 +18,6 @@ use axum_extra::extract::Form;
 use chrono::NaiveDateTime;
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
-use super::{FormEvent};
 
 ///`GET` method for the `add_event` form - just compiles and returns the liquid `www/add_event.liquid`
 pub async fn get_add_event_form(auth: Auth) -> Result<impl IntoResponse, KnotError> {
@@ -31,7 +31,13 @@ pub async fn get_add_event_form(auth: Auth) -> Result<impl IntoResponse, KnotErr
 ///`POST` method to add an event from a form to the database. Redirects back to the [`get_add_event_form`]
 pub async fn post_add_event_form(
     State(pool): State<Arc<Pool<Postgres>>>,
-    Form(FormEvent { name, date, location, teacher, info }): Form<FormEvent>,
+    Form(FormEvent {
+        name,
+        date,
+        location,
+        teacher,
+        info,
+    }): Form<FormEvent>,
 ) -> Result<impl IntoResponse, KnotError> {
     let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M")?;
 

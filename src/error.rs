@@ -51,10 +51,7 @@ impl IntoResponse for KnotError {
     fn into_response(self) -> axum::response::Response {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Html(format!(
-                include_str!("../www/server_error.html"),
-                self
-            )),
+            Html(format!(include_str!("../www/server_error.html"), self)),
         )
             .into_response()
     }

@@ -35,7 +35,7 @@ pub async fn get_index(
                 location,
                 teacher,
                 other_info,
-                zip_file: _
+                zip_file: _,
             }: DbEvent,
         ) -> Self {
             Self {

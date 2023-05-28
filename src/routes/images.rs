@@ -121,7 +121,6 @@ WHERE id = $1"#,
     }
     info!(%event_id, "Creating new zip file");
 
-
     let files_to_find = sqlx::query!(
         r#"
 SELECT path FROM public.photos

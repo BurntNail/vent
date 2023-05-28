@@ -16,7 +16,9 @@ pub async fn serve_static_file(path: impl Into<PathBuf>) -> Result<impl IntoResp
     let file_size = file.metadata().await?.len();
     let body = StreamBody::new(ReaderStream::new(file));
 
-    let mime = from_path(path.clone()).first().ok_or(KnotError::UnknownMIME(path))?;
+    let mime = from_path(path.clone())
+        .first()
+        .ok_or(KnotError::UnknownMIME(path))?;
 
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, mime.essence_str().try_into()?);
