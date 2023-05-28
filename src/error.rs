@@ -1,10 +1,10 @@
-use std::path::PathBuf;
-
+use crate::PROJECT_NAME;
 use async_zip::error::ZipError;
 use axum::{
     http::StatusCode,
     response::{Html, IntoResponse},
 };
+use std::{env::var, path::PathBuf};
 
 #[derive(thiserror::Error, Debug)]
 pub enum KnotError {
@@ -49,9 +49,17 @@ pub enum KnotError {
 
 impl IntoResponse for KnotError {
     fn into_response(self) -> axum::response::Response {
+        static TS_URL: String =
+            var("TECH_SUPPORT").unwrap_or_else(|_e| "https://google.com".into());
+
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Html(format!(include_str!("../www/server_error.html"), self)),
+            Html(format!(
+                include_str!("../www/server_error.html"),
+                instance_name = PROJECT_NAME,
+                tech_support = TS_URL,
+                error = self
+            )),
         )
             .into_response()
     }

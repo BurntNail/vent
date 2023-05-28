@@ -1,7 +1,7 @@
-use crate::{error::KnotError, liquid_utils::partials::PARTIALS};
+use crate::{error::KnotError, liquid_utils::partials::PARTIALS, PROJECT_NAME};
 use axum::response::Html;
 use chrono::NaiveDateTime;
-use liquid::{Object, ParserBuilder};
+use liquid::{model::Value, Object, ParserBuilder};
 use std::{env, fmt::Debug, path::Path};
 use tokio::fs::read_to_string;
 
@@ -10,10 +10,12 @@ pub mod partials;
 #[instrument]
 pub async fn compile(
     path: impl AsRef<Path> + Debug,
-    globals: Object,
+    mut globals: Object,
 ) -> Result<Html<String>, KnotError> {
     let liquid = read_to_string(path).await?;
     let partial_compiler = PARTIALS.read().await.to_compiler();
+
+    globals.insert("instance_name".into(), Value::scalar(&PROJECT_NAME));
 
     Ok(tokio::task::spawn_blocking(move || {
         ParserBuilder::with_stdlib()
