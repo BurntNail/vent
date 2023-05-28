@@ -315,15 +315,23 @@ RETURNING path, event_id"#,
     .fetch_one(pool.as_ref())
     .await?;
 
-    sqlx::query!(
-        r#"
-UPDATE events
-SET zip_file = NULL
-WHERE id = $1"#,
-        event.event_id
-    )
-    .execute(pool.as_ref())
-    .await?;
+    if let Some(existing_zip_file) = sqlx::query!(r#"
+SELECT zip_file
+FROM events
+WHERE id = $1"#, event.event_id).fetch_one(pool.as_ref()).await?.zip_file {
+        sqlx::query!(
+            r#"
+    UPDATE events
+    SET zip_file = NULL
+    WHERE id = $1"#,
+            event.event_id
+        )
+        .execute(pool.as_ref())
+        .await?;
+
+        remove_file(existing_zip_file).await?;
+    }
+
 
     remove_file(event.path).await?;
 
