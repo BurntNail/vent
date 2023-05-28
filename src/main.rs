@@ -10,6 +10,22 @@ mod error;
 mod liquid_utils;
 mod routes;
 
+use crate::{
+    auth::{
+        get_add_new_user, get_login, get_login_failure, post_add_new_user, post_login, post_logout,
+        RequireAuth, Store,
+    },
+    liquid_utils::partials::reload_partials,
+    routes::{
+        edit_person::{get_edit_person, post_edit_person},
+        edit_user::{get_edit_user, post_edit_user},
+        images::{get_all_images, post_add_photo, serve_image},
+        public::{get_256, get_512, get_manifest, get_offline, get_sw},
+        spreadsheets::get_spreadsheet,
+        update_event_and_person::delete_image,
+    },
+};
+use auth::PermissionsRole;
 use axum::{
     extract::DefaultBodyLimit,
     routing::{get, post},
@@ -19,7 +35,7 @@ use axum_login::{
     axum_sessions::{async_session::MemoryStore, SessionLayer},
     AuthLayer,
 };
-use liquid_utils::partials::{PARTIALS};
+use liquid_utils::partials::PARTIALS;
 use rand::{thread_rng, Rng};
 use routes::{
     add_event::{get_add_event_form, post_add_event_form},
@@ -38,21 +54,6 @@ use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr, sync::Arc};
 use tokio::signal;
 use tower_http::trace::TraceLayer;
-use auth::PermissionsRole;
-use crate::{
-    auth::{
-        get_add_new_user, get_login, get_login_failure, post_add_new_user, post_login, post_logout,
-        RequireAuth, Store,
-    },
-    routes::{
-        edit_person::{get_edit_person, post_edit_person},
-        edit_user::{get_edit_user, post_edit_user},
-        images::{get_all_images, post_add_photo, serve_image},
-        public::{get_256, get_512, get_manifest, get_offline, get_sw},
-        spreadsheets::get_spreadsheet,
-        update_event_and_person::delete_image,
-    }, liquid_utils::partials::reload_partials,
-};
 
 #[macro_use]
 extern crate tracing;
@@ -113,7 +114,6 @@ async fn main() {
     let app = Router::new()
         .route("/reload_partials", get(reload_partials))
         .route_layer(RequireAuth::login_with_role(PermissionsRole::Dev..)) //dev ^
-
         .route(
             "/add_new_user",
             get(get_add_new_user).post(post_add_new_user),
@@ -121,7 +121,6 @@ async fn main() {
         .route("/add_person", get(get_add_person).post(post_add_person))
         .route("/remove_person", post(post_remove_person))
         .route_layer(RequireAuth::login_with_role(PermissionsRole::Admin..)) //admin ^
-
         .route(
             "/add_event",
             get(get_add_event_form).post(post_add_event_form),
@@ -135,7 +134,6 @@ async fn main() {
         .route("/add_image/:event_id", post(post_add_photo))
         .route("/remove_img/:id", get(delete_image))
         .route_layer(RequireAuth::login_with_role(PermissionsRole::Prefect..)) //prefect ^
-
         .route("/add_participant", post(post_add_participant_to_event))
         .route(
             "/remove_participant_from_event",
@@ -145,7 +143,6 @@ async fn main() {
         .route("/uploads/:img", get(serve_image))
         .route("/edit_user", get(get_edit_user).post(post_edit_user))
         .route_layer(RequireAuth::login()) //^ REQUIRE LOGIN ^
-
         .route("/", get(get_index))
         .route(
             "/edit_person/:id",
@@ -173,7 +170,7 @@ async fn main() {
         .layer(session_layer)
         .with_state(Arc::new(pool));
 
-  let port: SocketAddr = var("KNOT_SERVER_IP")
+    let port: SocketAddr = var("KNOT_SERVER_IP")
         .expect("need KNOT_SERVER_IP env var")
         .parse()
         .expect("need KNOT_SERVER_IP to be valid");

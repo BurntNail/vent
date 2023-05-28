@@ -4,33 +4,24 @@ use axum::{
     http::{header, HeaderMap},
     response::IntoResponse,
 };
+use new_mime_guess::from_path;
 use std::path::PathBuf;
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 
-pub async fn serve_static_file(path: impl ToString) -> Result<impl IntoResponse, KnotError> {
-    let path = PathBuf::from(path.to_string());
+pub async fn serve_static_file(path: impl Into<PathBuf>) -> Result<impl IntoResponse, KnotError> {
+    let path = path.into();
 
     let file = File::open(path.clone()).await?;
     let file_size = file.metadata().await?.len();
     let body = StreamBody::new(ReaderStream::new(file));
 
-    let ext = path.extension().ok_or(KnotError::MissingExt)?;
-    let mime = match ext.to_str().ok_or(KnotError::InvalidUTF8)? {
-        "json" => "application/json",
-        "js" => "application/javascript",
-        "ico" => "image/x-icon",
-        "png" => "image/png",
-        "html" => "text/html",
-        "ics" => "text/calendar",
-        "csv" => "text/csv",
-        "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        unknown => Err(KnotError::UnknownMIME(unknown.into()))?,
-    }
-    .parse()?;
+    let mime = from_path(path.clone())
+        .first()
+        .ok_or(KnotError::UnknownMIME(path))?;
 
     let mut headers = HeaderMap::new();
-    headers.insert(header::CONTENT_TYPE, mime);
+    headers.insert(header::CONTENT_TYPE, mime.essence_str().try_into()?);
     headers.insert(header::CONTENT_LENGTH, file_size.into());
 
     Ok((headers, body))

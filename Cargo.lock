@@ -1360,6 +1360,7 @@ dependencies = [
  "icalendar",
  "image",
  "liquid",
+ "new_mime_guess",
  "once_cell",
  "rand",
  "rust_xlsxwriter",
@@ -1415,9 +1416,9 @@ dependencies = [
 
 [[package]]
 name = "liquid"
-version = "0.26.1"
+version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9dfb833f0d41ed59a6c8d28e2f36d0362557c43fa83e9e096dd74e6e9517858f"
+checksum = "37a658eca713918ebafb1fa0efe00a9f491a29c2051925503b6fd0a46f5fc02e"
 dependencies = [
  "doc-comment",
  "liquid-core",
@@ -1428,9 +1429,9 @@ dependencies = [
 
 [[package]]
 name = "liquid-core"
-version = "0.26.1"
+version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca2b58598eeb2cd39ea0e0b6c666bab002b4f58ebbeedcc649d164d6dec4b886"
+checksum = "51c61fe6b338fa9a552a8ebd8635275fe1af61d003a2a77f72cf698f92a82c34"
 dependencies = [
  "anymap2",
  "itertools",
@@ -1446,9 +1447,9 @@ dependencies = [
 
 [[package]]
 name = "liquid-derive"
-version = "0.26.1"
+version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "611c6adfb96294233bd6f20125684a6e3dd28c3f0d057d50a65adf2426ed3f47"
+checksum = "814894c5a3d450589b579fc819fc1b3dff727f7336a52b834d9ede41eca0f2fe"
 dependencies = [
  "proc-macro2",
  "proc-quote",
@@ -1457,9 +1458,9 @@ dependencies = [
 
 [[package]]
 name = "liquid-lib"
-version = "0.26.1"
+version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3ffe1daafef416a71da31385dd3764906cbde22349767a8458d30c96644a512"
+checksum = "a2011911b97e2e0240aa2916a87d9ca1b2aa651b3b45274ed5a02a99ae8f1f3c"
 dependencies = [
  "itertools",
  "liquid-core",
@@ -1587,6 +1588,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a51313c5820b0b02bd422f4b44776fbf47961755c74ce64afc73bfad10226c3"
 dependencies = [
  "getrandom",
+]
+
+[[package]]
+name = "new_mime_guess"
+version = "4.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2d684d1b59e0dc07b37e2203ef576987473288f530082512aff850585c61b1f"
+dependencies = [
+ "mime",
+ "unicase",
 ]
 
 [[package]]
@@ -2621,9 +2632,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.28.1"
+version = "1.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0aa32867d44e6f2ce3385e89dceb990188b8bb0fb25b0cf576647a6f98ac5105"
+checksum = "94d7b1cfd2aa4011f2de74c2c4c63665e27a71006b0a192dcd2710272e73dfa2"
 dependencies = [
  "autocfg",
  "bytes",
@@ -2840,6 +2851,15 @@ name = "ucd-trie"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e79c4d996edb816c91e4308506774452e55e95c3c9de07b6729e17e15a5ef81"
+
+[[package]]
+name = "unicase"
+version = "2.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50f37be617794602aabbeee0be4f259dc1778fabe05e2d67ee8f79326d5cb4f6"
+dependencies = [
+ "version_check",
+]
 
 [[package]]
 name = "unicode-bidi"

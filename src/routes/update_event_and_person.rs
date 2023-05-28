@@ -10,6 +10,7 @@ use axum::{
     response::{IntoResponse, Redirect},
 };
 use axum_extra::extract::Form;
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
 use std::{collections::HashMap, sync::Arc};
@@ -28,6 +29,7 @@ pub async fn get_update_event(
         location,
         teacher,
         other_info,
+        zip_file: _,
     } = sqlx::query_as!(
         DbEvent,
         r#"
@@ -230,18 +232,15 @@ WHERE event_id = $1
 pub async fn post_update_event(
     Path(event_id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
-    Form(event): Form<FormEvent>,
-) -> Result<impl IntoResponse, KnotError> {
-
-    let DbEvent {
-        id: _id,
-        event_name,
+    Form(FormEvent {
+        name,
         date,
         location,
         teacher,
-        other_info,
-    } = DbEvent::try_from(event)?;
-    let other_info = other_info.unwrap_or_default();
+        info,
+    }): Form<FormEvent>,
+) -> Result<impl IntoResponse, KnotError> {
+    let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M")?;
 
     sqlx::query!(
         r#"
@@ -250,11 +249,11 @@ SET event_name=$2, date=$3, location=$4, teacher=$5, other_info=$6
 WHERE id=$1
         "#,
         event_id,
-        event_name,
+        name,
         date,
         location,
         teacher,
-        other_info
+        info
     )
     .execute(pool.as_ref())
     .await?;
@@ -271,7 +270,6 @@ pub async fn get_remove_prefect_from_event(
     State(pool): State<Arc<Pool<Postgres>>>,
     Form(Removal { relation_id }): Form<Removal>,
 ) -> Result<impl IntoResponse, KnotError> {
-
     let id = sqlx::query!(
         r#"
 DELETE FROM prefect_events WHERE relation_id = $1 
@@ -316,6 +314,30 @@ RETURNING path, event_id"#,
     )
     .fetch_one(pool.as_ref())
     .await?;
+
+    if let Some(existing_zip_file) = sqlx::query!(
+        r#"
+SELECT zip_file
+FROM events
+WHERE id = $1"#,
+        event.event_id
+    )
+    .fetch_one(pool.as_ref())
+    .await?
+    .zip_file
+    {
+        sqlx::query!(
+            r#"
+    UPDATE events
+    SET zip_file = NULL
+    WHERE id = $1"#,
+            event.event_id
+        )
+        .execute(pool.as_ref())
+        .await?;
+
+        remove_file(existing_zip_file).await?;
+    }
 
     remove_file(event.path).await?;
 
