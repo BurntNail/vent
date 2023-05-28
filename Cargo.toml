@@ -14,7 +14,7 @@ icalendar = { version = "0.15.4", features = ["chrono-tz"] }
 time = "0.3.21"
 dotenvy = "0.15.7"
 liquid = "0.26.1"
-serde = "1.0.162"
+serde = "1.0.163"
 sqlx = { version = "0.6.3", features = ["runtime-tokio-rustls", "postgres", "macros", "offline", "chrono"] }
 thiserror = "1.0.40"
 tokio = { version = "1.28.0", features = ["full"] }
