@@ -2,8 +2,8 @@ pub mod add_event;
 pub mod add_people_to_event;
 pub mod add_person;
 pub mod calendar;
-pub mod edit_user;
 pub mod edit_person;
+pub mod edit_user;
 pub mod images;
 pub mod index;
 pub mod public;
@@ -11,7 +11,6 @@ pub mod show_all;
 pub mod spreadsheets;
 pub mod update_event_and_person;
 
-use crate::error::KnotError;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
@@ -32,6 +31,7 @@ pub struct DbEvent {
     pub location: String,
     pub teacher: String,
     pub other_info: Option<String>,
+    pub zip_file: Option<String>,
 }
 
 ///Struct to hold the event that comes back from the [`add_event`] form
@@ -44,32 +44,4 @@ pub struct FormEvent {
     pub location: String,
     pub teacher: String,
     pub info: String,
-}
-
-impl TryFrom<FormEvent> for DbEvent {
-    type Error = KnotError;
-
-    ///Get a [`DbEvent`] from a [`FormEvent`], can fail if we can't parse the date.
-    ///
-    /// NB: Event ID is always -1 as `try_from` cannot get a DB connection
-    fn try_from(
-        FormEvent {
-            name,
-            date,
-            location,
-            teacher,
-            info,
-        }: FormEvent,
-    ) -> Result<Self, Self::Error> {
-        let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M")?;
-
-        Ok(Self {
-            id: -1, //no ID for events to be added
-            event_name: name,
-            date,
-            location,
-            teacher,
-            other_info: Some(info),
-        })
-    }
 }
