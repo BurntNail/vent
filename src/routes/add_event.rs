@@ -14,10 +14,10 @@ use axum::{
     response::{IntoResponse, Redirect},
 };
 use axum_extra::extract::Form;
+use chrono::NaiveDateTime;
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
-
-use super::{DbEvent, FormEvent};
+use super::{FormEvent};
 
 ///`GET` method for the `add_event` form - just compiles and returns the liquid `www/add_event.liquid`
 pub async fn get_add_event_form(auth: Auth) -> Result<impl IntoResponse, KnotError> {
@@ -31,16 +31,9 @@ pub async fn get_add_event_form(auth: Auth) -> Result<impl IntoResponse, KnotErr
 ///`POST` method to add an event from a form to the database. Redirects back to the [`get_add_event_form`]
 pub async fn post_add_event_form(
     State(pool): State<Arc<Pool<Postgres>>>,
-    Form(event): Form<FormEvent>,
+    Form(FormEvent { name, date, location, teacher, info }): Form<FormEvent>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let DbEvent {
-        id: _,
-        event_name,
-        date,
-        location,
-        teacher,
-        other_info: info,
-    } = DbEvent::try_from(event)?; //get the info from the event form, parsed into a form that works for the DB
+    let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M")?;
 
     let id = sqlx::query!(
         r#"
@@ -49,7 +42,7 @@ INSERT INTO public.events
 VALUES($1, $2, $3, $4, $5)
 RETURNING id
         "#,
-        event_name,
+        name,
         date,
         location,
         teacher,

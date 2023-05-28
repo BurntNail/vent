@@ -49,6 +49,7 @@ pub async fn get_calendar_feed(
         location,
         teacher,
         other_info,
+        zip_file: _,
     } in sqlx::query_as!(DbEvent, r#"SELECT * FROM events"#)
         .fetch_all(pool.as_ref())
         .await?
