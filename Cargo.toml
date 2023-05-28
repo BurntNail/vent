@@ -13,7 +13,7 @@ chrono-tz = "0.8.2"
 icalendar = { version = "0.15.4", features = ["chrono-tz"] }
 time = "0.3.21"
 dotenvy = "0.15.7"
-liquid = "0.26.1"
+liquid = "0.26.2"
 serde = "1.0.163"
 sqlx = { version = "0.6.3", features = ["runtime-tokio-rustls", "postgres", "macros", "offline", "chrono"] }
 thiserror = "1.0.40"
