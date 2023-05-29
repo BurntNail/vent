@@ -59,6 +59,9 @@ use tower_http::trace::TraceLayer;
 #[macro_use]
 extern crate tracing;
 
+#[macro_use]
+extern crate async_trait;
+
 pub static PROJECT_NAME: Lazy<String> =
     Lazy::new(|| var("INSTANCE_NAME").unwrap_or_else(|_e| "House Events Manager".into()));
 

@@ -17,12 +17,23 @@ This project requires:
 
 ### Environment
 You need to have a `.env` file with the following variables set:
- - `DATABASE_URL` - used for the postgres database (eg. `postgres://user@127.0.0.1:1111/user`)
- - `KNOT_SERVER_IP` - the IP the server should serve to (eg. `127.0.0.1:8080`)
- - You can optionally have a `RUST_LOG` variable set to `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE` each of which shows all of the messages from the levels above (eg. `INFO` shows `ERROR` messages)
- - You can optionally specify a `DATE_TIME_FORMAT` variable filled out with [appropriate format specifiers](https://docs.rs/chrono/0.4.24/chrono/format/strftime/index.html).
- - You can optionally set a `INSTANCE_NAME` variable with the name for your project, and this defaults to `knot`.
- - Finally, you can optionally have a `TECH_SUPPORT` variable with where users should go with server side errors, which defaults to [google](https://google.com).
+
+##### Mandatory
+|Name|Use|Example Contents|
+|--|--|--|
+|`DATABASE_URL`|This is used for the postgres database|`postgres://user@127.0.0.1:1111/user`|
+|`KNOT_SERVER_IP`|This is the IP the server should serve to|`127.0.0.1:8080`|
+|`CFT_SITEKEY`|This is the Sitekey for [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/)|`0x4AAAAAAAAAAAAAAAAAAAAAAAAAAA`|
+|`CFT_SECRETKEY`|This is the secret key for [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/)|`0x4AAAAAAAAAAAAAAAAAAAAAAAAAAB`|
+
+
+##### Optional
+|Name|Use|Example Contents|Default|
+|--|--|--|--|
+|`RUST_LOG`|Logging|`ERROR`, `WARN`, `INFO`, `DEBUG`, or `TRACE`. For more examples, see [the docs](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax).|No logging|
+|`DATE_TIME_FORMAT`|For formatting dates in the UI|[appropriate format specifiers](https://docs.rs/chrono/0.4.24/chrono/format/strftime/index.html)|`"%c"`|
+|`INSTANCE_NAME`|For the name of the application in the UI.|`"Not Knot"`|`"House Events Manager"`|
+|`TECH_SUPPORT`|For where user should be directed with 500-class errors.|`"https://github.com/yourname/yourfork/issues/new"`|`"https://google.com"`|
 
 ### Setup
 I would highly reccomend a `tmux` based setup to run this without needing an active ssh session to run whilst away.
