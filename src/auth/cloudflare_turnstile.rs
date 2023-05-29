@@ -5,6 +5,7 @@ use axum::{
 };
 use once_cell::sync::Lazy;
 use reqwest::{Client, StatusCode};
+use serde::Deserialize;
 use std::{collections::HashMap, env::var};
 
 use crate::error::{get_error_page, KnotError};
@@ -34,6 +35,30 @@ impl<S: Send + Sync> FromRequestParts<S> for GrabCFRemoteIP {
     }
 }
 
+#[derive(Deserialize)]
+pub enum TurnstileError {
+    MissingInputSecret,
+    InvalidInputSecret,
+    MissingInputResponse,
+    InvalidInputResponse,
+    InvalidWidgetID,
+    InvalidParsedSecret,
+    BadRequest,
+    TimeoutOrDuplicate,
+    InternalError
+}
+
+#[derive(Deserialize)]
+struct TurnstileResponse {
+    pub success: bool,
+    pub challenge_ts: String,
+    pub hostname: String,
+    #[serde(rename = "error-codes")]
+    pub error_codes: Vec<TurnstileError>,
+    pub action: String,
+    pub cdata: String,
+}
+
 pub async fn turnstile_verified(
     cf_turnstile_response: String,
     GrabCFRemoteIP(remote_ip): GrabCFRemoteIP,
@@ -52,9 +77,8 @@ pub async fn turnstile_verified(
         .form(&body)
         .send()
         .await?
-        .error_for_status()?;
+        .error_for_status()?
+        .json::<TurnstileResponse>().await?;
 
-    info!(?post_response);
-
-    todo!()
+    Ok(post_response.success)
 }
