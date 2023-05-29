@@ -2,10 +2,15 @@ use crate::{error::KnotError, liquid_utils::partials::PARTIALS, PROJECT_NAME};
 use axum::response::Html;
 use chrono::NaiveDateTime;
 use liquid::{model::Value, Object, ParserBuilder};
-use std::{env, fmt::Debug, path::Path};
+use once_cell::sync::Lazy;
+use std::{env::{self, var}, fmt::Debug, path::Path};
 use tokio::fs::read_to_string;
 
 pub mod partials;
+
+pub static CFT_SITEKEY: Lazy<String> =
+    Lazy::new(|| var("CFT_SITEKEY").expect("missing environment variable `CFT_SITEKEY`"));
+
 
 #[instrument]
 pub async fn compile(
@@ -16,6 +21,7 @@ pub async fn compile(
     let partial_compiler = PARTIALS.read().await.to_compiler();
 
     globals.insert("instance_name".into(), Value::scalar(PROJECT_NAME.as_str()));
+    globals.insert("cft_sitekey".into(), Value::scalar(CFT_SITEKEY.as_str()));
 
     Ok(tokio::task::spawn_blocking(move || {
         ParserBuilder::with_stdlib()

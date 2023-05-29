@@ -82,6 +82,11 @@
         </div>
       </div>
 
+      {% if can_edit %}
+      <div class="mb-3">
+        <div class="cf-turnstile" data-sitekey="{{cft_sitekey}}" ></div>
+      </div>
+      {% endif %}
 
       <button type="submit" class="btn btn-primary" {% unless can_edit %}
       disabled

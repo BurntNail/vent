@@ -36,6 +36,10 @@ pub enum KnotError {
     Csv(#[from] rust_xlsxwriter::XlsxError),
     #[error("Error with Encrypting")]
     Bcrypt(#[from] bcrypt::BcryptError),
+    #[error("Error converting Header to string, possibly invalid UTF-8")]
+    HeaderToStr(#[from] http::header::ToStrError),
+    #[error("Error reqwest-ing")]
+    Reqwest(#[from] reqwest::Error),
     #[error("Random Eyre Error")]
     Eyre(#[from] eyre::Error), //thanks axum_login ;)
 
@@ -46,6 +50,8 @@ pub enum KnotError {
     UnknownMIME(PathBuf),
     #[error("Encountered Invalid UTF-8")]
     InvalidUTF8,
+    #[error("Failed Cloudflare Turnstile")]
+    FailedTurnstile,
 }
 
 pub fn get_error_page(error_code: StatusCode, content: impl Debug) -> (StatusCode, Html<String>) {

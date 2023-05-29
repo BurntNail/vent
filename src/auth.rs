@@ -1,5 +1,6 @@
-use std::sync::Arc;
+pub mod cloudflare_turnstile;
 
+use std::sync::Arc;
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
@@ -11,8 +12,9 @@ use axum_login::{
 use bcrypt::{hash, verify, DEFAULT_COST};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Pool, Postgres};
-
 use crate::{error::KnotError, liquid_utils::compile};
+
+use self::cloudflare_turnstile::{GrabCFRemoteIP, turnstile_verified};
 
 #[derive(sqlx::Type, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Serialize, Deserialize)]
 #[sqlx(type_name = "user_role", rename_all = "lowercase")]
@@ -53,6 +55,8 @@ pub type Store = PostgresStore<DbUser, PermissionsRole>;
 pub struct LoginDetails {
     pub username: String,
     pub unhashed_password: String,
+    #[serde(rename = "cf-turnstile-response")]
+    pub cf_turnstile_response: String
 }
 
 #[derive(Deserialize)]
@@ -60,6 +64,8 @@ pub struct NewUserDetails {
     pub username: String,
     pub unhashed_password: String,
     pub permissions: PermissionsRole,
+    #[serde(rename = "cf-turnstile-response")]
+    pub cf_turnstile_response: String
 }
 
 pub async fn get_login(auth: Auth) -> Result<impl IntoResponse, KnotError> {
@@ -81,14 +87,22 @@ pub async fn get_login_failure(auth: Auth) -> Result<impl IntoResponse, KnotErro
 pub async fn post_login(
     mut auth: Auth,
     State(pool): State<Arc<Pool<Postgres>>>,
+    remote_ip: GrabCFRemoteIP,
     Form(LoginDetails {
         username,
         unhashed_password,
+        cf_turnstile_response
     }): Form<LoginDetails>,
 ) -> Result<impl IntoResponse, KnotError> {
+    if !turnstile_verified(cf_turnstile_response, remote_ip).await? {
+        return Err(KnotError::FailedTurnstile);
+    }
+
     let db_user = sqlx::query_as!(DbUser, r#"SELECT id, username, hashed_password, permissions as "permissions: _" FROM users WHERE username = $1"#, username) //https://github.com/launchbadge/sqlx/issues/1004
         .fetch_one(pool.as_ref())
         .await?;
+
+
     Ok(Redirect::to(
         if verify(unhashed_password, &db_user.hashed_password)? {
             auth.login(&db_user).await?;
@@ -107,12 +121,19 @@ pub async fn post_logout(mut auth: Auth) -> Result<impl IntoResponse, KnotError>
 
 pub async fn post_add_new_user(
     State(pool): State<Arc<Pool<Postgres>>>,
+    remote_ip: GrabCFRemoteIP,
     Form(NewUserDetails {
         username: name,
         unhashed_password,
         permissions,
+        cf_turnstile_response
     }): Form<NewUserDetails>,
 ) -> Result<impl IntoResponse, KnotError> {
+    if !turnstile_verified(cf_turnstile_response, remote_ip).await? {
+        return Err(KnotError::FailedTurnstile);
+    }
+
+
     let hashed = hash(&unhashed_password, DEFAULT_COST)?;
     sqlx::query!(
         r#"
@@ -127,7 +148,7 @@ VALUES($1, $2, $3);
     .execute(pool.as_ref())
     .await?;
 
-    Ok(Redirect::to("/"))
+    Ok(Redirect::to("/").into_response())
 }
 
 pub fn get_auth_object(auth: Auth) -> liquid::Object {
@@ -167,3 +188,5 @@ pub async fn get_add_new_user(auth: Auth) -> Result<impl IntoResponse, KnotError
     )
     .await
 }
+
+
