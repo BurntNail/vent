@@ -48,7 +48,7 @@ pub enum TurnstileError {
     InternalError
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct TurnstileResponse {
     pub success: bool,
     pub challenge_ts: String,
@@ -79,6 +79,8 @@ pub async fn turnstile_verified(
         .await?
         .error_for_status()?
         .json::<TurnstileResponse>().await?;
+
+    info!(?post_response, "Got response from CF");
 
     Ok(post_response.success)
 }
