@@ -35,7 +35,7 @@ impl<S: Send + Sync> FromRequestParts<S> for GrabCFRemoteIP {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub enum TurnstileError {
     MissingInputSecret,
     InvalidInputSecret,
@@ -80,7 +80,7 @@ pub async fn turnstile_verified(
         .error_for_status()?
         .json::<TurnstileResponse>().await?;
 
-    info!(?post_response, "Got response from CF");
+    trace!(?post_response, "Got response from CF");
 
     Ok(post_response.success)
 }
