@@ -13,7 +13,7 @@ mod routes;
 use crate::{
     auth::{
         get_add_new_user, get_login, get_login_failure, post_add_new_user, post_login, post_logout,
-        RequireAuth, Store,
+        RequireAuth, Store, session_store::PostgresSessionStore,
     },
     liquid_utils::partials::reload_partials,
     routes::{
@@ -113,7 +113,7 @@ async fn main() {
         v.append(&mut rng.gen::<[u8; 32]>().to_vec());
         v
     };
-    let session_layer = SessionLayer::new(MemoryStore::new(), &secret);
+    let session_layer = SessionLayer::new(PostgresSessionStore::new(pool.clone()), &secret);
     let auth_layer = AuthLayer::new(Store::new(pool.clone()), &secret);
 
     let app = Router::new()

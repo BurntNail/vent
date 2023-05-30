@@ -1,4 +1,5 @@
 pub mod cloudflare_turnstile;
+pub mod session_store;
 
 use std::sync::Arc;
 use axum::{
