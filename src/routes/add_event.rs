@@ -6,7 +6,7 @@
 
 use super::FormEvent;
 use crate::{
-    auth::{get_auth_object, Auth, cloudflare_turnstile::{GrabCFRemoteIP, turnstile_verified}},
+    auth::{get_auth_object, Auth},
     error::KnotError,
     liquid_utils::compile,
 };
@@ -31,20 +31,14 @@ pub async fn get_add_event_form(auth: Auth) -> Result<impl IntoResponse, KnotErr
 ///`POST` method to add an event from a form to the database. Redirects back to the [`get_add_event_form`]
 pub async fn post_add_event_form(
     State(pool): State<Arc<Pool<Postgres>>>,
-    remote_ip: GrabCFRemoteIP,
     Form(FormEvent {
         name,
         date,
         location,
         teacher,
         info,
-        cf_turnstile_response,
     }): Form<FormEvent>,
 ) -> Result<impl IntoResponse, KnotError> {
-    if !turnstile_verified(cf_turnstile_response, remote_ip).await? {
-        return Err(KnotError::FailedTurnstile);
-    }
-
     let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M")?;
 
     let id = sqlx::query!(

@@ -1,6 +1,6 @@
 use super::FormEvent;
 use crate::{
-    auth::{get_auth_object, Auth, cloudflare_turnstile::{GrabCFRemoteIP, turnstile_verified}},
+    auth::{get_auth_object, Auth},
     error::KnotError,
     liquid_utils::compile,
     routes::{DbEvent, DbPerson},
@@ -230,7 +230,6 @@ WHERE event_id = $1
     .await
 }
 pub async fn post_update_event(
-    remote_ip: GrabCFRemoteIP,
     Path(event_id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
     Form(FormEvent {
@@ -239,13 +238,8 @@ pub async fn post_update_event(
         location,
         teacher,
         info,
-        cf_turnstile_response
     }): Form<FormEvent>,
 ) -> Result<impl IntoResponse, KnotError> {
-    if !turnstile_verified(cf_turnstile_response, remote_ip).await? {
-        return Err(KnotError::FailedTurnstile);
-    }
-
     let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M")?;
 
     sqlx::query!(
