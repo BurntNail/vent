@@ -32,7 +32,7 @@ use axum::{
     Router,
 };
 use axum_login::{
-    axum_sessions::{async_session::MemoryStore, SessionLayer},
+    axum_sessions::{SessionLayer},
     AuthLayer,
 };
 use liquid_utils::partials::PARTIALS;
