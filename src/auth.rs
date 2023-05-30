@@ -92,6 +92,7 @@ pub async fn post_login(
         cf_turnstile_response
     }): Form<LoginDetails>,
 ) -> Result<impl IntoResponse, KnotError> {
+	info!(?cf_turnstile_response, "Got turnstile response");
     verify_turnstile(cf_turnstile_response, remote_ip).await?;
 
     let db_user = sqlx::query_as!(DbUser, r#"SELECT id, username, hashed_password, permissions as "permissions: _" FROM users WHERE username = $1"#, username) //https://github.com/launchbadge/sqlx/issues/1004

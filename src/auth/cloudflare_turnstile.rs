@@ -3,7 +3,6 @@ use axum::{
     http::{request::Parts, HeaderValue},
     response::Html,
 };
-use chrono::NaiveDateTime;
 use once_cell::sync::Lazy;
 use reqwest::{Client, StatusCode};
 use serde::Deserialize;
@@ -61,7 +60,7 @@ pub enum TurnstileError {
 #[derive(Deserialize, Debug)]
 struct TurnstileResponse {
     pub success: bool,
-    pub challenge_ts: Option<NaiveDateTime>,
+    pub challenge_ts: Option<String>,
     pub hostname: Option<String>,
     #[serde(rename = "error-codes")]
     pub error_codes: Vec<TurnstileError>,
