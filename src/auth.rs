@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Pool, Postgres};
 use crate::{error::KnotError, liquid_utils::compile};
 
-use self::cloudflare_turnstile::{GrabCFRemoteIP, turnstile_verified};
+use self::cloudflare_turnstile::{GrabCFRemoteIP, verify_turnstile};
 
 #[derive(sqlx::Type, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Serialize, Deserialize)]
 #[sqlx(type_name = "user_role", rename_all = "lowercase")]
@@ -92,9 +92,7 @@ pub async fn post_login(
         cf_turnstile_response
     }): Form<LoginDetails>,
 ) -> Result<impl IntoResponse, KnotError> {
-    if !turnstile_verified(cf_turnstile_response, remote_ip).await? {
-        return Err(KnotError::FailedTurnstile);
-    }
+    verify_turnstile(cf_turnstile_response, remote_ip).await?;
 
     let db_user = sqlx::query_as!(DbUser, r#"SELECT id, username, hashed_password, permissions as "permissions: _" FROM users WHERE username = $1"#, username) //https://github.com/launchbadge/sqlx/issues/1004
         .fetch_one(pool.as_ref())

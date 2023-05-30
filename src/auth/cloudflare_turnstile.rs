@@ -70,12 +70,12 @@ struct TurnstileResponse {
 }
 
 #[instrument]
-pub async fn turnstile_verified(
+pub async fn verify_turnstile(
     cf_turnstile_response: String,
     GrabCFRemoteIP(remote_ip): GrabCFRemoteIP,
-) -> Result<bool, KnotError> {
+) -> Result<(), KnotError> {
     if cfg!(debug_assertions) {
-        return Ok(true);
+        return Ok(());
     }
 
     let mut body = HashMap::new();
@@ -93,10 +93,14 @@ pub async fn turnstile_verified(
 
     trace!(?post_response.hostname, ?post_response.cdata, ?post_response.action, ?post_response.challenge_ts, "Got CFT response");
 
+    if post_response.success {
+        return Ok(());
+    }
+
 
     if !post_response.error_codes.is_empty() {
         error!(?post_response.error_codes, "CFT Response Error");
     }
 
-    Ok(post_response.success)
+    Err(KnotError::FailedTurnstile)
 }
