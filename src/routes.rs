@@ -44,6 +44,4 @@ pub struct FormEvent {
     pub location: String,
     pub teacher: String,
     pub info: String,
-    #[serde(rename = "cf-turnstile-response")]
-    pub cf_turnstile_response: String
 }

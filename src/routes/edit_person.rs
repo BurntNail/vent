@@ -9,7 +9,7 @@ use serde::Serialize;
 use sqlx::{Pool, Postgres};
 
 use crate::{
-    auth::{get_auth_object, Auth, cloudflare_turnstile::{GrabCFRemoteIP, turnstile_verified}},
+    auth::{get_auth_object, Auth},
     error::KnotError,
     liquid_utils::{compile, EnvFormatter},
     routes::DbPerson,
@@ -73,7 +73,6 @@ ON pe.event_id = e.id AND pe.participant_id = $1
 }
 
 pub async fn post_edit_person(
-    remote_ip: GrabCFRemoteIP,
     Path(id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
     Form(NoIDPerson {
@@ -81,13 +80,8 @@ pub async fn post_edit_person(
         surname,
         form,
         is_prefect,
-        cf_turnstile_response
     }): Form<NoIDPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
-    if !turnstile_verified(cf_turnstile_response, remote_ip).await? {
-        return Err(KnotError::FailedTurnstile);
-    }
-
     sqlx::query!(
         r#"
 UPDATE public.people
