@@ -3,6 +3,7 @@ use axum::{
     http::{request::Parts, HeaderValue},
     response::Html,
 };
+use chrono::NaiveDateTime;
 use once_cell::sync::Lazy;
 use reqwest::{Client, StatusCode};
 use serde::Deserialize;
@@ -37,28 +38,38 @@ impl<S: Send + Sync> FromRequestParts<S> for GrabCFRemoteIP {
 
 #[derive(Deserialize, Debug)]
 pub enum TurnstileError {
+    #[serde(rename = "missing-input-secret")]
     MissingInputSecret,
+    #[serde(rename = "invalid-input-secret")]
     InvalidInputSecret,
+    #[serde(rename = "missing-input-response")]
     MissingInputResponse,
+    #[serde(rename = "invalid-input-secret")]
     InvalidInputResponse,
+    #[serde(rename = "invalid-widget-id")]
     InvalidWidgetID,
+    #[serde(rename = "missing-parsed-secret")]
     InvalidParsedSecret,
+    #[serde(rename = "bad-request")]
     BadRequest,
+    #[serde(rename = "timeout-or-duplicate")]
     TimeoutOrDuplicate,
+    #[serde(rename = "internal")]
     InternalError
 }
 
 #[derive(Deserialize, Debug)]
 struct TurnstileResponse {
     pub success: bool,
-    pub challenge_ts: String,
-    pub hostname: String,
+    pub challenge_ts: Option<NaiveDateTime>,
+    pub hostname: Option<String>,
     #[serde(rename = "error-codes")]
     pub error_codes: Vec<TurnstileError>,
-    pub action: String,
-    pub cdata: String,
+    pub action: Option<String>,
+    pub cdata: Option<String>,
 }
 
+#[instrument]
 pub async fn turnstile_verified(
     cf_turnstile_response: String,
     GrabCFRemoteIP(remote_ip): GrabCFRemoteIP,
@@ -80,7 +91,12 @@ pub async fn turnstile_verified(
         .error_for_status()?
         .json::<TurnstileResponse>().await?;
 
-    trace!(?post_response, "Got response from CF");
+    trace!(?post_response.hostname, ?post_response.cdata, ?post_response.action, ?post_response.challenge_ts, "Got CFT response");
+
+
+    if !post_response.error_codes.is_empty() {
+        error!(?post_response.error_codes, "CFT Response Error");
+    }
 
     Ok(post_response.success)
 }
