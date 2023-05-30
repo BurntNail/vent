@@ -10,6 +10,14 @@ pub mod partials;
 
 pub static CFT_SITEKEY: Lazy<String> =
     Lazy::new(|| var("CFT_SITEKEY").expect("missing environment variable `CFT_SITEKEY`"));
+pub static DOMAIN: Lazy<(bool, String)> =
+    Lazy::new(|| {
+        if let Ok(dom) = var("DOMAIN") {
+            (true, dom)
+        } else {
+            (false, String::new())
+        }
+    });
 
 
 #[instrument]
@@ -20,8 +28,12 @@ pub async fn compile(
     let liquid = read_to_string(path).await?;
     let partial_compiler = PARTIALS.read().await.to_compiler();
 
-    globals.insert("instance_name".into(), Value::scalar(PROJECT_NAME.as_str()));
     globals.insert("cft_sitekey".into(), Value::scalar(CFT_SITEKEY.as_str()));
+    globals.insert("siteinfo".into(), Value::Object(liquid::object!({
+        "instance_name": PROJECT_NAME.as_str(),
+        "domain_exists": DOMAIN.0,
+        "domain": DOMAIN.1.as_str()
+    })));
 
     Ok(tokio::task::spawn_blocking(move || {
         ParserBuilder::with_stdlib()

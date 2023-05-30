@@ -34,6 +34,7 @@ You need to have a `.env` file with the following variables set:
 |`DATE_TIME_FORMAT`|For formatting dates in the UI|[appropriate format specifiers](https://docs.rs/chrono/0.4.24/chrono/format/strftime/index.html)|`"%c"`|
 |`INSTANCE_NAME`|For the name of the application in the UI.|`"Not Knot"`|`"House Events Manager"`|
 |`TECH_SUPPORT`|For where user should be directed with 500-class errors.|`"https://github.com/yourname/yourfork/issues/new"`|`"https://google.com"`|
+|`DOMAIN`|This is the domain where the website will be served from and is used for the front page spreadsheet/calendar links.|`https://sub.domain.tld`|N/A|
 
 ### Setup
 I would highly reccomend a `tmux` based setup to run this without needing an active ssh session to run whilst away.
