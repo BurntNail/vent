@@ -23,7 +23,8 @@ pub async fn get_edit_user(auth: Auth) -> Result<impl IntoResponse, KnotError> {
 
 #[derive(Deserialize)]
 pub struct LoginDetails {
-    pub username: String,
+    pub first_name: String,
+    pub surname: String,
     pub unhashed_password: String,
 }
 
@@ -31,7 +32,8 @@ pub async fn post_edit_user(
     auth: Auth,
     State(pool): State<Arc<Pool<Postgres>>>,
     Form(LoginDetails {
-        username,
+        first_name,
+        surname,
         unhashed_password,
     }): Form<LoginDetails>,
 ) -> Result<impl IntoResponse, KnotError> {
@@ -40,11 +42,12 @@ pub async fn post_edit_user(
 
     sqlx::query!(
         r#"
-UPDATE public.users
-SET username=$1, hashed_password=$2
-WHERE id=$3;
+UPDATE people
+SET first_name=$1, surname = $2, hashed_password=$3
+WHERE id=$4;
         "#,
-        username,
+        first_name,
+        surname,
         hashed,
         current_id
     )

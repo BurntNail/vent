@@ -46,12 +46,6 @@
                 <a class="nav-link" href="/show_all">See All</a>
               </li>
 
-              {% if auth.permissions["edit_users"] %}
-                <li class="nav-item">
-                  <a class="nav-link" href="/add_new_user">Add New User</a>
-                </li>  
-              {% endif %}
-
               {% if auth.permissions["edit_people"] %}
               <li class="nav-item dropdown">
                 <li class="nav-item">
@@ -79,7 +73,7 @@
 
 
               {% unless auth.role == "visitor" %}
-                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{auth.user.username}}</a>
+                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{auth.user.first_name}} {{auth.user.surname}}</a>
                 <ul class="dropdown-menu">
                   <li>
                     <a href="/edit_user" class="nav-link">Edit Profile</a>

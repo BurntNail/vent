@@ -22,7 +22,10 @@ pub async fn get_edit_person(
     Path(id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let person = sqlx::query_as!(DbPerson, r#"SELECT * FROM people WHERE id = $1"#, id)
+    let person = sqlx::query_as!(DbPerson, r#"
+SELECT id, is_prefect, first_name, surname, form, hashed_password, permissions as "permissions: _"  
+FROM people WHERE id = $1
+        "#, id)
         .fetch_one(pool.as_ref())
         .await?;
 

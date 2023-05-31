@@ -14,14 +14,20 @@ pub mod eoy_migration;
 
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
+use crate::auth::PermissionsRole;
 
-#[derive(Deserialize, Serialize, Clone)]
-struct DbPerson {
+
+//get everything `id, is_prefect, first_name, surname, form, hashed_password, permissions as "permissions: _" `
+#[derive(Deserialize, Serialize, Clone, FromRow, Debug)]
+pub struct DbPerson {
     pub first_name: String,
     pub surname: String,
     pub is_prefect: bool,
     pub id: i32,
     pub form: String,
+    pub hashed_password: Option<String>,
+    pub permissions: PermissionsRole,
 }
 
 #[derive(Deserialize)]

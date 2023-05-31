@@ -1,5 +1,5 @@
-ALTER TABLE people DROP COLUMN hashed_password IF EXISTS;
-ALTER TABLE people DROP COLUMN user_role IF EXISTS;
+ALTER TABLE people DROP COLUMN hashed_password;
+ALTER TABLE people DROP COLUMN permissions;
 
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,

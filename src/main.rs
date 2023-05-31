@@ -11,18 +11,16 @@ mod liquid_utils;
 mod routes;
 
 use crate::{
-    auth::{
-        get_add_new_user, get_login, get_login_failure, post_add_new_user, post_login, post_logout,
-        RequireAuth, Store,
-    },
+    auth::{get_login, get_login_failure, post_login, post_logout, RequireAuth, Store},
     liquid_utils::partials::reload_partials,
     routes::{
         edit_person::{get_edit_person, post_edit_person},
         edit_user::{get_edit_user, post_edit_user},
+        eoy_migration::{get_eoy_migration, post_eoy_migration},
         images::{get_all_images, post_add_photo, serve_image},
         public::{get_256, get_512, get_manifest, get_offline, get_sw},
         spreadsheets::get_spreadsheet,
-        update_event_and_person::delete_image, eoy_migration::{get_eoy_migration, post_eoy_migration},
+        update_event_and_person::delete_image,
     },
 };
 use auth::PermissionsRole;
@@ -114,18 +112,25 @@ async fn main() {
         v
     };
     let session_layer = SessionLayer::new(MemoryStore::new(), &secret);
-    let auth_layer = AuthLayer::new(Store::new(pool.clone()), &secret);
+    let auth_layer = AuthLayer::new(
+        Store::new(pool.clone()).with_query(
+            r#"
+SELECT *
+FROM people WHERE id = $1
+        "#,
+        ),
+        &secret,
+    );
 
     let app = Router::new()
         .route("/reload_partials", get(reload_partials))
         .route_layer(RequireAuth::login_with_role(PermissionsRole::Dev..)) //dev ^
-        .route(
-            "/add_new_user",
-            get(get_add_new_user).post(post_add_new_user),
-        )
         .route("/add_person", get(get_add_person).post(post_add_person))
         .route("/remove_person", post(post_remove_person))
-        .route("/eoy_migration", get(get_eoy_migration).post(post_eoy_migration))
+        .route(
+            "/eoy_migration",
+            get(get_eoy_migration).post(post_eoy_migration),
+        )
         .route_layer(RequireAuth::login_with_role(PermissionsRole::Admin..)) //admin ^
         .route(
             "/add_event",
@@ -148,6 +153,7 @@ async fn main() {
         .route("/get_all_imgs/:event_id", get(get_all_images))
         .route("/uploads/:img", get(serve_image))
         .route("/edit_user", get(get_edit_user).post(post_edit_user))
+        .route("/logout", get(post_logout))
         .route_layer(RequireAuth::login()) //^ REQUIRE LOGIN ^
         .route("/", get(get_index))
         .route(
@@ -169,7 +175,6 @@ async fn main() {
         .route("/spreadsheet", get(get_spreadsheet))
         .route("/login_failure", get(get_login_failure))
         .route("/login", get(get_login).post(post_login))
-        .route("/logout", get(post_logout))
         .layer(TraceLayer::new_for_http())
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think
         .layer(auth_layer)
