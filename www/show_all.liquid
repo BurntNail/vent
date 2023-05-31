@@ -27,8 +27,10 @@
       {% if prev_form != person.form %}
         {% assign prev_form = person.form %}
         <tr>
-          <td colspan="4">
-            <h3>{{ person.form }}</h3>
+          <td colspan="4" id="{{person.form}}">
+            <h3>
+              <a class="link-secondary" href="/show_all#{{person.form}}">{{ person.form }}</a>
+            </h3>
           </td>
         </tr>
       {% endif %}
