@@ -5,14 +5,12 @@ use axum::{
     response::{IntoResponse, Redirect},
     Form,
 };
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use sqlx::{Pool, Postgres};
-
 use crate::{
     auth::{get_auth_object, Auth},
     error::KnotError,
     liquid_utils::{compile, EnvFormatter},
-    routes::DbPerson,
 };
 
 use super::add_person::NoIDPerson;
@@ -22,12 +20,30 @@ pub async fn get_edit_person(
     Path(id): Path<i32>,
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let person = sqlx::query_as!(DbPerson, r#"
-SELECT id, is_prefect, first_name, surname, form, hashed_password, permissions as "permissions: _"  
+    #[derive(Serialize)]
+    pub struct SmolPerson {
+        pub id: i32,
+        pub is_prefect: bool,
+        pub first_name: String,
+        pub surname: String,
+        pub password_is_set: bool,
+        pub form: String,
+    }
+
+    let person = sqlx::query!(r#"
+SELECT id, is_prefect, first_name, surname, form, hashed_password
 FROM people WHERE id = $1
         "#, id)
         .fetch_one(pool.as_ref())
         .await?;
+    let person = SmolPerson {
+        id: person.id,
+        is_prefect: person.is_prefect,
+        first_name: person.first_name,
+        surname: person.surname,
+        form: person.form,
+        password_is_set: person.hashed_password.is_some()
+    };
 
     #[derive(Serialize)]
     struct Event {
@@ -101,4 +117,27 @@ WHERE id=$1
     .await?;
 
     Ok(Redirect::to(&format!("/edit_person/{id}")))
+}
+
+#[derive(Deserialize)]
+pub struct PasswordReset {
+    id: i32
+}
+
+pub async fn post_reset_password(
+    State(pool): State<Arc<Pool<Postgres>>>,
+    Form(PasswordReset { id }): Form<PasswordReset>
+) -> Result<impl IntoResponse, KnotError> {
+    sqlx::query!(
+        r#"
+UPDATE public.people
+SET hashed_password = NULL
+WHERE id=$1
+        "#,
+        id
+        )
+    .execute(pool.as_ref())
+    .await?;
+
+    Ok(Redirect::to("/show_all"))
 }

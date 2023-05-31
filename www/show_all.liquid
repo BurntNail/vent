@@ -11,7 +11,7 @@
       <th scope="col">
         Form
       </th>
-      {% if auth.permissions["edit_events"] %}
+      {% if auth.permissions["edit_people"] %}
         <th scope="col">
           Remove
         </th>
@@ -89,7 +89,7 @@
         <td>
           {{ event.date }}
         </td>
-        {% if auth.permissions["edit_people"] %}
+        {% if auth.permissions["edit_events"] %}
           <td>
             <form method="POST" action="/remove_event">
               <input

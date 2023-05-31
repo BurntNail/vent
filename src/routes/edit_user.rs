@@ -38,7 +38,7 @@ pub async fn post_edit_user(
     }): Form<LoginDetails>,
 ) -> Result<impl IntoResponse, KnotError> {
     let current_id = auth.current_user.unwrap().id;
-    let hashed = hash(&unhashed_password, DEFAULT_COST)?;
+    let hashed  = hash(&unhashed_password, DEFAULT_COST)?;
 
     sqlx::query!(
         r#"

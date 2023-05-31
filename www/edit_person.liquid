@@ -89,6 +89,23 @@
   </div>
 </div>
 
+
+{% if can_edit %}
+<br>
+<form method="POST" action="/reset_password">
+<input
+  type="hidden"
+  name="id"
+  value="{{person.id}}">
+<button
+  type="submit"
+  class="btn btn-danger"
+  {% unless person.password_is_set %}
+  disabled
+  {% endunless %}>Reset Password.</button>
+</form>
+{% endif %}
+
 <br>
 
 <div class="row">

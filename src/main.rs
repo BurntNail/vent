@@ -14,7 +14,7 @@ use crate::{
     auth::{get_login, get_login_failure, post_login, post_logout, RequireAuth, Store},
     liquid_utils::partials::reload_partials,
     routes::{
-        edit_person::{get_edit_person, post_edit_person},
+        edit_person::{get_edit_person, post_edit_person, post_reset_password},
         edit_user::{get_edit_user, post_edit_user},
         eoy_migration::{get_eoy_migration, post_eoy_migration},
         images::{get_all_images, post_add_photo, serve_image},
@@ -131,6 +131,7 @@ FROM people WHERE id = $1
             "/eoy_migration",
             get(get_eoy_migration).post(post_eoy_migration),
         )
+        .route("/reset_password", post(post_reset_password))
         .route_layer(RequireAuth::login_with_role(PermissionsRole::Admin..)) //admin ^
         .route(
             "/add_event",
