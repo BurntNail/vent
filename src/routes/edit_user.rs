@@ -1,17 +1,17 @@
+use crate::{
+    auth::{get_auth_object, Auth},
+    error::KnotError,
+    liquid_utils::compile,
+};
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
     Form,
 };
 use bcrypt::{hash, DEFAULT_COST};
+use serde::Deserialize;
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
-use serde::Deserialize;
-use crate::{
-    auth::{get_auth_object, Auth},
-    error::KnotError,
-    liquid_utils::compile,
-};
 
 pub async fn get_edit_user(auth: Auth) -> Result<impl IntoResponse, KnotError> {
     compile(
@@ -38,7 +38,7 @@ pub async fn post_edit_user(
     }): Form<LoginDetails>,
 ) -> Result<impl IntoResponse, KnotError> {
     let current_id = auth.current_user.unwrap().id;
-    let hashed  = hash(&unhashed_password, DEFAULT_COST)?;
+    let hashed = hash(&unhashed_password, DEFAULT_COST)?;
 
     sqlx::query!(
         r#"

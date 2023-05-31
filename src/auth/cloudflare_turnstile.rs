@@ -54,7 +54,7 @@ pub enum TurnstileError {
     #[serde(rename = "timeout-or-duplicate")]
     TimeoutOrDuplicate,
     #[serde(rename = "internal")]
-    InternalError
+    InternalError,
 }
 
 #[derive(Deserialize, Debug)]
@@ -88,14 +88,14 @@ pub async fn verify_turnstile(
         .send()
         .await?
         .error_for_status()?
-        .json::<TurnstileResponse>().await?;
+        .json::<TurnstileResponse>()
+        .await?;
 
     trace!(?post_response.hostname, ?post_response.cdata, ?post_response.action, ?post_response.challenge_ts, "Got CFT response");
 
     if post_response.success {
         return Ok(());
     }
-
 
     if !post_response.error_codes.is_empty() {
         error!(?post_response.error_codes, "CFT Response Error");

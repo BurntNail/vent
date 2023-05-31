@@ -1,8 +1,9 @@
 pub mod cloudflare_turnstile;
 
+use self::cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP};
 use crate::{error::KnotError, liquid_utils::compile, routes::DbPerson};
 use axum::{
-    extract::{State},
+    extract::State,
     response::{IntoResponse, Redirect},
     Form,
 };
@@ -13,7 +14,6 @@ use bcrypt::{hash, verify, DEFAULT_COST};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
-use self::cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP};
 
 #[derive(
     sqlx::Type, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Serialize, Deserialize, Debug,
@@ -162,6 +162,6 @@ pub fn get_auth_object(auth: Auth) -> liquid::Object {
             "see_photos": false,
         });
 
-        liquid::object!({"role": "visitor", "permissions": perms }) 
+        liquid::object!({"role": "visitor", "permissions": perms })
     }
 }

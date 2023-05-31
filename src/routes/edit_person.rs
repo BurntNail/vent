@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
-use axum::{
-    extract::{Path, State},
-    response::{IntoResponse, Redirect},
-    Form,
-};
-use serde::{Serialize, Deserialize};
-use sqlx::{Pool, Postgres};
 use crate::{
     auth::{get_auth_object, Auth},
     error::KnotError,
     liquid_utils::{compile, EnvFormatter},
 };
+use axum::{
+    extract::{Path, State},
+    response::{IntoResponse, Redirect},
+    Form,
+};
+use serde::{Deserialize, Serialize};
+use sqlx::{Pool, Postgres};
 
 use super::add_person::NoIDPerson;
 
@@ -30,19 +30,22 @@ pub async fn get_edit_person(
         pub form: String,
     }
 
-    let person = sqlx::query!(r#"
+    let person = sqlx::query!(
+        r#"
 SELECT id, is_prefect, first_name, surname, form, hashed_password
 FROM people WHERE id = $1
-        "#, id)
-        .fetch_one(pool.as_ref())
-        .await?;
+        "#,
+        id
+    )
+    .fetch_one(pool.as_ref())
+    .await?;
     let person = SmolPerson {
         id: person.id,
         is_prefect: person.is_prefect,
         first_name: person.first_name,
         surname: person.surname,
         form: person.form,
-        password_is_set: person.hashed_password.is_some()
+        password_is_set: person.hashed_password.is_some(),
     };
 
     #[derive(Serialize)]
@@ -121,12 +124,12 @@ WHERE id=$1
 
 #[derive(Deserialize)]
 pub struct PasswordReset {
-    id: i32
+    id: i32,
 }
 
 pub async fn post_reset_password(
     State(pool): State<Arc<Pool<Postgres>>>,
-    Form(PasswordReset { id }): Form<PasswordReset>
+    Form(PasswordReset { id }): Form<PasswordReset>,
 ) -> Result<impl IntoResponse, KnotError> {
     sqlx::query!(
         r#"
@@ -135,7 +138,7 @@ SET hashed_password = NULL
 WHERE id=$1
         "#,
         id
-        )
+    )
     .execute(pool.as_ref())
     .await?;
 
