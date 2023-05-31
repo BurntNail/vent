@@ -1,5 +1,5 @@
 use super::public::serve_static_file;
-use crate::{error::KnotError, routes::DbPerson};
+use crate::error::KnotError;
 use axum::{extract::State, response::IntoResponse};
 use rust_xlsxwriter::{Color, Format, FormatAlign, Workbook};
 use sqlx::{Pool, Postgres};
@@ -9,10 +9,9 @@ use tokio::task;
 pub async fn get_spreadsheet(
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut people = sqlx::query_as!(
-        DbPerson,
+    let mut people = sqlx::query!(
         r#"
-SELECT * FROM people"#
+SELECT id, first_name, surname, form  FROM people"#
     )
     .fetch_all(pool.as_ref())
     .await?;
@@ -75,25 +74,23 @@ SELECT * FROM events"#
             events_to_check.push((col, event.id));
         }
 
-        for (
-            row,
-            DbPerson {
-                first_name,
-                surname,
-                is_prefect: _,
-                id,
-                form,
-            },
-        ) in people
+        for (row, rec) in people
             .into_iter()
             .enumerate()
             .map(|(row, db)| (row + 3, db))
         {
             let row = row as u32;
 
-            let pr = participant_relationships.remove(&id).unwrap_or_default();
-            sheet.write_with_format(row, 0, format!("{first_name} {surname}"), &person_fmt)?;
-            sheet.write_with_format(row, 1, &form, &person_fmt)?;
+            let pr = participant_relationships
+                .remove(&rec.id)
+                .unwrap_or_default();
+            sheet.write_with_format(
+                row,
+                0,
+                format!("{} {}", rec.first_name, rec.surname),
+                &person_fmt,
+            )?;
+            sheet.write_with_format(row, 1, &rec.form, &person_fmt)?;
             sheet.write_with_format(row, 2, &pr.len().to_string(), &person_fmt)?;
 
             for (col, event_id) in &events_to_check {

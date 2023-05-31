@@ -15,8 +15,6 @@ use crate::{
     liquid_utils::{compile, EnvFormatter},
 };
 
-use super::DbPerson;
-
 #[derive(Deserialize)]
 pub struct SmolDbEvent {
     pub id: i32,
@@ -50,10 +48,18 @@ pub async fn get_remove_stuff(
     auth: Auth,
     State(pool): State<Arc<Pool<Postgres>>>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut people: Vec<DbPerson> = sqlx::query_as!(
-        DbPerson,
+    #[derive(Serialize)]
+    pub struct SmolPerson {
+        pub first_name: String,
+        pub surname: String,
+        pub form: String,
+        pub id: i32,
+    }
+
+    let mut people = sqlx::query_as!(
+        SmolPerson,
         r#"
-SELECT *
+SELECT first_name, surname, form, id
 FROM people p
         "#
     )

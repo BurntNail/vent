@@ -4,24 +4,29 @@ pub mod add_person;
 pub mod calendar;
 pub mod edit_person;
 pub mod edit_user;
+pub mod eoy_migration;
 pub mod images;
 pub mod index;
 pub mod public;
 pub mod show_all;
 pub mod spreadsheets;
 pub mod update_event_and_person;
-pub mod eoy_migration;
 
+use crate::auth::PermissionsRole;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 
-#[derive(Deserialize, Serialize, Clone)]
-struct DbPerson {
+//get everything `id, is_prefect, first_name, surname, form, hashed_password, permissions as "permissions: _" `
+#[derive(Deserialize, Serialize, Clone, FromRow, Debug)]
+pub struct DbPerson {
     pub first_name: String,
     pub surname: String,
     pub is_prefect: bool,
     pub id: i32,
     pub form: String,
+    pub hashed_password: Option<String>,
+    pub permissions: PermissionsRole,
 }
 
 #[derive(Deserialize)]

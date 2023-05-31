@@ -6,26 +6,37 @@
   <div class="card-body">
     <form action="/login" method="POST">
       <div class="input-group mb-3">
-        <span class="input-group-text" id="username">Username</span>
+        <span class="input-group-text" id="first_name">First Name</span>
         <input
           type="text"
           class="form-control"
-          placeholder="Username"
-          aria-label="Username"
-          aria-describedby="username"
-          name="username"
+          placeholder="First Name"
+          aria-label="First Name"
+          aria-describedby="first_name"
+          name="first_name"
           required>
+
+        <span class="input-group-text" id="surname">Surname</span>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Surname"
+          aria-label="Surname"
+          aria-describedby="surname"
+          name="surname"
+          required>
+
       </div>
+
       <div class="input-group mb-3">
-        <span class="input-group-text" id="unhashed_password">Password</span>
+        <span class="input-group-text" id="unhashed_password">Password (if not set, enter desired password)</span>
         <input
           type="password"
           class="form-control"
           placeholder="Password"
           aria-label="Password"
           aria-describedby="unhashed_password"
-          name="unhashed_password"
-          required>
+          name="unhashed_password">
       </div>
 
       <div class="mb-3">

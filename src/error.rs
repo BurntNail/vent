@@ -5,7 +5,7 @@ use axum::{
     response::{Html, IntoResponse},
 };
 use once_cell::sync::Lazy;
-use std::{env::var, fmt::{Debug}, path::PathBuf};
+use std::{env::var, fmt::Debug, path::PathBuf};
 
 #[derive(thiserror::Error, Debug)]
 pub enum KnotError {

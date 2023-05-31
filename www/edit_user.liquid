@@ -1,22 +1,32 @@
 {% include "partials/header.liquid" %}
 
-<h1>Edit {{ auth.user.username }}
+<h1>Edit {{ auth.user.first_name }} {{ auth.user.surname }}
 </h1>
 
 <div class="card">
   <div class="card-body">
     <form action="/edit_user" method="POST">
       <div class="input-group mb-3">
-        <span class="input-group-text" id="username">Username</span>
+        <span class="input-group-text" id="first_name">First Name</span>
         <input
           type="text"
           class="form-control"
-          placeholder="Username"
-          aria-label="Username"
-          aria-describedby="username"
-          name="username"
-          value="{{auth.user.username}}"
+          placeholder="First Name"
+          aria-label="First Name"
+          aria-describedby="first_name"
+          name="first_name"
           required>
+
+        <span class="input-group-text" id="surname">Surname</span>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Surname"
+          aria-label="Surname"
+          aria-describedby="surname"
+          name="surname"
+          required>
+
       </div>
       <div class="input-group mb-3">
         <span class="input-group-text" id="unhashed_password">New Password</span>
