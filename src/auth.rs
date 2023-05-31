@@ -92,7 +92,6 @@ pub async fn post_login(
         cf_turnstile_response
     }): Form<LoginDetails>,
 ) -> Result<impl IntoResponse, KnotError> {
-	info!(?cf_turnstile_response, "Got turnstile response");
     verify_turnstile(cf_turnstile_response, remote_ip).await?;
 
     let db_user = sqlx::query_as!(DbUser, r#"SELECT id, username, hashed_password, permissions as "permissions: _" FROM users WHERE username = $1"#, username) //https://github.com/launchbadge/sqlx/issues/1004
@@ -146,6 +145,7 @@ pub fn get_auth_object(auth: Auth) -> liquid::Object {
         let perms = liquid::object!({
             "dev_access": user.permissions >= PermissionsRole::Dev,
             "edit_users": user.permissions >= PermissionsRole::Admin,
+            "run_migrations": user.permissions >= PermissionsRole::Admin,
             "edit_people": user.permissions >= PermissionsRole::Admin,
             "edit_events": user.permissions >= PermissionsRole::Prefect,
             "add_photos": user.permissions >= PermissionsRole::Prefect,
@@ -158,6 +158,7 @@ pub fn get_auth_object(auth: Auth) -> liquid::Object {
     } else {
         let perms = liquid::object!({
             "dev_access": false,
+            "run_migrations": false,
             "edit_users": false,
             "edit_people": false,
             "edit_events": false,

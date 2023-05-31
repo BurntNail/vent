@@ -65,6 +65,12 @@
                 </li>  
               {% endif %}
 
+              {% if auth.permissions["run_migrations"] %}
+                <li class="nav-item">
+                  <a class="nav-link" href="/eoy_migration">Change Form Names</a>
+                </li>  
+              {% endif %}
+
               {% if auth.permissions["dev_access"] %}
               <li class="nav-item">
                 <a class="nav-link" href="/reload_partials">Reload Partials</a>

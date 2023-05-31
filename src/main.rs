@@ -22,7 +22,7 @@ use crate::{
         images::{get_all_images, post_add_photo, serve_image},
         public::{get_256, get_512, get_manifest, get_offline, get_sw},
         spreadsheets::get_spreadsheet,
-        update_event_and_person::delete_image,
+        update_event_and_person::delete_image, eoy_migration::get_eoy_migration,
     },
 };
 use auth::PermissionsRole;
@@ -125,6 +125,7 @@ async fn main() {
         )
         .route("/add_person", get(get_add_person).post(post_add_person))
         .route("/remove_person", post(post_remove_person))
+        .route("/eoy_migration", get(get_eoy_migration))
         .route_layer(RequireAuth::login_with_role(PermissionsRole::Admin..)) //admin ^
         .route(
             "/add_event",
