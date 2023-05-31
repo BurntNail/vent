@@ -1478,6 +1478,7 @@ dependencies = [
  "http",
  "icalendar",
  "image",
+ "itertools",
  "liquid",
  "new_mime_guess",
  "once_cell",

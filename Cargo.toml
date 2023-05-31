@@ -37,3 +37,4 @@ new_mime_guess = { version = "4.0.1", default-features = false }
 reqwest = { version = "0.11.18", features = ["json"] }
 async-trait = "0.1.68"
 http = "0.2.9"
+itertools = "0.10.5"

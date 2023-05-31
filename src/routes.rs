@@ -10,6 +10,7 @@ pub mod public;
 pub mod show_all;
 pub mod spreadsheets;
 pub mod update_event_and_person;
+pub mod eoy_migration;
 
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
