@@ -1,6 +1,13 @@
 {% include "partials/header.liquid" %}
 
 <h1>Failure to login.</h1>
+
+{% if was_password_related %}
+  <p>Make sure caps lock and your password is spelt correctly. If it still doesn't work, contact an admin to reset your password.</p>
+{% else %}
+  <p>We couldn't find you - make sure your name is spelt correctly.</p>
+{% endif %}
+
 <a href="/login">Try Again.</a>
 
 {% include "partials/footer.liquid" %}

@@ -3,7 +3,7 @@ pub mod cloudflare_turnstile;
 use self::cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP};
 use crate::{error::KnotError, liquid_utils::compile, routes::DbPerson};
 use axum::{
-    extract::State,
+    extract::{State, Path},
     response::{IntoResponse, Redirect},
     Form,
 };
@@ -65,10 +65,10 @@ pub async fn get_login(auth: Auth) -> Result<impl IntoResponse, KnotError> {
     .await
 }
 
-pub async fn get_login_failure(auth: Auth) -> Result<impl IntoResponse, KnotError> {
+pub async fn get_login_failure(auth: Auth, Path(was_password_related): Path<bool>) -> Result<impl IntoResponse, KnotError> {
     compile(
         "www/failed_auth.liquid",
-        liquid::object!({ "auth": get_auth_object(auth) }),
+        liquid::object!({ "auth": get_auth_object(auth), "was_password_related": was_password_related }),
     )
     .await
 }
@@ -96,8 +96,12 @@ WHERE first_name = $1 AND surname = $2
         first_name,
         surname
     ) //https://github.com/launchbadge/sqlx/issues/1004
-    .fetch_one(pool.as_ref())
+    .fetch_optional(pool.as_ref())
     .await?;
+
+    let Some(db_user) = db_user else {
+        return Ok(Redirect::to("/login_failure/false"))
+    };
 
     Ok(match &db_user.hashed_password {
         //looks weird as otherwise borrow not living long enough
@@ -106,7 +110,7 @@ WHERE first_name = $1 AND surname = $2
             "/"
         } else {
             error!("USER FAILED TO LOGIN!!!");
-            "/login_failure"
+            "/login_failure/true"
         }),
         None => {
             let hashed = hash(&unhashed_password, DEFAULT_COST)?;

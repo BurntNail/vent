@@ -174,7 +174,7 @@ FROM people WHERE id = $1
         .route("/show_all", get(get_remove_stuff))
         .route("/ical", get(get_calendar_feed))
         .route("/spreadsheet", get(get_spreadsheet))
-        .route("/login_failure", get(get_login_failure))
+        .route("/login_failure/:was_password_related", get(get_login_failure))
         .route("/login", get(get_login).post(post_login))
         .layer(TraceLayer::new_for_http())
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think
