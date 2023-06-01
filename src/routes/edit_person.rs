@@ -3,7 +3,8 @@ use std::sync::Arc;
 use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
     error::KnotError,
-    liquid_utils::{compile, EnvFormatter}, routes::DbPerson,
+    liquid_utils::{compile, EnvFormatter},
+    routes::DbPerson,
 };
 use axum::{
     extract::{Path, State},
