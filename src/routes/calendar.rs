@@ -18,7 +18,7 @@ pub async fn get_calendar_feed(
 
         let prefects = sqlx::query!(
             r#"
-    SELECT id, first_name, surname FROM people p WHERE p.is_prefect = true"#
+    SELECT id, first_name, surname FROM people p WHERE p.permissions != 'participant'"#
         )
         .fetch_all(pool.as_ref())
         .await?

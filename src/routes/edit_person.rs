@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use crate::{
-    auth::{get_auth_object, Auth},
+    auth::{get_auth_object, Auth, PermissionsRole},
     error::KnotError,
-    liquid_utils::{compile, EnvFormatter},
+    liquid_utils::{compile, EnvFormatter}, routes::DbPerson,
 };
 use axum::{
     extract::{Path, State},
@@ -23,16 +23,17 @@ pub async fn get_edit_person(
     #[derive(Serialize)]
     pub struct SmolPerson {
         pub id: i32,
-        pub is_prefect: bool,
+        pub permissions: PermissionsRole,
         pub first_name: String,
         pub surname: String,
         pub password_is_set: bool,
         pub form: String,
     }
 
-    let person = sqlx::query!(
+    let person = sqlx::query_as!(
+        DbPerson,
         r#"
-SELECT id, is_prefect, first_name, surname, form, hashed_password
+SELECT id, first_name, surname, form, hashed_password, permissions as "permissions: _"
 FROM people WHERE id = $1
         "#,
         id
@@ -41,7 +42,7 @@ FROM people WHERE id = $1
     .await?;
     let person = SmolPerson {
         id: person.id,
-        is_prefect: person.is_prefect,
+        permissions: person.permissions,
         first_name: person.first_name,
         surname: person.surname,
         form: person.form,
@@ -101,20 +102,20 @@ pub async fn post_edit_person(
         first_name,
         surname,
         form,
-        is_prefect,
+        permissions,
     }): Form<NoIDPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
     sqlx::query!(
         r#"
 UPDATE public.people
-SET is_prefect=$5, first_name=$2, surname=$3, form=$4
+SET permissions=$5, first_name=$2, surname=$3, form=$4
 WHERE id=$1
         "#,
         id,
         first_name,
         surname,
         form,
-        is_prefect
+        permissions as _
     )
     .execute(pool.as_ref())
     .await?;

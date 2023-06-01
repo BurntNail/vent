@@ -1,7 +1,7 @@
 //! Module that deals with adding a person - publishes a `GET` method with a form, and a `POST` method that deals with the form.
 
 use crate::{
-    auth::{get_auth_object, Auth},
+    auth::{get_auth_object, Auth, PermissionsRole},
     error::KnotError,
     liquid_utils::compile,
 };
@@ -28,7 +28,7 @@ pub struct NoIDPerson {
     pub first_name: String,
     pub surname: String,
     pub form: Option<String>,
-    pub is_prefect: bool,
+    pub permissions: PermissionsRole,
 }
 
 pub async fn post_add_person(
@@ -37,16 +37,16 @@ pub async fn post_add_person(
         first_name,
         surname,
         form,
-        is_prefect,
+        permissions,
     }): Form<NoIDPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
     sqlx::query!(
         r#"
 INSERT INTO public.people
-(is_prefect, first_name, surname, form)
+(permissions, first_name, surname, form)
 VALUES($1, $2, $3, $4);    
     "#,
-        is_prefect,
+        permissions as _,
         first_name,
         surname,
         form,

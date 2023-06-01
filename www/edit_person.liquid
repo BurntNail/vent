@@ -51,16 +51,17 @@
           <input
             class="form-check-input"
             type="radio"
-            name="is_prefect"
-            id="is_not"
-            value="false"
-            {% unless person.is_prefect %}
+            name="permissions"
+            id="participant"
+            value="Participant"
+            {% if person.permissions == "Participant" %}
             checked
-            {% endunless %} {% unless can_edit %}
+        {% endif %}
+            {% unless can_edit %}
             disabled
             {% endunless %}>
-          <label class="form-check-label" for="is_not">
-            Is not a prefect.
+          <label class="form-check-label" for="participant">
+            Participant
           </label>
         </div>
         <br>
@@ -68,16 +69,50 @@
           <input
             class="form-check-input"
             type="radio"
-            name="is_prefect"
-            id="is"
-            value="true"
-            {% if person.is_prefect %}
+            name="permissions"
+            id="prefect"
+            value="Prefect"
+            {% if person.permissions == "Prefect" %}
             checked
-            {% endif %} {% unless can_edit %}
+        {% endif %} {% unless can_edit %}
             disabled
             {% endunless %}>
-          <label class="form-check-label" for="is">
-            Is a prefect.
+          <label class="form-check-label" for="prefect">
+            Prefect
+          </label>
+        </div>
+        <br>
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="radio"
+            name="permissions"
+            id="admin"
+            value="Admin"
+            {% if person.permissions == "Admin" %}
+            checked
+        {% endif %} {% unless can_edit %}
+            disabled
+            {% endunless %}>
+          <label class="form-check-label" for="admin">
+            Admin
+          </label>
+        </div>
+        <br>
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="radio"
+            name="permissions"
+            id="dev"
+            value="Dev"
+            {% if person.permissions == "Dev" %}
+            checked
+        {% endif %} {% unless can_edit %}
+            disabled
+            {% endunless %}>
+          <label class="form-check-label" for="dev">
+            Developer
           </label>
         </div>
       </div>
