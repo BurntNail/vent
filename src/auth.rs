@@ -89,7 +89,7 @@ pub async fn post_login(
     let db_user = sqlx::query_as!(
         DbPerson,
         r#"
-SELECT id, is_prefect, first_name, surname, form, hashed_password, permissions as "permissions: _" 
+SELECT id, first_name, surname, form, hashed_password, permissions as "permissions: _" 
 FROM people 
 WHERE first_name = $1 AND surname = $2
         "#,
@@ -111,18 +111,18 @@ WHERE first_name = $1 AND surname = $2
         None => {
             let hashed = hash(&unhashed_password, DEFAULT_COST)?;
             let person: DbPerson = sqlx::query_as!(
-        DbPerson,
-        r#"
+                DbPerson,
+                r#"
 UPDATE people
 SET hashed_password = $1
 WHERE id = $2
-RETURNING id, is_prefect, first_name, surname, form, hashed_password, permissions as "permissions: _" 
+RETURNING id, first_name, surname, form, hashed_password, permissions as "permissions: _" 
     "#,
-        hashed,
-        db_user.id
-    )
-    .fetch_one(pool.as_ref())
-    .await?;
+                hashed,
+                db_user.id
+            )
+            .fetch_one(pool.as_ref())
+            .await?;
 
             auth.login(&person).await?;
 
