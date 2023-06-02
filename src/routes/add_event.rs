@@ -8,7 +8,7 @@ use super::FormEvent;
 use crate::{
     auth::{get_auth_object, Auth},
     error::KnotError,
-    liquid_utils::compile,
+    liquid_utils::compile, state::KnotState,
 };
 use axum::{
     extract::State,
@@ -16,8 +16,6 @@ use axum::{
 };
 use axum_extra::extract::Form;
 use chrono::NaiveDateTime;
-use sqlx::{Pool, Postgres};
-use std::sync::Arc;
 
 ///`GET` method for the `add_event` form - just compiles and returns the liquid `www/add_event.liquid`
 pub async fn get_add_event_form(auth: Auth) -> Result<impl IntoResponse, KnotError> {
@@ -30,7 +28,7 @@ pub async fn get_add_event_form(auth: Auth) -> Result<impl IntoResponse, KnotErr
 
 ///`POST` method to add an event from a form to the database. Redirects back to the [`get_add_event_form`]
 pub async fn post_add_event_form(
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
     Form(FormEvent {
         name,
         date,
@@ -54,7 +52,7 @@ RETURNING id
         teacher,
         info
     )
-    .fetch_one(pool.as_ref()) //add the event to the db
+    .fetch_one(&mut state.get_connection().await?) //add the event to the db
     .await?
     .id;
 

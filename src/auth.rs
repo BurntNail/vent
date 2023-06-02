@@ -1,7 +1,7 @@
 pub mod cloudflare_turnstile;
 
 use self::cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP};
-use crate::{error::KnotError, liquid_utils::compile, routes::DbPerson};
+use crate::{error::KnotError, liquid_utils::compile, routes::DbPerson, state::KnotState};
 use axum::{
     extract::{State, Path},
     response::{IntoResponse, Redirect},
@@ -12,8 +12,6 @@ use axum_login::{
 };
 use bcrypt::{hash, verify, DEFAULT_COST};
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Postgres};
-use std::sync::Arc;
 
 #[derive(
     sqlx::Type, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Serialize, Deserialize, Debug,
@@ -50,8 +48,7 @@ pub type Store = PostgresStore<DbPerson, PermissionsRole>;
 
 #[derive(Deserialize)]
 pub struct LoginDetails {
-    pub first_name: String,
-    pub surname: String,
+    pub username: String,
     pub unhashed_password: String,
     #[serde(rename = "cf-turnstile-response")]
     pub cf_turnstile_response: String,
@@ -75,11 +72,10 @@ pub async fn get_login_failure(auth: Auth, Path(was_password_related): Path<bool
 
 pub async fn post_login(
     mut auth: Auth,
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
     remote_ip: GrabCFRemoteIP,
     Form(LoginDetails {
-        first_name,
-        surname,
+        username,
         unhashed_password,
         cf_turnstile_response,
     }): Form<LoginDetails>,
@@ -89,14 +85,13 @@ pub async fn post_login(
     let db_user = sqlx::query_as!(
         DbPerson,
         r#"
-SELECT id, first_name, surname, form, hashed_password, permissions as "permissions: _" 
+SELECT id, first_name, surname, username, form, hashed_password, permissions as "permissions: _" 
 FROM people 
-WHERE first_name = $1 AND surname = $2
+WHERE username = $1
         "#,
-        first_name,
-        surname
-    ) //https://github.com/launchbadge/sqlx/issues/1004
-    .fetch_optional(pool.as_ref())
+        username
+    )
+    .fetch_optional(&mut state.get_connection().await?)
     .await?;
 
     let Some(db_user) = db_user else {
@@ -120,12 +115,12 @@ WHERE first_name = $1 AND surname = $2
 UPDATE people
 SET hashed_password = $1
 WHERE id = $2
-RETURNING id, first_name, surname, form, hashed_password, permissions as "permissions: _" 
+RETURNING id, first_name, surname, username, form, hashed_password, permissions as "permissions: _" 
     "#,
                 hashed,
                 db_user.id
             )
-            .fetch_one(pool.as_ref())
+            .fetch_one(&mut state.get_connection().await?)
             .await?;
 
             auth.login(&person).await?;

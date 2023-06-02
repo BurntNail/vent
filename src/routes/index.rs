@@ -1,20 +1,18 @@
 use axum::{extract::State, response::IntoResponse};
 use chrono::Utc;
 use serde::Serialize;
-use sqlx::{Pool, Postgres};
-use std::sync::Arc;
 
 use crate::{
     auth::{get_auth_object, Auth},
     error::KnotError,
     liquid_utils::{compile, EnvFormatter},
-    routes::DbEvent,
+    routes::DbEvent, state::KnotState,
 };
 
 #[allow(clippy::too_many_lines)]
 pub async fn get_index(
     auth: Auth,
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
     #[derive(Serialize)]
     struct HTMLEvent {
@@ -77,7 +75,7 @@ FROM events
 ORDER BY events.date
         "#
     )
-    .fetch_all(pool.as_ref())
+    .fetch_all(&mut state.get_connection().await?)
     .await?
     {
         //TODO: cache using HashMaps etc
@@ -95,7 +93,7 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
             "#,
             event_id
         )
-        .fetch_all(pool.as_ref())
+        .fetch_all(&mut state.get_connection().await?)
         .await?
         .len();
 
@@ -109,12 +107,12 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
             "#,
             event_id
         )
-        .fetch_all(pool.as_ref())
+        .fetch_all(&mut state.get_connection().await?)
         .await?
         .len();
 
         let photos = sqlx::query!("SELECT FROM photos WHERE event_id = $1", event_id)
-            .fetch_all(pool.as_ref())
+            .fetch_all(&mut state.get_connection().await?)
             .await?
             .len();
 

@@ -1,19 +1,18 @@
 use super::public::serve_static_file;
-use crate::error::KnotError;
+use crate::{error::KnotError, state::KnotState};
 use axum::{extract::State, response::IntoResponse};
 use rust_xlsxwriter::{Color, Format, FormatAlign, Workbook};
-use sqlx::{Pool, Postgres};
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap};
 use tokio::task;
 
 pub async fn get_spreadsheet(
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut people = sqlx::query!(
         r#"
 SELECT id, first_name, surname, form  FROM people"#
     )
-    .fetch_all(pool.as_ref())
+    .fetch_all(&mut state.get_connection().await?)
     .await?;
     people.sort_by_key(|x| x.surname.clone());
     people.sort_by_key(|x| x.form.clone());
@@ -22,13 +21,13 @@ SELECT id, first_name, surname, form  FROM people"#
         r#"
 SELECT * FROM events"#
     )
-    .fetch_all(pool.as_ref())
+    .fetch_all(&mut state.get_connection().await?)
     .await?;
     events.sort_by_key(|r| r.date);
 
     let mut participant_relationships = HashMap::new();
     sqlx::query!("SELECT participant_id, event_id FROM participant_events")
-        .fetch_all(pool.as_ref())
+        .fetch_all(&mut state.get_connection().await?)
         .await?
         .into_iter()
         .for_each(|x| {

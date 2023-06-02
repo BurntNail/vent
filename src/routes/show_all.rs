@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
@@ -7,12 +5,11 @@ use axum::{
 use axum_extra::extract::Form;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Postgres};
 
 use crate::{
     auth::{get_auth_object, Auth},
     error::KnotError,
-    liquid_utils::{compile, EnvFormatter},
+    liquid_utils::{compile, EnvFormatter}, state::KnotState,
 };
 
 #[derive(Deserialize)]
@@ -46,7 +43,7 @@ impl From<SmolDbEvent> for SmolFormattedDbEvent {
 
 pub async fn get_remove_stuff(
     auth: Auth,
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
     #[derive(Serialize)]
     pub struct SmolPerson {
@@ -63,7 +60,7 @@ SELECT first_name, surname, form, id
 FROM people p
         "#
     )
-    .fetch_all(pool.as_ref())
+    .fetch_all(&mut state.get_connection().await?)
     .await?;
     people.sort_by_key(|x| x.surname.clone());
     people.sort_by_key(|x| x.form.clone());
@@ -76,7 +73,7 @@ FROM events e
 ORDER BY e.date
         "#
     )
-    .fetch_all(pool.as_ref())
+    .fetch_all(&mut state.get_connection().await?)
     .await?
     .into_iter()
     .map(SmolFormattedDbEvent::from)
@@ -100,7 +97,7 @@ pub struct RemoveEvent {
 }
 
 pub async fn post_remove_person(
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
     Form(RemovePerson { person_id }): Form<RemovePerson>,
 ) -> Result<impl IntoResponse, KnotError> {
     for person_id in person_id {
@@ -111,14 +108,14 @@ WHERE id=$1
             "#,
             person_id
         )
-        .execute(pool.as_ref())
+        .execute(&mut state.get_connection().await?)
         .await?;
     }
 
     Ok(Redirect::to("/show_all"))
 }
 pub async fn post_remove_event(
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
     Form(RemoveEvent { event_id }): Form<RemoveEvent>,
 ) -> Result<impl IntoResponse, KnotError> {
     for event_id in event_id {
@@ -129,7 +126,7 @@ pub async fn post_remove_event(
             "#,
             event_id
         )
-        .execute(pool.as_ref())
+        .execute(&mut state.get_connection().await?)
         .await?;
     }
 

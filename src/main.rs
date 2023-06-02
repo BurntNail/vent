@@ -9,6 +9,7 @@ mod auth;
 mod error;
 mod liquid_utils;
 mod routes;
+mod state;
 
 use crate::{
     auth::{get_login, get_login_failure, post_login, post_logout, RequireAuth, Store},
@@ -21,7 +22,7 @@ use crate::{
         public::{get_256, get_512, get_manifest, get_offline, get_sw},
         spreadsheets::get_spreadsheet,
         update_event_and_person::delete_image,
-    },
+    }, state::KnotState,
 };
 use auth::PermissionsRole;
 use axum::{
@@ -50,7 +51,7 @@ use routes::{
     },
 };
 use sqlx::postgres::PgPoolOptions;
-use std::{env::var, net::SocketAddr, sync::Arc};
+use std::{env::var, net::SocketAddr};
 use tokio::signal;
 use tower_http::trace::TraceLayer;
 
@@ -180,7 +181,7 @@ FROM people WHERE id = $1
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think
         .layer(auth_layer)
         .layer(session_layer)
-        .with_state(Arc::new(pool));
+        .with_state(KnotState::new(pool));
 
     let port: SocketAddr = var("KNOT_SERVER_IP")
         .expect("need KNOT_SERVER_IP env var")

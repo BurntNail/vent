@@ -17,11 +17,13 @@ use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
-//get everything `id, first_name, surname, form, hashed_password, permissions as "permissions: _" `
+//get everything `id, first_name, surname, username, form, hashed_password, permissions as "permissions: _" ` 
+//https://github.com/launchbadge/sqlx/issues/1004
 #[derive(Deserialize, Serialize, Clone, FromRow, Debug)]
 pub struct DbPerson {
     pub first_name: String,
     pub surname: String,
+    pub username: String,
     pub id: i32,
     pub form: String,
     pub hashed_password: Option<String>,
