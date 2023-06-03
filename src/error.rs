@@ -40,6 +40,12 @@ pub enum KnotError {
     HeaderToStr(#[from] http::header::ToStrError),
     #[error("Error reqwest-ing")]
     Reqwest(#[from] reqwest::Error),
+    #[error("Error parsing email address")]
+    LettreAddress(#[from] lettre::address::AddressError),
+    #[error("Error with Emails")]
+    LettreEmail(#[from] lettre::error::Error),
+    #[error("Error with SMTP")]
+    LettreSMTP(#[from] lettre::transport::smtp::Error),
     #[error("Random Eyre Error")]
     Eyre(#[from] eyre::Error), //thanks axum_login ;)
 

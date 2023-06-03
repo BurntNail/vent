@@ -65,7 +65,7 @@ pub static PROJECT_NAME: Lazy<String> =
     Lazy::new(|| var("INSTANCE_NAME").unwrap_or_else(|_e| "House Events Manager".into()));
 
 // https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs
-async fn shutdown_signal() {
+async fn shutdown_signal(state: KnotState) {
     let ctrl_c = async {
         signal::ctrl_c()
             .await
@@ -88,6 +88,7 @@ async fn shutdown_signal() {
         _ = terminate => {},
     }
 
+    state.stop_emails();
     warn!("signal received, starting graceful shutdown");
 }
 
@@ -122,6 +123,8 @@ FROM people WHERE id = $1
         ),
         &secret,
     );
+
+    let state = KnotState::new(pool);
 
     let app = Router::new()
         .route("/reload_partials", get(reload_partials))
@@ -181,7 +184,7 @@ FROM people WHERE id = $1
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think
         .layer(auth_layer)
         .layer(session_layer)
-        .with_state(KnotState::new(pool));
+        .with_state(state.clone());
 
     let port: SocketAddr = var("KNOT_SERVER_IP")
         .expect("need KNOT_SERVER_IP env var")
@@ -192,7 +195,7 @@ FROM people WHERE id = $1
 
     axum::Server::bind(&port)
         .serve(app.into_make_service())
-        .with_graceful_shutdown(shutdown_signal())
+        .with_graceful_shutdown(shutdown_signal(state))
         .await
         .unwrap();
 }
