@@ -5,7 +5,7 @@ use crate::{
     error::KnotError,
     liquid_utils::compile,
     routes::DbPerson,
-    state::{EmailToSend, KnotState},
+    state::{KnotState},
 };
 use axum::{
     extract::{Path, State},
@@ -16,8 +16,6 @@ use axum_login::{
     extractors::AuthContext, secrecy::SecretVec, AuthUser, PostgresStore, RequireAuthorizationLayer,
 };
 use bcrypt::{hash, verify, DEFAULT_COST};
-use itertools::Itertools;
-use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 
 #[derive(
@@ -132,38 +130,7 @@ WHERE username = $1
             "/login_failure/bad_password"
         }),
         None => {
-            let current_ids = sqlx::query!(
-                r#"SELECT password_link_id FROM people WHERE password_link_id <> NULL"#
-            )
-            .fetch_all(&mut state.get_connection().await?)
-            .await?
-            .into_iter()
-            .map(|x| x.password_link_id.unwrap()) //we check for null above so fine
-            .collect_vec();
-
-            let id: i32 = {
-                let mut rng = thread_rng();
-                let mut tester = rng.gen::<u16>();
-                while current_ids.contains(&(tester.into())) {
-                    tester = rng.gen::<u16>();
-                }
-                tester
-            }.into(); //ensure always positive
-
-            sqlx::query!(
-                "UPDATE people SET password_link_id = $1 WHERE id = $2",
-                id,
-                db_user.id
-            )
-            .execute(&mut state.get_connection().await?)
-            .await?;
-
-            state.send_email(EmailToSend {
-                to_username: db_user.username,
-                to_id: db_user.id,
-                to_fullname: format!("{} {}", db_user.first_name, db_user.surname),
-                unique_id: id,
-            });
+            state.reset_password(db_user.id).await?;
 
             Redirect::to("/add_password")
         }

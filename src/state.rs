@@ -1,6 +1,8 @@
 use std::env::var;
+use itertools::Itertools;
 use lettre::{Message, transport::smtp::authentication::Credentials, AsyncSmtpTransport, Tokio1Executor, AsyncTransport};
 use once_cell::sync::Lazy;
+use rand::{thread_rng, Rng};
 use sqlx::{Pool, Postgres, pool::PoolConnection};
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
@@ -36,8 +38,44 @@ impl KnotState {
         self.postgres.acquire().await
     }
 
-    pub fn send_email (&self, email: EmailToSend) {
-        self.mail_sender.send(email).expect("error sending email");
+    pub async fn reset_password (&self, user_id: i32) -> Result<(), KnotError> {
+        let current_ids = sqlx::query!(
+            r#"SELECT password_link_id FROM people WHERE password_link_id <> NULL"#
+        )
+        .fetch_all(&mut self.get_connection().await?)
+        .await?
+        .into_iter()
+        .map(|x| x.password_link_id.unwrap()) //we check for null above so fine
+        .collect_vec();
+
+        let id: i32 = {
+            let mut rng = thread_rng();
+            let mut tester = rng.gen::<u16>();
+            while current_ids.contains(&(tester.into())) {
+                tester = rng.gen::<u16>();
+            }
+            tester
+        }.into(); //ensure always positive
+
+        sqlx::query!(
+            "UPDATE people SET password_link_id = $1, hashed_password = NULL WHERE id = $2",
+            id,
+            user_id
+        )
+        .execute(&mut self.get_connection().await?)
+        .await?;
+
+
+        let person = sqlx::query!("SELECT username, first_name, surname FROM people WHERE id = $1", user_id).fetch_one(&mut self.get_connection().await?).await?;
+
+        self.mail_sender.send(EmailToSend {
+            to_username: person.username,
+            to_id: user_id,
+            to_fullname: format!("{} {}", person.first_name, person.surname),
+            unique_id: id,
+        }).expect("error sending email");
+
+        Ok(())
     }
 
     pub fn stop_emails (&self) {

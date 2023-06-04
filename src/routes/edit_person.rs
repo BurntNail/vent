@@ -130,16 +130,6 @@ pub async fn post_reset_password(
     State(state): State<KnotState>,
     Form(PasswordReset { id }): Form<PasswordReset>,
 ) -> Result<impl IntoResponse, KnotError> {
-    sqlx::query!(
-        r#"
-UPDATE public.people
-SET hashed_password = NULL
-WHERE id=$1
-        "#,
-        id
-    )
-    .execute(&mut state.get_connection().await?)
-    .await?;
-
+    state.reset_password(id).await?;
     Ok(Redirect::to("/show_all"))
 }
