@@ -20,6 +20,8 @@ pub enum KnotError {
     Join(#[from] tokio::task::JoinError),
     #[error("Error Parsing Integer")]
     ParseInt(#[from] std::num::ParseIntError),
+    #[error("Error Parsing Bool")]
+    ParseBool(#[from] std::str::ParseBoolError),
     #[error("Error Parsing Time")]
     ParseTime(#[from] chrono::ParseError),
     #[error("Error in Headers")]
@@ -60,6 +62,8 @@ pub enum KnotError {
     InvalidUTF8,
     #[error("Failed Cloudflare Turnstile")]
     FailedTurnstile,
+    #[error("CSV incorrect format")]
+    MalformedCSV,
 
 }
 

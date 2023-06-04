@@ -21,7 +21,7 @@ use crate::{
         images::{get_all_images, post_add_photo, serve_image},
         public::{get_256, get_512, get_manifest, get_offline, get_sw},
         spreadsheets::get_spreadsheet,
-        update_event_and_person::delete_image, import_export::{get_import_export_csv, export_events_to_csv, export_people_to_csv},
+        update_event_and_person::delete_image, import_export::{get_import_export_csv, export_events_to_csv, export_people_to_csv, post_import_people_from_csv, post_import_events_from_csv},
     }, state::KnotState,
 };
 use auth::PermissionsRole;
@@ -137,6 +137,8 @@ FROM people WHERE id = $1
             get(get_eoy_migration).post(post_eoy_migration),
         )
         .route("/reset_password", post(post_reset_password))
+        .route("/import_people_from_csv", post(post_import_people_from_csv))
+        .route("/import_events_from_csv", post(post_import_events_from_csv))
         .route_layer(RequireAuth::login_with_role(PermissionsRole::Admin..)) //admin ^
         .route(
             "/add_event",

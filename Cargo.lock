@@ -1491,6 +1491,7 @@ dependencies = [
  "csv-async",
  "dotenvy",
  "eyre",
+ "futures",
  "http",
  "icalendar",
  "image",
