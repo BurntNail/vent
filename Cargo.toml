@@ -38,3 +38,5 @@ reqwest = { version = "0.11.18", features = ["json"] }
 async-trait = "0.1.68"
 http = "0.2.9"
 itertools = "0.10.5"
+lettre = { version = "0.10.4", features = ["tokio1", "tokio1-rustls-tls", "rustls-tls", "tracing", "builder", "smtp-transport"], default-features = false }
+futures = { version = "0.3.28", default-features = false }

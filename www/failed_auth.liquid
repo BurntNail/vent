@@ -2,10 +2,24 @@
 
 <h1>Failure to login.</h1>
 
-{% if was_password_related %}
+<input
+  type="hidden"
+  name="was_password_related"
+  value="{{was_password_related}}">
+
+{% if was_password_related == "bad_password" %}
   <p>Make sure caps lock and your password is spelt correctly. If it still doesn't work, contact an admin to reset your password.</p>
-{% else %}
+{% elsif was_password_related == "user_not_found" %}
   <p>We couldn't find you - make sure your name is spelt correctly.</p>
+{% elsif was_password_related == "failed_numbers" %}
+  <p>Double check you pasted the numbers in exactly the same as in the email, making sure to delete any spaces.</p>
+{% elsif was_password_related == "no_numbers" %}
+  <p>Make sure you've been sent your number by going to the login page and attempting to login.
+  </p>
+{% elsif was_password_related == "password_already_set" %}
+  <p>You've already set your password - to change it, login then click on your name in the navbar, and then click
+    <i>Edit Profile</i>.
+  </p>
 {% endif %}
 
 <a href="/login">Try Again.</a>

@@ -3,7 +3,7 @@
 use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
     error::KnotError,
-    liquid_utils::compile,
+    liquid_utils::compile, state::KnotState,
 };
 use axum::{
     extract::State,
@@ -11,8 +11,6 @@ use axum::{
     Form,
 };
 use serde::Deserialize;
-use sqlx::{Pool, Postgres};
-use std::sync::Arc;
 
 ///`GET` function to display the add person form
 pub async fn get_add_person(auth: Auth) -> Result<impl IntoResponse, KnotError> {
@@ -32,7 +30,7 @@ pub struct NoIDPerson {
 }
 
 pub async fn post_add_person(
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
     Form(NoIDPerson {
         first_name,
         surname,
@@ -51,7 +49,7 @@ VALUES($1, $2, $3, $4);
         surname,
         form,
     )
-    .execute(pool.as_ref())
+    .execute(&mut state.get_connection().await?)
     .await?;
 
     Ok(Redirect::to("/add_person"))

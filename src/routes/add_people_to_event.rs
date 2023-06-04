@@ -1,14 +1,12 @@
 //! Module that publishes 2 `POST` methods that deal with adding prefects and participants to events based off of path parameters. This is a fair bit easier than an invisible form.
 
-use crate::error::KnotError;
+use crate::{error::KnotError, state::KnotState};
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
 };
 use axum_extra::extract::Form;
 use serde::Deserialize;
-use sqlx::{Pool, Postgres};
-use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct AddPerson {
@@ -19,7 +17,7 @@ pub struct AddPerson {
 ///`POST` method that adds a prefect to an event
 #[axum::debug_handler]
 pub async fn post_add_prefect_to_event(
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
     Form(AddPerson {
         event_id,
         person_ids,
@@ -34,7 +32,7 @@ pub async fn post_add_prefect_to_event(
             prefect_id,
             event_id
         )
-        .fetch_optional(pool.as_ref())
+        .fetch_optional(&mut state.get_connection().await?)
         .await?
         .is_none()
         //if we can't find anything assoiated with this prefect and this event
@@ -49,7 +47,7 @@ pub async fn post_add_prefect_to_event(
                 prefect_id,
                 event_id
             )
-            .execute(pool.as_ref())
+            .execute(&mut state.get_connection().await?)
             .await?;
         }
     }
@@ -60,7 +58,7 @@ pub async fn post_add_prefect_to_event(
 ///`POST` method that adds a participant
 #[axum::debug_handler]
 pub async fn post_add_participant_to_event(
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
     Form(AddPerson {
         event_id,
         person_ids,
@@ -75,7 +73,7 @@ pub async fn post_add_participant_to_event(
             participant_id,
             event_id
         )
-        .fetch_optional(pool.as_ref())
+        .fetch_optional(&mut state.get_connection().await?)
         .await?
         .is_none()
         //if we can't find anything assoiated with this participant and this event
@@ -90,7 +88,7 @@ pub async fn post_add_participant_to_event(
                 participant_id,
                 event_id
             )
-            .execute(pool.as_ref())
+            .execute(&mut state.get_connection().await?)
             .await?;
         }
     }

@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
 use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
     error::KnotError,
     liquid_utils::{compile, EnvFormatter},
-    routes::DbPerson,
+    routes::DbPerson, state::KnotState,
 };
 use axum::{
     extract::{Path, State},
@@ -12,14 +10,13 @@ use axum::{
     Form,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Postgres};
 
 use super::add_person::NoIDPerson;
 
 pub async fn get_edit_person(
     auth: Auth,
     Path(id): Path<i32>,
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
     #[derive(Serialize)]
     pub struct SmolPerson {
@@ -34,12 +31,12 @@ pub async fn get_edit_person(
     let person = sqlx::query_as!(
         DbPerson,
         r#"
-SELECT id, first_name, surname, form, hashed_password, permissions as "permissions: _"
+SELECT id, first_name, surname, username, form, hashed_password, permissions as "permissions: _"
 FROM people WHERE id = $1
         "#,
         id
     )
-    .fetch_one(pool.as_ref())
+    .fetch_one(&mut state.get_connection().await?)
     .await?;
     let person = SmolPerson {
         id: person.id,
@@ -65,7 +62,7 @@ ON pe.event_id = e.id AND pe.prefect_id = $1
         "#,
         person.id
     )
-    .fetch_all(pool.as_ref())
+    .fetch_all(&mut state.get_connection().await?)
     .await?
     .into_iter()
     .map(|r| Event {
@@ -83,7 +80,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1
         "#,
         person.id
     )
-    .fetch_all(pool.as_ref())
+    .fetch_all(&mut state.get_connection().await?)
     .await?
     .into_iter()
     .map(|r| Event {
@@ -98,7 +95,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1
 
 pub async fn post_edit_person(
     Path(id): Path<i32>,
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
     Form(NoIDPerson {
         first_name,
         surname,
@@ -118,7 +115,7 @@ WHERE id=$1
         form,
         permissions as _
     )
-    .execute(pool.as_ref())
+    .execute(&mut state.get_connection().await?)
     .await?;
 
     Ok(Redirect::to(&format!("/edit_person/{id}")))
@@ -130,19 +127,9 @@ pub struct PasswordReset {
 }
 
 pub async fn post_reset_password(
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
     Form(PasswordReset { id }): Form<PasswordReset>,
 ) -> Result<impl IntoResponse, KnotError> {
-    sqlx::query!(
-        r#"
-UPDATE public.people
-SET hashed_password = NULL
-WHERE id=$1
-        "#,
-        id
-    )
-    .execute(pool.as_ref())
-    .await?;
-
+    state.reset_password(id).await?;
     Ok(Redirect::to("/show_all"))
 }

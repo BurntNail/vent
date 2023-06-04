@@ -3,7 +3,7 @@ use crate::{
     auth::{get_auth_object, Auth},
     error::KnotError,
     liquid_utils::compile,
-    routes::{DbEvent, DbPerson},
+    routes::{DbEvent, DbPerson}, state::KnotState,
 };
 use axum::{
     extract::{Path, State},
@@ -12,15 +12,14 @@ use axum::{
 use axum_extra::extract::Form;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Postgres};
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap};
 use tokio::fs::remove_file;
 
 #[allow(clippy::too_many_lines)]
 pub async fn get_update_event(
     auth: Auth,
     Path(event_id): Path<i32>,
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
     let DbEvent {
         id,
@@ -37,7 +36,7 @@ SELECT * FROM events WHERE id = $1
 "#,
         event_id
     )
-    .fetch_one(pool.as_ref())
+    .fetch_one(&mut state.get_connection().await?)
     .await?;
     let date = date.to_string();
 
@@ -71,7 +70,7 @@ INNER JOIN prefect_events pe ON pe.event_id = $1 AND pe.prefect_id = p.id
 "#,
         event_id
     )
-    .fetch_all(pool.as_ref())
+    .fetch_all(&mut state.get_connection().await?)
     .await?
     {
         existing_prefects
@@ -102,7 +101,7 @@ INNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.i
 "#,
         event_id
     )
-    .fetch_all(pool.as_ref())
+    .fetch_all(&mut state.get_connection().await?)
     .await?
     {
         existing_participants
@@ -127,12 +126,12 @@ INNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.i
     for person in sqlx::query_as!(
         DbPerson,
         r#"
-SELECT id, first_name, surname, form, hashed_password, permissions as "permissions: _" 
+SELECT id, first_name, surname, username, form, hashed_password, permissions as "permissions: _" 
 FROM people p
 WHERE p.permissions != 'participant'
 "#
     )
-    .fetch_all(pool.as_ref())
+    .fetch_all(&mut state.get_connection().await?)
     .await?
     .into_iter()
     .filter(|p| {
@@ -162,11 +161,11 @@ WHERE p.permissions != 'participant'
     for person in sqlx::query_as!(
         DbPerson,
         r#"
-SELECT id, first_name, surname, form, hashed_password, permissions as "permissions: _" 
+SELECT id, first_name, surname, username, form, hashed_password, permissions as "permissions: _" 
 FROM people p
 "#
     )
-    .fetch_all(pool.as_ref())
+    .fetch_all(&mut state.get_connection().await?)
     .await?
     .into_iter()
     .filter(|p| {
@@ -206,7 +205,7 @@ WHERE event_id = $1
         "#,
         event_id
     )
-    .fetch_all(pool.as_ref())
+    .fetch_all(&mut state.get_connection().await?)
     .await?;
 
     compile(
@@ -231,7 +230,7 @@ WHERE event_id = $1
 }
 pub async fn post_update_event(
     Path(event_id): Path<i32>,
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
     Form(FormEvent {
         name,
         date,
@@ -255,7 +254,7 @@ WHERE id=$1
         teacher,
         info
     )
-    .execute(pool.as_ref())
+    .execute(&mut state.get_connection().await?)
     .await?;
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
@@ -267,7 +266,7 @@ pub struct Removal {
 }
 
 pub async fn get_remove_prefect_from_event(
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
     Form(Removal { relation_id }): Form<Removal>,
 ) -> Result<impl IntoResponse, KnotError> {
     let id = sqlx::query!(
@@ -277,14 +276,14 @@ RETURNING event_id
 "#,
         relation_id
     )
-    .fetch_one(pool.as_ref())
+    .fetch_one(&mut state.get_connection().await?)
     .await?
     .event_id;
 
     Ok(Redirect::to(&format!("/update_event/{id}")))
 }
 pub async fn get_remove_participant_from_event(
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
     Form(Removal { relation_id }): Form<Removal>,
 ) -> Result<impl IntoResponse, KnotError> {
     let id = sqlx::query!(
@@ -294,7 +293,7 @@ RETURNING event_id
 "#,
         relation_id
     )
-    .fetch_one(pool.as_ref())
+    .fetch_one(&mut state.get_connection().await?)
     .await?
     .event_id;
 
@@ -303,7 +302,7 @@ RETURNING event_id
 
 pub async fn delete_image(
     Path(img_id): Path<i32>,
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
     let event = sqlx::query!(
         r#"
@@ -312,7 +311,7 @@ WHERE id=$1
 RETURNING path, event_id"#,
         img_id
     )
-    .fetch_one(pool.as_ref())
+    .fetch_one(&mut state.get_connection().await?)
     .await?;
 
     if let Some(existing_zip_file) = sqlx::query!(
@@ -322,7 +321,7 @@ FROM events
 WHERE id = $1"#,
         event.event_id
     )
-    .fetch_one(pool.as_ref())
+    .fetch_one(&mut state.get_connection().await?)
     .await?
     .zip_file
     {
@@ -333,7 +332,7 @@ WHERE id = $1"#,
     WHERE id = $1"#,
             event.event_id
         )
-        .execute(pool.as_ref())
+        .execute(&mut state.get_connection().await?)
         .await?;
 
         remove_file(existing_zip_file).await?;

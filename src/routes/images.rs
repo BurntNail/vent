@@ -1,4 +1,4 @@
-use crate::error::KnotError;
+use crate::{error::KnotError, state::KnotState};
 use async_zip::{tokio::write::ZipFileWriter, Compression, ZipEntryBuilder};
 use axum::{
     body::StreamBody,
@@ -7,8 +7,7 @@ use axum::{
     response::{IntoResponse, Redirect},
 };
 use rand::{thread_rng, Rng};
-use sqlx::{Pool, Postgres};
-use std::{ffi::OsStr, path::PathBuf, sync::Arc};
+use std::{ffi::OsStr, path::PathBuf};
 use tokio::{
     fs::File,
     io::{AsyncReadExt, AsyncWriteExt},
@@ -21,7 +20,7 @@ use super::public::serve_static_file;
 #[axum::debug_handler]
 pub async fn post_add_photo(
     Path(event_id): Path<i32>,
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, KnotError> {
     sqlx::query!(
@@ -31,7 +30,7 @@ SET zip_file = NULL
 WHERE id = $1"#,
         event_id
     )
-    .execute(pool.as_ref())
+    .execute(&mut state.get_connection().await?)
     .await?;
 
     while let Some(field) = multipart.next_field().await? {
@@ -52,7 +51,7 @@ WHERE id = $1"#,
             "#,
                 key
             )
-            .fetch_optional(pool.as_ref())
+            .fetch_optional(&mut state.get_connection().await?)
             .await?
             .is_none()
             {
@@ -68,7 +67,7 @@ VALUES($1, $2)"#,
             file_name,
             event_id
         )
-        .execute(pool.as_ref())
+        .execute(&mut state.get_connection().await?)
         .await?;
 
         let mut file = File::create(file_name).await?;
@@ -102,7 +101,7 @@ pub async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoRespon
 
 pub async fn get_all_images(
     Path(event_id): Path<i32>,
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
     trace!(%event_id, "Checking for existing zip");
     if let Some(file_name) = sqlx::query!(
@@ -112,7 +111,7 @@ FROM events
 WHERE id = $1"#,
         event_id
     )
-    .fetch_one(pool.as_ref())
+    .fetch_one(&mut state.get_connection().await?)
     .await?
     .zip_file
     {
@@ -127,7 +126,7 @@ SELECT path FROM public.photos
 WHERE event_id = $1"#,
         event_id
     )
-    .fetch_all(pool.as_ref())
+    .fetch_all(&mut state.get_connection().await?)
     .await?
     .into_iter()
     .map(|x| x.path);
@@ -198,7 +197,7 @@ WHERE id = $2"#,
         &file_name,
         event_id
     )
-    .execute(pool.as_ref())
+    .execute(&mut state.get_connection().await?)
     .await?;
 
     serve_static_file(file_name).await

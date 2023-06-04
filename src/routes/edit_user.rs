@@ -1,7 +1,7 @@
 use crate::{
     auth::{get_auth_object, Auth},
     error::KnotError,
-    liquid_utils::compile,
+    liquid_utils::compile, state::KnotState,
 };
 use axum::{
     extract::State,
@@ -10,8 +10,6 @@ use axum::{
 };
 use bcrypt::{hash, DEFAULT_COST};
 use serde::Deserialize;
-use sqlx::{Pool, Postgres};
-use std::sync::Arc;
 
 pub async fn get_edit_user(auth: Auth) -> Result<impl IntoResponse, KnotError> {
     compile(
@@ -30,7 +28,7 @@ pub struct LoginDetails {
 
 pub async fn post_edit_user(
     auth: Auth,
-    State(pool): State<Arc<Pool<Postgres>>>,
+    State(state): State<KnotState>,
     Form(LoginDetails {
         first_name,
         surname,
@@ -51,7 +49,7 @@ WHERE id=$4;
         hashed,
         current_id
     )
-    .execute(pool.as_ref())
+    .execute(&mut state.get_connection().await?)
     .await?;
 
     Ok(Redirect::to("/"))

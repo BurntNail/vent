@@ -20,6 +20,8 @@ pub enum KnotError {
     Join(#[from] tokio::task::JoinError),
     #[error("Error Parsing Integer")]
     ParseInt(#[from] std::num::ParseIntError),
+    #[error("Error Parsing Bool")]
+    ParseBool(#[from] std::str::ParseBoolError),
     #[error("Error Parsing Time")]
     ParseTime(#[from] chrono::ParseError),
     #[error("Error in Headers")]
@@ -33,13 +35,21 @@ pub enum KnotError {
     #[error("Error creating Zip File")]
     Zip(#[from] ZipError),
     #[error("Error with XLSX")]
-    Csv(#[from] rust_xlsxwriter::XlsxError),
+    Xlsx(#[from] rust_xlsxwriter::XlsxError),
     #[error("Error with Encrypting")]
     Bcrypt(#[from] bcrypt::BcryptError),
     #[error("Error converting Header to string, possibly invalid UTF-8")]
     HeaderToStr(#[from] http::header::ToStrError),
     #[error("Error reqwest-ing")]
     Reqwest(#[from] reqwest::Error),
+    #[error("Error parsing email address")]
+    LettreAddress(#[from] lettre::address::AddressError),
+    #[error("Error with Emails")]
+    LettreEmail(#[from] lettre::error::Error),
+    #[error("Error with SMTP")]
+    LettreSMTP(#[from] lettre::transport::smtp::Error),
+    #[error("Error with CSV Files")]
+    Csv(#[from] csv_async::Error),
     #[error("Random Eyre Error")]
     Eyre(#[from] eyre::Error), //thanks axum_login ;)
 
@@ -52,6 +62,9 @@ pub enum KnotError {
     InvalidUTF8,
     #[error("Failed Cloudflare Turnstile")]
     FailedTurnstile,
+    #[error("CSV incorrect format")]
+    MalformedCSV,
+
 }
 
 pub fn get_error_page(error_code: StatusCode, content: impl Debug) -> (StatusCode, Html<String>) {

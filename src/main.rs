@@ -9,9 +9,10 @@ mod auth;
 mod error;
 mod liquid_utils;
 mod routes;
+mod state;
 
 use crate::{
-    auth::{get_login, get_login_failure, post_login, post_logout, RequireAuth, Store},
+    auth::{get_login, get_login_failure, post_login, post_logout, RequireAuth, Store, get_add_password, post_add_password, get_blank_add_password},
     liquid_utils::partials::reload_partials,
     routes::{
         edit_person::{get_edit_person, post_edit_person, post_reset_password},
@@ -20,8 +21,8 @@ use crate::{
         images::{get_all_images, post_add_photo, serve_image},
         public::{get_256, get_512, get_manifest, get_offline, get_sw},
         spreadsheets::get_spreadsheet,
-        update_event_and_person::delete_image,
-    },
+        update_event_and_person::delete_image, import_export::{get_import_export_csv, export_events_to_csv, export_people_to_csv, post_import_people_from_csv, post_import_events_from_csv},
+    }, state::KnotState,
 };
 use auth::PermissionsRole;
 use axum::{
@@ -50,7 +51,7 @@ use routes::{
     },
 };
 use sqlx::postgres::PgPoolOptions;
-use std::{env::var, net::SocketAddr, sync::Arc};
+use std::{env::var, net::SocketAddr};
 use tokio::signal;
 use tower_http::trace::TraceLayer;
 
@@ -64,7 +65,7 @@ pub static PROJECT_NAME: Lazy<String> =
     Lazy::new(|| var("INSTANCE_NAME").unwrap_or_else(|_e| "House Events Manager".into()));
 
 // https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs
-async fn shutdown_signal() {
+async fn shutdown_signal(state: KnotState) {
     let ctrl_c = async {
         signal::ctrl_c()
             .await
@@ -87,10 +88,12 @@ async fn shutdown_signal() {
         _ = terminate => {},
     }
 
+    state.stop_emails();
     warn!("signal received, starting graceful shutdown");
 }
 
 #[tokio::main]
+#[allow(clippy::too_many_lines)]
 async fn main() {
     dotenvy::dotenv().expect("unable to get env variables");
     tracing_subscriber::fmt::init();
@@ -122,6 +125,8 @@ FROM people WHERE id = $1
         &secret,
     );
 
+    let state = KnotState::new(pool);
+
     let app = Router::new()
         .route("/reload_partials", get(reload_partials))
         .route_layer(RequireAuth::login_with_role(PermissionsRole::Dev..)) //dev ^
@@ -132,6 +137,8 @@ FROM people WHERE id = $1
             get(get_eoy_migration).post(post_eoy_migration),
         )
         .route("/reset_password", post(post_reset_password))
+        .route("/import_people_from_csv", post(post_import_people_from_csv))
+        .route("/import_events_from_csv", post(post_import_events_from_csv))
         .route_layer(RequireAuth::login_with_role(PermissionsRole::Admin..)) //admin ^
         .route(
             "/add_event",
@@ -155,12 +162,17 @@ FROM people WHERE id = $1
         .route("/uploads/:img", get(serve_image))
         .route("/edit_user", get(get_edit_user).post(post_edit_user))
         .route("/logout", get(post_logout))
+        .route("/csv", get(get_import_export_csv))
+        .route("/csv_people", get(export_people_to_csv))
+        .route("/csv_events", get(export_events_to_csv))
         .route_layer(RequireAuth::login()) //^ REQUIRE LOGIN ^
         .route("/", get(get_index))
         .route(
             "/edit_person/:id",
             get(get_edit_person).post(post_edit_person),
         )
+        .route("/add_password", get(get_blank_add_password))
+        .route("/add_password/:user_id", get(get_add_password).post(post_add_password))
         .route(
             "/update_event/:id",
             get(get_update_event).post(post_update_event),
@@ -180,7 +192,7 @@ FROM people WHERE id = $1
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think
         .layer(auth_layer)
         .layer(session_layer)
-        .with_state(Arc::new(pool));
+        .with_state(state.clone());
 
     let port: SocketAddr = var("KNOT_SERVER_IP")
         .expect("need KNOT_SERVER_IP env var")
@@ -191,7 +203,7 @@ FROM people WHERE id = $1
 
     axum::Server::bind(&port)
         .serve(app.into_make_service())
-        .with_graceful_shutdown(shutdown_signal())
+        .with_graceful_shutdown(shutdown_signal(state))
         .await
         .unwrap();
 }
