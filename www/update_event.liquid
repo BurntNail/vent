@@ -327,28 +327,30 @@
 
       <br>
 
-      <div class="card">
-        <div class="card-body">
-          <form
-            action="/add_image/{{event.id}}"
-            method="POST"
-            enctype=multipart/form-data>
-            <div class="mb-3">
-              <label for="photo" class="form-label">Add Photo:</label>
-              <input
-                type="file"
-                name="photo"
-                id="photo"
-                class="form-control"
-                accept="image/bmp, image/exr, image/gif, image/hdr, image/ico, image/jpeg, image/png, image/qoi, image/tiff, image/webp"
-                required
-                multiple>
-            </div>
+      {% if auth.permissions["add_photos"] %}
+        <div class="card">
+          <div class="card-body">
+            <form
+              action="/add_image/{{event.id}}"
+              method="POST"
+              enctype=multipart/form-data>
+              <div class="mb-3">
+                <label for="photo" class="form-label">Add Photo:</label>
+                <input
+                  type="file"
+                  name="photo"
+                  id="photo"
+                  class="form-control"
+                  accept="image/bmp, image/exr, image/gif, image/hdr, image/ico, image/jpeg, image/png, image/qoi, image/tiff, image/webp"
+                  required
+                  multiple>
+              </div>
 
-            <button type="submit" class="btn btn-primary">Add photo.</button>
-          </form>
+              <button type="submit" class="btn btn-primary">Add photo.</button>
+            </form>
+          </div>
         </div>
-      </div>
+      {% endif %}
     {% else %}
       <p class="warning">You must login to view images.</p>
     {% endif %}
