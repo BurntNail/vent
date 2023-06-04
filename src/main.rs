@@ -12,7 +12,7 @@ mod routes;
 mod state;
 
 use crate::{
-    auth::{get_login, get_login_failure, post_login, post_logout, RequireAuth, Store},
+    auth::{get_login, get_login_failure, post_login, post_logout, RequireAuth, Store, get_add_password, post_add_password, get_blank_add_password},
     liquid_utils::partials::reload_partials,
     routes::{
         edit_person::{get_edit_person, post_edit_person, post_reset_password},
@@ -165,6 +165,8 @@ FROM people WHERE id = $1
             "/edit_person/:id",
             get(get_edit_person).post(post_edit_person),
         )
+        .route("/add_password", get(get_blank_add_password))
+        .route("/add_password/:user_id", get(get_add_password).post(post_add_password))
         .route(
             "/update_event/:id",
             get(get_update_event).post(post_update_event),

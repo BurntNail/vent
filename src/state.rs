@@ -9,8 +9,9 @@ use crate::{error::KnotError, PROJECT_NAME, liquid_utils::DOMAIN};
 #[derive(Debug)]
 pub struct EmailToSend {
     pub to_username: String,
+    pub to_id: i32,
     pub to_fullname: String,
-    pub unique_id: i128,
+    pub unique_id: i32,
 }
 
 #[derive(Clone)]
@@ -54,7 +55,7 @@ pub fn email_sender_thread () -> (UnboundedSender<EmailToSend>,UnboundedSender<(
     let (msg_tx, mut msg_rx) = unbounded_channel();
     let (stop_tx, mut stop_rx) = unbounded_channel();
 
-    async fn send_email (EmailToSend {to_username, to_fullname, unique_id}: EmailToSend, mailer: &AsyncSmtpTransport<Tokio1Executor>) -> Result<(), KnotError> {
+    async fn send_email (EmailToSend {to_username, to_id, to_fullname, unique_id}: EmailToSend, mailer: &AsyncSmtpTransport<Tokio1Executor>) -> Result<(), KnotError> {
         let m = Message::builder()
             .from(format!("Knot NoReply <{}>", GMAIL_USERNAME.as_str()).parse()?)
             .to(format!("{to_fullname} <{to_username}@{}>", USERNAME_DOMAIN.as_str()).parse()?)
@@ -63,9 +64,9 @@ pub fn email_sender_thread () -> (UnboundedSender<EmailToSend>,UnboundedSender<(
 
 You've just tried to login to {}, but you don't have a password set yet.
 
-To set one, go to {}/{}
+To set one, go to {}/add_password/{}, with the code {}.
 
-Have a nice day!"#, to_fullname, PROJECT_NAME.as_str(), DOMAIN.1, unique_id))?;
+Have a nice day!"#, to_fullname, PROJECT_NAME.as_str(), DOMAIN.1, to_id, unique_id))?;
 
         info!(?m, "Sending email");
 

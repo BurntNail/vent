@@ -58,6 +58,7 @@ pub enum KnotError {
     InvalidUTF8,
     #[error("Failed Cloudflare Turnstile")]
     FailedTurnstile,
+
 }
 
 pub fn get_error_page(error_code: StatusCode, content: impl Debug) -> (StatusCode, Html<String>) {

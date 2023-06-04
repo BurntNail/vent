@@ -1,5 +1,5 @@
 ALTER TABLE people
-ADD COLUMN is_prefect NOT NULL DEFAULT 'false';
+ADD COLUMN is_prefect BOOL NOT NULL DEFAULT 'false';
 
 UPDATE people
 SET
