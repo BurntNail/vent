@@ -166,7 +166,7 @@ pub async fn get_add_password(
         .fetch_one(&mut state.get_connection().await?)
         .await?
         .hashed_password
-        .is_none()
+        .is_some()
     {
         return Ok(Redirect::to("/login_failure/password_already_set").into_response());
     }
@@ -220,18 +220,11 @@ pub async fn post_add_password(
         .fetch_one(&mut state.get_connection().await?)
         .await?
         .hashed_password
-        .is_none()
+        .is_some()
     {
         return Ok(Redirect::to("/login_failure/password_already_set"));
     }
-    if sqlx::query!("SELECT hashed_password FROM people WHERE id = $1", id)
-        .fetch_one(&mut state.get_connection().await?)
-        .await?
-        .hashed_password
-        .is_none()
-    {
-        return Ok(Redirect::to("/login_failure/password_already_set"));
-    }
+
 
     let expected = sqlx::query!("SELECT password_link_id FROM people WHERE id = $1", id)
         .fetch_one(&mut state.get_connection().await?)
