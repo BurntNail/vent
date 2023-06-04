@@ -33,7 +33,7 @@ pub enum KnotError {
     #[error("Error creating Zip File")]
     Zip(#[from] ZipError),
     #[error("Error with XLSX")]
-    Csv(#[from] rust_xlsxwriter::XlsxError),
+    Xlsx(#[from] rust_xlsxwriter::XlsxError),
     #[error("Error with Encrypting")]
     Bcrypt(#[from] bcrypt::BcryptError),
     #[error("Error converting Header to string, possibly invalid UTF-8")]
@@ -46,6 +46,8 @@ pub enum KnotError {
     LettreEmail(#[from] lettre::error::Error),
     #[error("Error with SMTP")]
     LettreSMTP(#[from] lettre::transport::smtp::Error),
+    #[error("Error with CSV Files")]
+    Csv(#[from] csv_async::Error),
     #[error("Random Eyre Error")]
     Eyre(#[from] eyre::Error), //thanks axum_login ;)
 

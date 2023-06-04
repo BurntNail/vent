@@ -268,6 +268,7 @@ pub fn get_auth_object(auth: Auth) -> liquid::Object {
     if let Some(user) = auth.current_user {
         let perms = liquid::object!({
             "dev_access": user.permissions >= PermissionsRole::Dev,
+            "import_csv": user.permissions >= PermissionsRole::Admin,
             "run_migrations": user.permissions >= PermissionsRole::Admin,
             "edit_people": user.permissions >= PermissionsRole::Admin,
             "edit_events": user.permissions >= PermissionsRole::Prefect,
@@ -275,12 +276,14 @@ pub fn get_auth_object(auth: Auth) -> liquid::Object {
             "edit_prefects_on_events": user.permissions >= PermissionsRole::Prefect,
             "edit_participants_on_events": user.permissions >= PermissionsRole::Participant,
             "see_photos": user.permissions >= PermissionsRole::Participant,
+            "export_csv": user.permissions >= PermissionsRole::Participant,
         });
 
         liquid::object!({ "role": user.permissions, "permissions": perms, "user": user })
     } else {
         let perms = liquid::object!({
             "dev_access": false,
+            "import_csv": false,
             "run_migrations": false,
             "edit_people": false,
             "edit_events": false,
@@ -288,6 +291,7 @@ pub fn get_auth_object(auth: Auth) -> liquid::Object {
             "edit_prefects_on_events": false,
             "edit_participants_on_events": false,
             "see_photos": false,
+            "export_csv": false,
         });
 
         liquid::object!({"role": "visitor", "permissions": perms })

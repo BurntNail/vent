@@ -21,7 +21,7 @@ use crate::{
         images::{get_all_images, post_add_photo, serve_image},
         public::{get_256, get_512, get_manifest, get_offline, get_sw},
         spreadsheets::get_spreadsheet,
-        update_event_and_person::delete_image,
+        update_event_and_person::delete_image, import_export::{get_import_export_csv, export_events_to_csv, export_people_to_csv},
     }, state::KnotState,
 };
 use auth::PermissionsRole;
@@ -93,6 +93,7 @@ async fn shutdown_signal(state: KnotState) {
 }
 
 #[tokio::main]
+#[allow(clippy::too_many_lines)]
 async fn main() {
     dotenvy::dotenv().expect("unable to get env variables");
     tracing_subscriber::fmt::init();
@@ -159,6 +160,9 @@ FROM people WHERE id = $1
         .route("/uploads/:img", get(serve_image))
         .route("/edit_user", get(get_edit_user).post(post_edit_user))
         .route("/logout", get(post_logout))
+        .route("/csv", get(get_import_export_csv))
+        .route("/csv_people", get(export_people_to_csv))
+        .route("/csv_events", get(export_events_to_csv))
         .route_layer(RequireAuth::login()) //^ REQUIRE LOGIN ^
         .route("/", get(get_index))
         .route(

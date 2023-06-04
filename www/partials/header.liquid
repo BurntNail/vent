@@ -46,6 +46,19 @@
                 <a class="nav-link" href="/show_all">See All</a>
               </li>
 
+              {% if auth.permissions["export_csv"] %}
+              <li class="nav-item dropdown">
+                <li class="nav-item">
+                  <a class="nav-link" href="/csv">
+                  {% if auth.permissions["import_csv"] %}
+                  Import/Export from/to CSV
+                  {% else %}
+                  Export to CSV
+{% endif %}
+                  </a>
+                </li>
+              {% endif %}
+
               {% if auth.permissions["edit_people"] %}
               <li class="nav-item dropdown">
                 <li class="nav-item">
