@@ -141,14 +141,14 @@ WHERE username = $1
             .map(|x| x.password_link_id.unwrap()) //we check for null above so fine
             .collect_vec();
 
-            let id = {
+            let id: i32 = {
                 let mut rng = thread_rng();
-                let mut tester = rng.gen::<i32>();
-                while current_ids.contains(&tester) {
-                    tester = rng.gen::<i32>();
+                let mut tester = rng.gen::<u16>();
+                while current_ids.contains(&(tester.into())) {
+                    tester = rng.gen::<u16>();
                 }
                 tester
-            };
+            }.into(); //ensure always positive
 
             sqlx::query!(
                 "UPDATE people SET password_link_id = $1 WHERE id = $2",
@@ -263,7 +263,7 @@ pub async fn post_add_password(
         .hashed_password
         .is_none()
     {
-        return Ok(Redirect::to("/login_failure/password_already_set").into_response());
+        return Ok(Redirect::to("/login_failure/password_already_set"));
     }
 
     let expected = sqlx::query!("SELECT password_link_id FROM people WHERE id = $1", id)
