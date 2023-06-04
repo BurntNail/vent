@@ -1,2 +1,1 @@
-ALTER TABLE events
-ADD COLUMN zip_file TEXT
+ALTER TABLE events ADD COLUMN zip_file TEXT

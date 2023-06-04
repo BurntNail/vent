@@ -1,2 +1,1 @@
-ALTER TABLE events
-DROP COLUMN zip_file
+ALTER TABLE events DROP COLUMN zip_file
