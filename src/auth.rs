@@ -79,6 +79,8 @@ pub enum FailureReason {
     UserNotFound,
     #[serde(rename = "failed_numbers")]
     FailedNumbers,
+    #[serde(rename = "password_already_set")]
+    PasswordAlreadySet,
 }
 
 pub async fn get_login_failure(
@@ -186,10 +188,20 @@ pub async fn get_add_password(
     Path(id): Path<i32>,
 ) -> Result<impl IntoResponse, KnotError> {
     if sqlx::query!("SELECT password_link_id FROM people WHERE id = $1", id)
-    .fetch_one(&mut state.get_connection().await?)
-    .await?
-    .password_link_id.is_none() {
+        .fetch_one(&mut state.get_connection().await?)
+        .await?
+        .password_link_id
+        .is_none()
+    {
         return Ok(Redirect::to("/login_failure/no_numbers").into_response());
+    }
+    if sqlx::query!("SELECT hashed_password FROM people WHERE id = $1", id)
+        .fetch_one(&mut state.get_connection().await?)
+        .await?
+        .hashed_password
+        .is_none()
+    {
+        return Ok(Redirect::to("/login_failure/password_already_set").into_response());
     }
 
     let person = sqlx::query_as!(
@@ -211,7 +223,8 @@ WHERE id = $1"#,
             "auth": get_auth_object(auth)
         }),
     )
-    .await?.into_response())
+    .await?
+    .into_response())
 }
 
 #[derive(Deserialize)]
@@ -235,6 +248,23 @@ pub async fn post_add_password(
     }): Form<AddPasswordForm>,
 ) -> Result<impl IntoResponse, KnotError> {
     verify_turnstile(cf_turnstile_response, remote_ip).await?;
+
+    if sqlx::query!("SELECT hashed_password FROM people WHERE id = $1", id)
+        .fetch_one(&mut state.get_connection().await?)
+        .await?
+        .hashed_password
+        .is_none()
+    {
+        return Ok(Redirect::to("/login_failure/password_already_set"));
+    }
+    if sqlx::query!("SELECT hashed_password FROM people WHERE id = $1", id)
+        .fetch_one(&mut state.get_connection().await?)
+        .await?
+        .hashed_password
+        .is_none()
+    {
+        return Ok(Redirect::to("/login_failure/password_already_set").into_response());
+    }
 
     let expected = sqlx::query!("SELECT password_link_id FROM people WHERE id = $1", id)
         .fetch_one(&mut state.get_connection().await?)
