@@ -39,6 +39,7 @@ impl KnotState {
     }
 
     pub async fn reset_password (&self, user_id: i32) -> Result<(), KnotError> {
+    	  
         let current_ids = sqlx::query!(
             r#"SELECT password_link_id FROM people WHERE password_link_id <> NULL"#
         )
@@ -85,8 +86,9 @@ impl KnotState {
 
 
 pub fn email_sender_thread () -> (UnboundedSender<EmailToSend>,UnboundedSender<()>) {
-    static GMAIL_USERNAME: Lazy<String> = Lazy::new(|| var("GMAIL_USERNAME").expect("unable to get GMAIL_USERNAME"));
-    static GMAIL_PASSWORD: Lazy<String> = Lazy::new(|| var("GMAIL_APP_PASSWORD").expect("unable to get GMAIL_APP_PASSWORD"));
+    static MAIL_USERNAME: Lazy<String> = Lazy::new(|| var("MAIL_USERNAME").expect("unable to get MAIL_USERNAME"));
+    static MAIL_PASSWORD: Lazy<String> = Lazy::new(|| var("MAIL_PASSWORD").expect("unable to get MAIL_PASSWORD"));
+    static MAIL_SMTP: Lazy<String> = Lazy::new(|| var("MAIL_SMTP").expect("unable to get MAIL_SMTP"));
     static USERNAME_DOMAIN: Lazy<String> = Lazy::new(|| var("USERNAME_DOMAIN").expect("unable to get USERNAME_DOMAIN"));
 
 
@@ -95,18 +97,18 @@ pub fn email_sender_thread () -> (UnboundedSender<EmailToSend>,UnboundedSender<(
 
     async fn send_email (EmailToSend {to_username, to_id, to_fullname, unique_id}: EmailToSend, mailer: &AsyncSmtpTransport<Tokio1Executor>) -> Result<(), KnotError> {
         let m = Message::builder()
-            .from(format!("Knot NoReply <{}>", GMAIL_USERNAME.as_str()).parse()?)
+            .from(format!("Knot NoReply <{}>", MAIL_USERNAME.as_str()).parse()?)
             .to(format!("{to_fullname} <{to_username}@{}>", USERNAME_DOMAIN.as_str()).parse()?)
-            .subject("Knot - Add Password")
+            .subject("Knot - Add Password".to_string())
             .body(format!(r#"Dear {},
 
 You've just tried to login to {}, but you don't have a password set yet.
 
-To set one, go to {}/add_password/{}, with the code {}.
+To set one, go to {}/add_password/{} , with the code {}.
 
 Have a nice day!"#, to_fullname, PROJECT_NAME.as_str(), DOMAIN.1, to_id, unique_id))?;
 
-        info!(?m, "Sending email");
+        info!(%to_fullname, %to_id, numbers=%unique_id, "Sending email.");
 
         mailer.send(m).await?;
 
@@ -114,7 +116,7 @@ Have a nice day!"#, to_fullname, PROJECT_NAME.as_str(), DOMAIN.1, to_id, unique_
     }
 
     tokio::spawn(async move {
-        let mailer = AsyncSmtpTransport::<Tokio1Executor>::relay("smtp.gmail.com").expect("unable to get relay").credentials(Credentials::new(GMAIL_USERNAME.clone(), GMAIL_PASSWORD.clone())).build();
+        let mailer = AsyncSmtpTransport::<Tokio1Executor>::relay(&MAIL_SMTP).expect("unable to get relay").credentials(Credentials::new(MAIL_USERNAME.clone(), MAIL_PASSWORD.clone())).build();
 
         loop {
             if let Some(ret) = tokio::select! {

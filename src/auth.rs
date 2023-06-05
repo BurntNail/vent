@@ -37,7 +37,7 @@ impl AuthUser<i32, PermissionsRole> for DbPerson {
     fn get_password_hash(&self) -> axum_login::secrecy::SecretVec<u8> {
         let Some(hp) = self.hashed_password.clone() else {
             error!(?self, "Missing Password");
-            panic!("Missing Password!")
+            panic!("Missing Password!");
         };
         SecretVec::new(hp.into())
     }

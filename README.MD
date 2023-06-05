@@ -25,8 +25,9 @@ You need to have a `.env` file with the following variables set:
 |`KNOT_SERVER_IP`|This is the IP the server should serve to|`127.0.0.1:8080`|
 |`CFT_SITEKEY`|This is the Sitekey for [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/)|`0x4AAAAAAAAAAAAAAAAAAAAAAAAAAA`|
 |`CFT_SECRETKEY`|This is the secret key for [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/)|`0x4AAAAAAAAAAAAAAAAAAAAAAAAAAB`|
-|`GMAIL_USERNAME`|This is the username for the gmail account that will send password set links.|`noreply.knot@gmail.com`|
-|`GMAIL_APP_PASSWORD`|This is the gmail [App Password](https://support.google.com/accounts/answer/185833?sjid=1150758987105475430-EU) that will be used to sign in.|`aaaaaaaaaaaaaaab`|
+|`MAIL_USERNAME`|This is the username for the mail account that will send password set links.|`noreply.knot@gmail.com`|
+|`MAIL_PASSWORD`|This is the password for the mail account.|`aaaaaaaaaaaaaaab`|
+|`MAIL_SMTP`|This is the SMTP server for the mail account.|`smtp.zoho.eu`|
 |`USERNAME_DOMAIN`|This is the domain that users are registered under to send emails to.|`gmail.com`|
 
 
