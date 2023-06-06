@@ -1,4 +1,5 @@
 pub mod cloudflare_turnstile;
+pub mod pg_session;
 
 use self::cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP};
 use crate::{error::KnotError, liquid_utils::compile, routes::DbPerson, state::KnotState};

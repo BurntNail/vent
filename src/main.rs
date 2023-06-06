@@ -122,7 +122,7 @@ async fn main() {
         v.append(&mut rng.gen::<[u8; 32]>().to_vec());
         v
     };
-    let session_layer = SessionLayer::new(MemoryStore::new(), &secret);
+    let session_layer = SessionLayer::new(PostgresSessionStore::new(pool.clone()), &secret);
     let auth_layer = AuthLayer::new(
         Store::new(pool.clone()).with_query(
             r#"
