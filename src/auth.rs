@@ -1,4 +1,5 @@
 pub mod cloudflare_turnstile;
+pub mod session_store;
 
 use self::cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP};
 use crate::{

@@ -12,7 +12,9 @@ mod routes;
 mod state;
 
 use crate::{
-    auth::{get_login, get_login_failure, post_login, post_logout, RequireAuth, Store, get_add_password, post_add_password, get_blank_add_password},
+    auth::{get_login, get_login_failure, post_login, post_logout, RequireAuth, Store, get_add_password, post_add_password, get_blank_add_password,
+        RequireAuth, Store, session_store::PostgresSessionStore,
+    },
     liquid_utils::partials::reload_partials,
     routes::{
         edit_person::{get_edit_person, post_edit_person, post_reset_password},
@@ -31,7 +33,7 @@ use axum::{
     Router,
 };
 use axum_login::{
-    axum_sessions::{async_session::MemoryStore, SessionLayer},
+    axum_sessions::{SessionLayer},
     AuthLayer,
 };
 use liquid_utils::partials::PARTIALS;
@@ -114,7 +116,6 @@ async fn main() {
         v.append(&mut rng.gen::<[u8; 32]>().to_vec());
         v
     };
-    let session_layer = SessionLayer::new(MemoryStore::new(), &secret);
     let auth_layer = AuthLayer::new(
         Store::new(pool.clone()).with_query(
             r#"
@@ -126,6 +127,7 @@ FROM people WHERE id = $1
     );
 
     let state = KnotState::new(pool);
+    let session_layer = SessionLayer::new(PostgresSessionStore::new(pool.clone()), &secret);
 
     let app = Router::new()
         .route("/reload_partials", get(reload_partials))
