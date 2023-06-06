@@ -1,12 +1,7 @@
 pub mod cloudflare_turnstile;
 
 use self::cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP};
-use crate::{
-    error::KnotError,
-    liquid_utils::compile,
-    routes::DbPerson,
-    state::{KnotState},
-};
+use crate::{error::KnotError, liquid_utils::compile, routes::DbPerson, state::KnotState};
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Redirect},
@@ -224,7 +219,6 @@ pub async fn post_add_password(
     {
         return Ok(Redirect::to("/login_failure/password_already_set"));
     }
-
 
     let expected = sqlx::query!("SELECT password_link_id FROM people WHERE id = $1", id)
         .fetch_one(&mut state.get_connection().await?)

@@ -12,17 +12,25 @@ mod routes;
 mod state;
 
 use crate::{
-    auth::{get_login, get_login_failure, post_login, post_logout, RequireAuth, Store, get_add_password, post_add_password, get_blank_add_password},
+    auth::{
+        get_add_password, get_blank_add_password, get_login, get_login_failure, post_add_password,
+        post_login, post_logout, RequireAuth, Store,
+    },
     liquid_utils::partials::reload_partials,
     routes::{
         edit_person::{get_edit_person, post_edit_person, post_reset_password},
         edit_user::{get_edit_user, post_edit_user},
         eoy_migration::{get_eoy_migration, post_eoy_migration},
         images::{get_all_images, post_add_photo, serve_image},
+        import_export::{
+            export_events_to_csv, export_people_to_csv, get_import_export_csv,
+            post_import_events_from_csv, post_import_people_from_csv,
+        },
         public::{get_256, get_512, get_manifest, get_offline, get_sw},
         spreadsheets::get_spreadsheet,
-        update_event_and_person::delete_image, import_export::{get_import_export_csv, export_events_to_csv, export_people_to_csv, post_import_people_from_csv, post_import_events_from_csv},
-    }, state::KnotState,
+        update_event_and_person::delete_image,
+    },
+    state::KnotState,
 };
 use auth::PermissionsRole;
 use axum::{
@@ -172,7 +180,10 @@ FROM people WHERE id = $1
             get(get_edit_person).post(post_edit_person),
         )
         .route("/add_password", get(get_blank_add_password))
-        .route("/add_password/:user_id", get(get_add_password).post(post_add_password))
+        .route(
+            "/add_password/:user_id",
+            get(get_add_password).post(post_add_password),
+        )
         .route(
             "/update_event/:id",
             get(get_update_event).post(post_update_event),
@@ -186,7 +197,10 @@ FROM people WHERE id = $1
         .route("/show_all", get(get_remove_stuff))
         .route("/ical", get(get_calendar_feed))
         .route("/spreadsheet", get(get_spreadsheet))
-        .route("/login_failure/:was_password_related", get(get_login_failure))
+        .route(
+            "/login_failure/:was_password_related",
+            get(get_login_failure),
+        )
         .route("/login", get(get_login).post(post_login))
         .layer(TraceLayer::new_for_http())
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think

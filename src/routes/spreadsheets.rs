@@ -2,7 +2,7 @@ use super::public::serve_static_file;
 use crate::{error::KnotError, state::KnotState};
 use axum::{extract::State, response::IntoResponse};
 use rust_xlsxwriter::{Color, Format, FormatAlign, Workbook};
-use std::{collections::HashMap};
+use std::collections::HashMap;
 use tokio::task;
 
 pub async fn get_spreadsheet(

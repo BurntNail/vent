@@ -64,7 +64,6 @@ pub enum KnotError {
     FailedTurnstile,
     #[error("CSV incorrect format")]
     MalformedCSV,
-
 }
 
 pub fn get_error_page(error_code: StatusCode, content: impl Debug) -> (StatusCode, Html<String>) {
