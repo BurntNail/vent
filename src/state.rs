@@ -1,12 +1,15 @@
-use std::env::var;
 use itertools::Itertools;
-use lettre::{Message, transport::smtp::authentication::Credentials, AsyncSmtpTransport, Tokio1Executor, AsyncTransport};
+use lettre::{
+    transport::smtp::authentication::Credentials, AsyncSmtpTransport, AsyncTransport, Message,
+    Tokio1Executor,
+};
 use once_cell::sync::Lazy;
 use rand::{thread_rng, Rng};
-use sqlx::{Pool, Postgres, pool::PoolConnection};
-use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
+use sqlx::{pool::PoolConnection, Pool, Postgres};
+use std::env::var;
+use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 
-use crate::{error::KnotError, PROJECT_NAME, liquid_utils::DOMAIN};
+use crate::{error::KnotError, liquid_utils::DOMAIN, PROJECT_NAME};
 
 #[derive(Debug)]
 pub struct EmailToSend {
@@ -24,7 +27,7 @@ pub struct KnotState {
 }
 
 impl KnotState {
-    pub fn new (postgres: Pool<Postgres>) -> Self {
+    pub fn new(postgres: Pool<Postgres>) -> Self {
         let (mail_sender, stop_sender) = email_sender_thread();
 
         Self {
@@ -34,20 +37,18 @@ impl KnotState {
         }
     }
 
-    pub async fn get_connection (&self) -> Result<PoolConnection<Postgres>, sqlx::Error> {
+    pub async fn get_connection(&self) -> Result<PoolConnection<Postgres>, sqlx::Error> {
         self.postgres.acquire().await
     }
 
-    pub async fn reset_password (&self, user_id: i32) -> Result<(), KnotError> {
-    	  
-        let current_ids = sqlx::query!(
-            r#"SELECT password_link_id FROM people WHERE password_link_id <> NULL"#
-        )
-        .fetch_all(&mut self.get_connection().await?)
-        .await?
-        .into_iter()
-        .map(|x| x.password_link_id.unwrap()) //we check for null above so fine
-        .collect_vec();
+    pub async fn reset_password(&self, user_id: i32) -> Result<(), KnotError> {
+        let current_ids =
+            sqlx::query!(r#"SELECT password_link_id FROM people WHERE password_link_id <> NULL"#)
+                .fetch_all(&mut self.get_connection().await?)
+                .await?
+                .into_iter()
+                .map(|x| x.password_link_id.unwrap()) //we check for null above so fine
+                .collect_vec();
 
         let id: i32 = {
             let mut rng = thread_rng();
@@ -56,7 +57,8 @@ impl KnotState {
                 tester = rng.gen::<u16>();
             }
             tester
-        }.into(); //ensure always positive
+        }
+        .into(); //ensure always positive
 
         sqlx::query!(
             "UPDATE people SET password_link_id = $1, hashed_password = NULL WHERE id = $2",
@@ -66,47 +68,72 @@ impl KnotState {
         .execute(&mut self.get_connection().await?)
         .await?;
 
+        let person = sqlx::query!(
+            "SELECT username, first_name, surname FROM people WHERE id = $1",
+            user_id
+        )
+        .fetch_one(&mut self.get_connection().await?)
+        .await?;
 
-        let person = sqlx::query!("SELECT username, first_name, surname FROM people WHERE id = $1", user_id).fetch_one(&mut self.get_connection().await?).await?;
-
-        self.mail_sender.send(EmailToSend {
-            to_username: person.username,
-            to_id: user_id,
-            to_fullname: format!("{} {}", person.first_name, person.surname),
-            unique_id: id,
-        }).expect("error sending email");
+        self.mail_sender
+            .send(EmailToSend {
+                to_username: person.username,
+                to_id: user_id,
+                to_fullname: format!("{} {}", person.first_name, person.surname),
+                unique_id: id,
+            })
+            .expect("error sending email");
 
         Ok(())
     }
 
-    pub fn stop_emails (&self) {
-        self.stop_sender.send(()).expect("unable to send stop message");
+    pub fn stop_emails(&self) {
+        self.stop_sender
+            .send(())
+            .expect("unable to send stop message");
     }
 }
 
-
-pub fn email_sender_thread () -> (UnboundedSender<EmailToSend>,UnboundedSender<()>) {
-    static MAIL_USERNAME: Lazy<String> = Lazy::new(|| var("MAIL_USERNAME").expect("unable to get MAIL_USERNAME"));
-    static MAIL_PASSWORD: Lazy<String> = Lazy::new(|| var("MAIL_PASSWORD").expect("unable to get MAIL_PASSWORD"));
-    static MAIL_SMTP: Lazy<String> = Lazy::new(|| var("MAIL_SMTP").expect("unable to get MAIL_SMTP"));
-    static USERNAME_DOMAIN: Lazy<String> = Lazy::new(|| var("USERNAME_DOMAIN").expect("unable to get USERNAME_DOMAIN"));
-
+pub fn email_sender_thread() -> (UnboundedSender<EmailToSend>, UnboundedSender<()>) {
+    static MAIL_USERNAME: Lazy<String> =
+        Lazy::new(|| var("MAIL_USERNAME").expect("unable to get MAIL_USERNAME"));
+    static MAIL_PASSWORD: Lazy<String> =
+        Lazy::new(|| var("MAIL_PASSWORD").expect("unable to get MAIL_PASSWORD"));
+    static MAIL_SMTP: Lazy<String> =
+        Lazy::new(|| var("MAIL_SMTP").expect("unable to get MAIL_SMTP"));
+    static USERNAME_DOMAIN: Lazy<String> =
+        Lazy::new(|| var("USERNAME_DOMAIN").expect("unable to get USERNAME_DOMAIN"));
 
     let (msg_tx, mut msg_rx) = unbounded_channel();
     let (stop_tx, mut stop_rx) = unbounded_channel();
 
-    async fn send_email (EmailToSend {to_username, to_id, to_fullname, unique_id}: EmailToSend, mailer: &AsyncSmtpTransport<Tokio1Executor>) -> Result<(), KnotError> {
+    async fn send_email(
+        EmailToSend {
+            to_username,
+            to_id,
+            to_fullname,
+            unique_id,
+        }: EmailToSend,
+        mailer: &AsyncSmtpTransport<Tokio1Executor>,
+    ) -> Result<(), KnotError> {
         let m = Message::builder()
             .from(format!("Knot NoReply <{}>", MAIL_USERNAME.as_str()).parse()?)
             .to(format!("{to_fullname} <{to_username}@{}>", USERNAME_DOMAIN.as_str()).parse()?)
             .subject("Knot - Add Password".to_string())
-            .body(format!(r#"Dear {},
+            .body(format!(
+                r#"Dear {},
 
 You've just tried to login to {}, but you don't have a password set yet.
 
 To set one, go to {}/add_password/{} , with the code {}.
 
-Have a nice day!"#, to_fullname, PROJECT_NAME.as_str(), DOMAIN.1, to_id, unique_id))?;
+Have a nice day!"#,
+                to_fullname,
+                PROJECT_NAME.as_str(),
+                DOMAIN.1,
+                to_id,
+                unique_id
+            ))?;
 
         info!(%to_fullname, %to_id, numbers=%unique_id, "Sending email.");
 
@@ -116,7 +143,13 @@ Have a nice day!"#, to_fullname, PROJECT_NAME.as_str(), DOMAIN.1, to_id, unique_
     }
 
     tokio::spawn(async move {
-        let mailer = AsyncSmtpTransport::<Tokio1Executor>::relay(&MAIL_SMTP).expect("unable to get relay").credentials(Credentials::new(MAIL_USERNAME.clone(), MAIL_PASSWORD.clone())).build();
+        let mailer = AsyncSmtpTransport::<Tokio1Executor>::relay(&MAIL_SMTP)
+            .expect("unable to get relay")
+            .credentials(Credentials::new(
+                MAIL_USERNAME.clone(),
+                MAIL_PASSWORD.clone(),
+            ))
+            .build();
 
         loop {
             if let Some(ret) = tokio::select! {

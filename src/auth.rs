@@ -1,12 +1,8 @@
 pub mod cloudflare_turnstile;
+pub mod pg_session;
 
 use self::cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP};
-use crate::{
-    error::KnotError,
-    liquid_utils::compile,
-    routes::DbPerson,
-    state::{KnotState},
-};
+use crate::{error::KnotError, liquid_utils::compile, routes::DbPerson, state::KnotState};
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Redirect},
@@ -16,7 +12,9 @@ use axum_login::{
     extractors::AuthContext, secrecy::SecretVec, AuthUser, PostgresStore, RequireAuthorizationLayer,
 };
 use bcrypt::{hash, verify, DEFAULT_COST};
+use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
+use sqlx::{Pool, Postgres};
 
 #[derive(
     sqlx::Type, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Serialize, Deserialize, Debug,
@@ -50,6 +48,29 @@ impl AuthUser<i32, PermissionsRole> for DbPerson {
 pub type Auth = AuthContext<i32, DbPerson, Store, PermissionsRole>;
 pub type RequireAuth = RequireAuthorizationLayer<i32, DbPerson, PermissionsRole>;
 pub type Store = PostgresStore<DbPerson, PermissionsRole>;
+
+pub async fn get_secret(pool: &Pool<Postgres>) -> Result<Vec<u8>, KnotError> {
+    if let Some(x) = sqlx::query!("SELECT sekrit FROM secrets")
+        .fetch_optional(&mut pool.acquire().await?)
+        .await?
+    {
+        Ok(x.sekrit)
+    } else {
+        let secret = {
+            let mut rng = thread_rng();
+            let mut v = Vec::with_capacity(64);
+            v.append(&mut rng.gen::<[u8; 32]>().to_vec());
+            v.append(&mut rng.gen::<[u8; 32]>().to_vec());
+            v
+        };
+
+        sqlx::query!("INSERT INTO secrets (sekrit) VALUES ($1)", secret)
+            .execute(&mut pool.acquire().await?)
+            .await?;
+
+        Ok(secret)
+    }
+}
 
 #[derive(Deserialize)]
 pub struct LoginDetails {
@@ -224,7 +245,6 @@ pub async fn post_add_password(
     {
         return Ok(Redirect::to("/login_failure/password_already_set"));
     }
-
 
     let expected = sqlx::query!("SELECT password_link_id FROM people WHERE id = $1", id)
         .fetch_one(&mut state.get_connection().await?)

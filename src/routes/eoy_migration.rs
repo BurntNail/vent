@@ -9,7 +9,8 @@ use serde::Deserialize;
 use crate::{
     auth::{get_auth_object, Auth},
     error::KnotError,
-    liquid_utils::compile, state::KnotState,
+    liquid_utils::compile,
+    state::KnotState,
 };
 
 pub async fn get_eoy_migration(

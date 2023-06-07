@@ -4,7 +4,7 @@ use crate::{error::KnotError, routes::DbEvent, state::KnotState};
 use axum::{extract::State, response::IntoResponse};
 use chrono::Duration;
 use icalendar::{Calendar, Component, Event, EventLike};
-use std::{collections::HashMap};
+use std::collections::HashMap;
 use tokio::{fs::File, io::AsyncWriteExt};
 
 use super::public::serve_static_file;

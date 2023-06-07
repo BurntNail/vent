@@ -15,7 +15,7 @@ time = "0.3.21"
 dotenvy = "0.15.7"
 liquid = "0.26.3"
 serde = "1.0.163"
-sqlx = { version = "0.6.3", features = ["runtime-tokio-rustls", "postgres", "macros", "offline", "chrono"] }
+sqlx = { version = "0.6.3", features = ["runtime-tokio-rustls", "postgres", "macros", "offline", "chrono", "json"] }
 thiserror = "1.0.40"
 tokio = { version = "1.28.2", features = ["full"] }
 tokio-util = { version = "0.7.8", features = ["io"] }
@@ -40,3 +40,4 @@ http = "0.2.9"
 itertools = "0.10.5"
 lettre = { version = "0.10.4", features = ["tokio1", "tokio1-rustls-tls", "rustls-tls", "tracing", "builder", "smtp-transport"], default-features = false }
 futures = { version = "0.3.28", default-features = false }
+serde_json = "1.0.94"
