@@ -116,7 +116,6 @@ async fn main() {
 
     
     let secret = get_secret(&pool).await.expect("unable to get secret");
-    
     let session_layer = SessionLayer::new(PostgresSessionStore::new(pool.clone()), &secret);
     let auth_layer = AuthLayer::new(
         Store::new(pool.clone()).with_query(
@@ -127,6 +126,15 @@ FROM people WHERE id = $1
         ),
         &secret,
     );
+
+    let _guard = if let Ok(dsn) = var("SENTRY_DSN") {
+        Some(sentry::init((dsn, sentry::ClientOptions {
+            release: sentry::release_name!(),
+            ..Default::default()
+        })))
+    } else {
+        warn!("No SENTRY_DSN detected.");
+    };
 
     let state = KnotState::new(pool);
 
