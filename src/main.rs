@@ -127,13 +127,19 @@ FROM people WHERE id = $1
         &secret,
     );
 
-    let _guard = if let Ok(dsn) = var("SENTRY_DSN") {
+    let _sentryguard = if let Ok(dsn) = var("SENTRY_DSN") {
         Some(sentry::init((dsn, sentry::ClientOptions {
             release: sentry::release_name!(),
             ..Default::default()
         })))
     } else {
         warn!("No SENTRY_DSN detected.");
+        None
+    };
+    let _honeyguard = if let Ok(api_key) = var("HONEYCOMB_API_KEY") {
+        Some(opentelemetry_honeycomb::new_pipeline(api_key, "knot".into()).install().expect("unable to install opentelemetry honeycomb pipeline"))
+    } else {
+        None
     };
 
     let state = KnotState::new(pool);

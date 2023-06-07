@@ -1,5 +1,6 @@
 use axum::{extract::State, response::IntoResponse};
 use chrono::Utc;
+use opentelemetry::{global, trace::{FutureExt, TraceContextExt, Tracer}, Context};
 use serde::Serialize;
 
 use crate::{
@@ -15,6 +16,8 @@ pub async fn get_index(
     auth: Auth,
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
+    let tracer = global::tracer("index");
+
     #[derive(Serialize)]
     struct HTMLEvent {
         pub id: i32,
@@ -77,6 +80,7 @@ ORDER BY events.date
         "#
     )
     .fetch_all(&mut state.get_connection().await?)
+    .with_context(Context::current_with_span(tracer.start("get_events")))
     .await?
     {
         //TODO: cache using HashMaps etc
