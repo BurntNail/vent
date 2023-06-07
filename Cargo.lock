@@ -541,7 +541,7 @@ dependencies = [
  "rand",
  "sha2 0.10.6",
  "subtle",
- "time 0.3.21",
+ "time 0.3.22",
  "version_check",
 ]
 
@@ -1507,7 +1507,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "thiserror",
- "time 0.3.21",
+ "time 0.3.22",
  "tokio",
  "tokio-util",
  "tower-http 0.4.0",
@@ -1616,7 +1616,7 @@ dependencies = [
  "pest_derive",
  "regex",
  "serde",
- "time 0.3.21",
+ "time 0.3.22",
 ]
 
 [[package]]
@@ -1641,7 +1641,7 @@ dependencies = [
  "once_cell",
  "percent-encoding",
  "regex",
- "time 0.3.21",
+ "time 0.3.22",
  "unicode-segmentation",
 ]
 
@@ -2935,9 +2935,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.21"
+version = "0.3.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f3403384eaacbca9923fa06940178ac13e4edb725486d70e8e15881d0c836cc"
+checksum = "ea9e1b3cf1243ae005d9e74085d4d542f3125458f3a81af210d901dcd7411efd"
 dependencies = [
  "itoa",
  "serde",
