@@ -58,6 +58,8 @@ use routes::{
     },
 };
 use sqlx::postgres::PgPoolOptions;
+use tracing_subscriber::{Registry, prelude::__tracing_subscriber_SubscriberExt, EnvFilter};
+use tracing_tree::HierarchicalLayer;
 use std::{env::var, net::SocketAddr};
 use tokio::signal;
 use tower_http::trace::TraceLayer;
@@ -103,7 +105,8 @@ async fn shutdown_signal(state: KnotState) {
 #[allow(clippy::too_many_lines)]
 async fn main() {
     dotenvy::dotenv().expect("unable to get env variables");
-    tracing_subscriber::fmt::init();
+
+    tracing::subscriber::set_global_default(Registry::default().with(HierarchicalLayer::new(2).with_ansi(true)).with(EnvFilter::from_default_env())).unwrap();
 
     PARTIALS.write().await.reload().await;
 
