@@ -14,7 +14,7 @@ mod state;
 use crate::{
     auth::{
         get_add_password, get_blank_add_password, get_login, get_login_failure, post_add_password,
-        post_login, post_logout, RequireAuth, Store,
+        post_login, post_logout, RequireAuth, Store, pg_session::PostgresSessionStore, get_secret,
     },
     liquid_utils::partials::reload_partials,
     routes::{
@@ -39,12 +39,11 @@ use axum::{
     Router,
 };
 use axum_login::{
-    axum_sessions::{async_session::MemoryStore, SessionLayer},
+    axum_sessions::{SessionLayer},
     AuthLayer,
 };
 use liquid_utils::partials::PARTIALS;
 use once_cell::sync::Lazy;
-use rand::{thread_rng, Rng};
 use routes::{
     add_event::{get_add_event_form, post_add_event_form},
     add_people_to_event::{post_add_participant_to_event, post_add_prefect_to_event},
@@ -115,13 +114,9 @@ async fn main() {
         .await
         .expect("cannot connect to DB");
 
-    let secret = {
-        let mut rng = thread_rng();
-        let mut v = Vec::with_capacity(64);
-        v.append(&mut rng.gen::<[u8; 32]>().to_vec());
-        v.append(&mut rng.gen::<[u8; 32]>().to_vec());
-        v
-    };
+    
+    let secret = get_secret(&pool).await.expect("unable to get secret");
+    
     let session_layer = SessionLayer::new(PostgresSessionStore::new(pool.clone()), &secret);
     let auth_layer = AuthLayer::new(
         Store::new(pool.clone()).with_query(
