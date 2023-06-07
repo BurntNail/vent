@@ -3,7 +3,8 @@ use crate::{
     auth::{get_auth_object, Auth},
     error::KnotError,
     liquid_utils::compile,
-    routes::{DbEvent, DbPerson}, state::KnotState,
+    routes::{DbEvent, DbPerson},
+    state::KnotState,
 };
 use axum::{
     extract::{Path, State},
@@ -12,7 +13,7 @@ use axum::{
 use axum_extra::extract::Form;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap};
+use std::collections::HashMap;
 use tokio::fs::remove_file;
 
 #[allow(clippy::too_many_lines)]

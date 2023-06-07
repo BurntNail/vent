@@ -1504,6 +1504,7 @@ dependencies = [
  "reqwest",
  "rust_xlsxwriter",
  "serde",
+ "serde_json",
  "sqlx",
  "thiserror",
  "time 0.3.21",

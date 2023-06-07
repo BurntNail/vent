@@ -2,7 +2,8 @@ use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
     error::KnotError,
     liquid_utils::{compile, EnvFormatter},
-    routes::DbPerson, state::KnotState,
+    routes::DbPerson,
+    state::KnotState,
 };
 use axum::{
     extract::{Path, State},
@@ -127,13 +128,19 @@ pub struct PasswordReset {
 }
 
 pub async fn post_reset_password(
-	mut auth: Auth,
+    mut auth: Auth,
     State(state): State<KnotState>,
     Form(PasswordReset { id }): Form<PasswordReset>,
 ) -> Result<impl IntoResponse, KnotError> {
-	if auth.current_user.clone().expect("user logged in to reset password").id == id {
-		auth.logout().await;
-	}
+    if auth
+        .current_user
+        .clone()
+        .expect("user logged in to reset password")
+        .id
+        == id
+    {
+        auth.logout().await;
+    }
 
     state.reset_password(id).await?;
     Ok(Redirect::to("/show_all"))

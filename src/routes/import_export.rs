@@ -1,4 +1,3 @@
-use std::{collections::HashMap};
 use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
     error::KnotError,
@@ -14,6 +13,7 @@ use chrono::NaiveDateTime;
 use csv_async::{AsyncReaderBuilder, AsyncWriterBuilder};
 use futures::stream::StreamExt;
 use serde::Deserialize;
+use std::collections::HashMap;
 use tokio::fs::File;
 
 pub async fn get_import_export_csv(auth: Auth) -> Result<impl IntoResponse, KnotError> {
@@ -37,9 +37,24 @@ pub async fn post_import_people_from_csv(
         .create_reader(text.as_bytes())
         .into_records();
 
-    let existing_forms: HashMap<String, i32> = sqlx::query!("SELECT id, form FROM people").fetch_all(&mut state.get_connection().await?).await?.into_iter().map(|r| (r.form, r.id)).collect();
-    let existing_first_names: HashMap<String, i32> = sqlx::query!("SELECT id, surname FROM people").fetch_all(&mut state.get_connection().await?).await?.into_iter().map(|r| (r.surname, r.id)).collect();
-    let existing_surnames: HashMap<String, i32> = sqlx::query!("SELECT id, first_name FROM people").fetch_all(&mut state.get_connection().await?).await?.into_iter().map(|r| (r.first_name, r.id)).collect();
+    let existing_forms: HashMap<String, i32> = sqlx::query!("SELECT id, form FROM people")
+        .fetch_all(&mut state.get_connection().await?)
+        .await?
+        .into_iter()
+        .map(|r| (r.form, r.id))
+        .collect();
+    let existing_first_names: HashMap<String, i32> = sqlx::query!("SELECT id, surname FROM people")
+        .fetch_all(&mut state.get_connection().await?)
+        .await?
+        .into_iter()
+        .map(|r| (r.surname, r.id))
+        .collect();
+    let existing_surnames: HashMap<String, i32> = sqlx::query!("SELECT id, first_name FROM people")
+        .fetch_all(&mut state.get_connection().await?)
+        .await?
+        .into_iter()
+        .map(|r| (r.first_name, r.id))
+        .collect();
 
     //possibility of baby data races here, but not too important
 
@@ -70,14 +85,29 @@ pub async fn post_import_people_from_csv(
             PermissionsRole::Participant
         };
 
-
         if let Some(needs_to_update) = needs_to_update {
-            sqlx::query!("UPDATE people SET permissions = $1, username = $2 WHERE id = $3", perms as _, username, needs_to_update).execute(&mut state.get_connection().await?).await?;
+            sqlx::query!(
+                "UPDATE people SET permissions = $1, username = $2 WHERE id = $3",
+                perms as _,
+                username,
+                needs_to_update
+            )
+            .execute(&mut state.get_connection().await?)
+            .await?;
         } else {
-            sqlx::query!(r#"INSERT INTO public.people
+            sqlx::query!(
+                r#"INSERT INTO public.people
             (first_name, surname, form, hashed_password, permissions, username, password_link_id)
             VALUES($1, $2, $3, NULL, $4, $5, NULL);
-            "#, first_name, surname, form, perms as _, username).execute(&mut state.get_connection().await?).await?;
+            "#,
+                first_name,
+                surname,
+                form,
+                perms as _,
+                username
+            )
+            .execute(&mut state.get_connection().await?)
+            .await?;
         }
     }
 
@@ -98,17 +128,27 @@ pub async fn post_import_events_from_csv(
         .into_records();
 
     while let Some(record) = csv_reader.next().await.transpose()? {
-    	let name = record.get(0).ok_or(KnotError::MalformedCSV)?;
-    	let date_time = NaiveDateTime::parse_from_str(&record.get(1).ok_or(KnotError::MalformedCSV)?, "%Y-%m-%dT%H:%M")?;
-    	let location = record.get(2).ok_or(KnotError::MalformedCSV)?;
-    	let teacher = record.get(3).ok_or(KnotError::MalformedCSV)?;
-    	let other_info = record.get(4);
+        let name = record.get(0).ok_or(KnotError::MalformedCSV)?;
+        let date_time = NaiveDateTime::parse_from_str(
+            record.get(1).ok_or(KnotError::MalformedCSV)?,
+            "%Y-%m-%dT%H:%M",
+        )?;
+        let location = record.get(2).ok_or(KnotError::MalformedCSV)?;
+        let teacher = record.get(3).ok_or(KnotError::MalformedCSV)?;
+        let other_info = record.get(4);
 
-    	sqlx::query!(r#"
+        sqlx::query!(
+            r#"
 INSERT INTO events (event_name, date, location, teacher, other_info) 
-VALUES ($1, $2, $3, $4, $5)"#, 
-			name, date_time, location, teacher, other_info
-    	).execute(&mut state.get_connection().await?).await?;
+VALUES ($1, $2, $3, $4, $5)"#,
+            name,
+            date_time,
+            location,
+            teacher,
+            other_info
+        )
+        .execute(&mut state.get_connection().await?)
+        .await?;
     }
 
     Ok(Redirect::to("/"))

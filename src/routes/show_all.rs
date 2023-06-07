@@ -9,7 +9,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     auth::{get_auth_object, Auth},
     error::KnotError,
-    liquid_utils::{compile, EnvFormatter}, state::KnotState,
+    liquid_utils::{compile, EnvFormatter},
+    state::KnotState,
 };
 
 #[derive(Deserialize)]
