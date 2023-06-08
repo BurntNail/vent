@@ -58,6 +58,7 @@ use routes::{
     },
 };
 use sqlx::postgres::PgPoolOptions;
+use tower::limit::ConcurrencyLimitLayer;
 use std::{env::var, net::SocketAddr};
 use tokio::signal;
 use tower_http::trace::TraceLayer;
@@ -109,7 +110,7 @@ async fn main() {
 
     let db_url = std::env::var("DATABASE_URL").expect("DB URL must be set");
     let pool = PgPoolOptions::new()
-        .max_connections(100)
+        .max_connections(98) //100 - 2 to keep space for an emergency dbeaver instance etc (100 from here: https://www.postgresql.org/docs/current/runtime-config-connection.html)
         .connect(&db_url)
         .await
         .expect("cannot connect to DB");
@@ -200,6 +201,7 @@ FROM people WHERE id = $1
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think
         .layer(auth_layer)
         .layer(session_layer)
+        .layer(ConcurrencyLimitLayer::new(512)) //limit to 512 inflight reqs
         .with_state(state.clone());
 
     let port: SocketAddr = var("KNOT_SERVER_IP")
