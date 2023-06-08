@@ -12,7 +12,12 @@ mod routes;
 mod state;
 
 use crate::{
-    auth::{RequireAuth, Store, pg_session::PostgresSessionStore, get_secret, login::{post_logout, get_login_failure, get_login, post_login}, add_password::{get_blank_add_password, get_add_password, post_add_password},
+    auth::{
+        add_password::{get_add_password, get_blank_add_password, post_add_password},
+        get_secret,
+        login::{get_login, get_login_failure, post_login, post_logout},
+        pg_session::PostgresSessionStore,
+        RequireAuth, Store,
     },
     liquid_utils::partials::reload_partials,
     routes::{
@@ -36,10 +41,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use axum_login::{
-    axum_sessions::{SessionLayer},
-    AuthLayer,
-};
+use axum_login::{axum_sessions::SessionLayer, AuthLayer};
 use liquid_utils::partials::PARTIALS;
 use once_cell::sync::Lazy;
 use routes::{
@@ -112,9 +114,8 @@ async fn main() {
         .await
         .expect("cannot connect to DB");
 
-    
     let secret = get_secret(&pool).await.expect("unable to get secret");
-    
+
     let session_layer = SessionLayer::new(PostgresSessionStore::new(pool.clone()), &secret);
     let auth_layer = AuthLayer::new(
         Store::new(pool.clone()).with_query(

@@ -1,7 +1,20 @@
-use axum::{response::{IntoResponse, Redirect}, extract::{State, Path}, Form};
-use bcrypt::{DEFAULT_COST, hash};
+use crate::{
+    auth::{
+        cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP},
+        get_auth_object, Auth,
+    },
+    error::KnotError,
+    liquid_utils::compile,
+    routes::DbPerson,
+    state::KnotState,
+};
+use axum::{
+    extract::{Path, State},
+    response::{IntoResponse, Redirect},
+    Form,
+};
+use bcrypt::{hash, DEFAULT_COST};
 use serde::Deserialize;
-use crate::{error::KnotError, liquid_utils::compile, auth::{get_auth_object, Auth, cloudflare_turnstile::{GrabCFRemoteIP, verify_turnstile}}, state::KnotState, routes::DbPerson};
 
 //tried to use an Option<Path<_>>, but didn't work
 pub async fn get_blank_add_password(auth: Auth) -> Result<impl IntoResponse, KnotError> {

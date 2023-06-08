@@ -1,8 +1,21 @@
-use axum::{response::{IntoResponse, Redirect}, extract::{State, Path}, Form};
+use crate::{
+    auth::{
+        cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP},
+        get_auth_object, Auth,
+    },
+    error::KnotError,
+    liquid_utils::compile,
+    routes::DbPerson,
+    state::KnotState,
+};
+use axum::{
+    extract::{Path, State},
+    response::{IntoResponse, Redirect},
+    Form,
+};
 use bcrypt::verify;
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
-use crate::{error::KnotError, liquid_utils::compile, auth::{get_auth_object, Auth, cloudflare_turnstile::{GrabCFRemoteIP, verify_turnstile}}, state::KnotState, routes::DbPerson};
 
 #[derive(Deserialize)]
 pub struct LoginDetails {
@@ -33,15 +46,17 @@ pub enum FailureReason {
     #[serde(rename = "password_already_set")]
     PasswordAlreadySet,
     #[serde(rename = "failed_turnstile")]
-    FailedTurnstile
+    FailedTurnstile,
 }
 
 impl FailureReason {
-    pub fn status_code (self) -> StatusCode {
+    pub fn status_code(self) -> StatusCode {
         match self {
             Self::NoNumbers | Self::PasswordAlreadySet => StatusCode::BAD_REQUEST,
             Self::UserNotFound => StatusCode::NOT_FOUND,
-            Self::FailedTurnstile | Self::FailedNumbers | Self::BadPassword => StatusCode::FORBIDDEN,
+            Self::FailedTurnstile | Self::FailedNumbers | Self::BadPassword => {
+                StatusCode::FORBIDDEN
+            }
         }
     }
 }

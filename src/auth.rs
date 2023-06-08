@@ -1,7 +1,7 @@
-pub mod cloudflare_turnstile;
-pub mod pg_session;
-pub mod login;
 pub mod add_password;
+pub mod cloudflare_turnstile;
+pub mod login;
+pub mod pg_session;
 
 use crate::{error::KnotError, routes::DbPerson};
 use axum_login::{
@@ -66,7 +66,6 @@ pub async fn get_secret(pool: &Pool<Postgres>) -> Result<Vec<u8>, KnotError> {
         Ok(secret)
     }
 }
-
 
 pub fn get_auth_object(auth: Auth) -> liquid::Object {
     if let Some(user) = auth.current_user {
