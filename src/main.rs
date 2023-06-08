@@ -12,9 +12,7 @@ mod routes;
 mod state;
 
 use crate::{
-    auth::{
-        get_add_password, get_blank_add_password, get_login, get_login_failure, post_add_password,
-        post_login, post_logout, RequireAuth, Store, pg_session::PostgresSessionStore, get_secret,
+    auth::{RequireAuth, Store, pg_session::PostgresSessionStore, get_secret, login::{post_logout, get_login_failure, get_login, post_login}, add_password::{get_blank_add_password, get_add_password, post_add_password},
     },
     liquid_utils::partials::reload_partials,
     routes::{
