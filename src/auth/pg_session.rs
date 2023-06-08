@@ -21,7 +21,7 @@ impl SessionStore for PostgresSessionStore {
     async fn load_session(&self, cookie_value: String) -> ASResult<Option<Session>> {
         let id = Session::id_from_cookie_value(&cookie_value)?;
 
-        info!(?id, "Loading");
+        trace!(?id, "Loading");
 
         let json = sqlx::query!("SELECT * FROM sessions WHERE id = $1 AND (expires IS NULL OR expires > $2)", id, Local::now().naive_local())
             .fetch_optional(&mut self.pool.acquire().await?)
@@ -62,7 +62,7 @@ impl SessionStore for PostgresSessionStore {
             .await?;
         }
 
-        info!(id=?session.id(), "Storing");
+        trace!(id=?session.id(), "Storing");
 
         session.reset_data_changed();
         Ok(session.into_cookie_value())
@@ -76,7 +76,7 @@ impl SessionStore for PostgresSessionStore {
         .execute(&mut self.pool.acquire().await?)
         .await?;
 
-        info!(id=?session.id(), "Destroying");
+        trace!(id=?session.id(), "Destroying");
 
         Ok(())
     }
@@ -86,7 +86,7 @@ impl SessionStore for PostgresSessionStore {
             .execute(&mut self.pool.acquire().await?)
             .await?;
 
-        info!("Truncating");
+        trace!("Truncating");
 
         Ok(())
     }
