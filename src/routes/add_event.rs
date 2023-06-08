@@ -19,6 +19,7 @@ use axum_extra::extract::Form;
 use chrono::NaiveDateTime;
 
 ///`GET` method for the `add_event` form - just compiles and returns the liquid `www/add_event.liquid`
+#[instrument(level = "trace")]
 pub async fn get_add_event_form(auth: Auth) -> Result<impl IntoResponse, KnotError> {
     compile(
         "www/add_event.liquid",
@@ -28,6 +29,7 @@ pub async fn get_add_event_form(auth: Auth) -> Result<impl IntoResponse, KnotErr
 }
 
 ///`POST` method to add an event from a form to the database. Redirects back to the [`get_add_event_form`]
+#[instrument(level = "trace")]
 pub async fn post_add_event_form(
     State(state): State<KnotState>,
     Form(FormEvent {

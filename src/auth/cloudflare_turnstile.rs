@@ -68,7 +68,7 @@ struct TurnstileResponse {
     pub cdata: Option<String>,
 }
 
-#[instrument]
+#[instrument(level = "trace")]
 pub async fn verify_turnstile(
     cf_turnstile_response: String,
     GrabCFRemoteIP(remote_ip): GrabCFRemoteIP,

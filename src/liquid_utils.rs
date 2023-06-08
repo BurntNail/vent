@@ -22,13 +22,15 @@ pub static DOMAIN: Lazy<(bool, String)> = Lazy::new(|| {
     }
 });
 
-#[instrument]
+#[instrument(level = "trace")]
 pub async fn compile(
     path: impl AsRef<Path> + Debug,
     mut globals: Object,
 ) -> Result<Html<String>, KnotError> {
     let liquid = read_to_string(path).await?;
     let partial_compiler = PARTIALS.read().await.to_compiler();
+
+    trace!("Compiling");
 
     globals.insert("cft_sitekey".into(), Value::scalar(CFT_SITEKEY.as_str()));
     globals.insert(

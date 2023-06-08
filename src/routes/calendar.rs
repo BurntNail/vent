@@ -9,6 +9,7 @@ use tokio::{fs::File, io::AsyncWriteExt};
 
 use super::public::serve_static_file;
 
+#[instrument(level = "trace")]
 pub async fn get_calendar_feed(
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
@@ -24,14 +25,14 @@ pub async fn get_calendar_feed(
         .into_iter()
         .map(|x| (x.id, format!("{} {}", x.first_name, x.surname)))
         .collect::<HashMap<_, _>>();
-        let rels = sqlx::query!(
+        let relations = sqlx::query!(
             r#"
     SELECT event_id, prefect_id FROM prefect_events"#
         )
         .fetch_all(&mut state.get_connection().await?)
         .await?;
 
-        for rec in rels {
+        for rec in relations {
             if let Some(name) = prefects.get(&rec.event_id).cloned() {
                 map.entry(rec.event_id).or_default().push(name);
             }
@@ -39,6 +40,8 @@ pub async fn get_calendar_feed(
 
         map
     };
+
+    trace!(?prefect_events, "Worked out PEs");
 
     let mut calendar = Calendar::new();
     for DbEvent {
@@ -58,6 +61,8 @@ pub async fn get_calendar_feed(
             .get(&id)
             .map(|x| x.join(", "))
             .unwrap_or_default();
+
+        trace!(?event_name, ?date, "Adding event to calendar");
 
         calendar.push(
             Event::new()

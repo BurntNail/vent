@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use super::add_person::NoIDPerson;
 
+#[instrument(level = "trace")]
 pub async fn get_edit_person(
     auth: Auth,
     Path(id): Path<i32>,

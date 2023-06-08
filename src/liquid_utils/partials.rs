@@ -42,7 +42,9 @@ impl PartialSource for Partials {
 ///Static variable to store all of the partials
 pub static PARTIALS: Lazy<RwLock<Partials>> = Lazy::new(|| RwLock::new(Partials::default()));
 
+#[instrument(level = "trace")]
 pub async fn reload_partials() -> impl IntoResponse {
+    trace!("Reloading Partials");
     PARTIALS.write().await.reload().await;
     Redirect::to("/")
 }
@@ -50,6 +52,7 @@ pub async fn reload_partials() -> impl IntoResponse {
 ///Async function to get `Partials` - used to set [`PARTIALS`]
 ///
 /// Looks for the Partials in `www/partials/`, and sets their `liquid` names to be in the `partials/` directory, and accepts `html`, and `liquid` extensions
+#[instrument]
 async fn get_partials() -> HashMap<String, String> {
     ///The directory which contains the partials
     const PARTIALS_DIR: &str = "www/partials/";
@@ -79,7 +82,7 @@ async fn get_partials() -> HashMap<String, String> {
     {
         match read_to_string(&partial).await {
             Ok(source) => {
-                info!(?partial, "Got partial");
+                trace!(?partial, "Got partial");
                 if let Some(name) = partial.file_name().and_then(OsStr::to_str) {
                     in_memory_source.insert(LIQUID_PARTIALS_NAME.to_string() + name, source);
                 //add partial
