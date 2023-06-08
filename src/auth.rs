@@ -12,6 +12,7 @@ use axum_login::{
     extractors::AuthContext, secrecy::SecretVec, AuthUser, PostgresStore, RequireAuthorizationLayer,
 };
 use bcrypt::{hash, verify, DEFAULT_COST};
+use http::StatusCode;
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
@@ -88,7 +89,7 @@ pub async fn get_login(auth: Auth) -> Result<impl IntoResponse, KnotError> {
     .await
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 pub enum FailureReason {
     #[serde(rename = "bad_password")]
     BadPassword,
@@ -100,17 +101,31 @@ pub enum FailureReason {
     FailedNumbers,
     #[serde(rename = "password_already_set")]
     PasswordAlreadySet,
+    #[serde(rename = "failed_turnstile")]
+    FailedTurnstile
+}
+
+impl FailureReason {
+    pub fn status_code (self) -> StatusCode {
+        match self {
+            Self::NoNumbers | Self::PasswordAlreadySet => StatusCode::BAD_REQUEST,
+            Self::UserNotFound => StatusCode::NOT_FOUND,
+            Self::FailedTurnstile | Self::FailedNumbers | Self::BadPassword => StatusCode::FORBIDDEN,
+        }
+    }
 }
 
 pub async fn get_login_failure(
     auth: Auth,
     Path(was_password_related): Path<FailureReason>,
 ) -> Result<impl IntoResponse, KnotError> {
-    compile(
+    let html = compile(
         "www/failed_auth.liquid",
         liquid::object!({ "auth": get_auth_object(auth), "was_password_related": was_password_related }),
     )
-    .await
+    .await?;
+
+    Ok((was_password_related.status_code(), html).into_response())
 }
 
 pub async fn post_login(
@@ -123,7 +138,9 @@ pub async fn post_login(
         cf_turnstile_response,
     }): Form<LoginDetails>,
 ) -> Result<impl IntoResponse, KnotError> {
-    verify_turnstile(cf_turnstile_response, remote_ip).await?;
+    if !verify_turnstile(cf_turnstile_response, remote_ip).await? {
+        return Ok(Redirect::to("/login_failure/failed_turnstile"));
+    }
 
     let db_user = sqlx::query_as!(
         DbPerson,
@@ -235,7 +252,9 @@ pub async fn post_add_password(
         cf_turnstile_response,
     }): Form<AddPasswordForm>,
 ) -> Result<impl IntoResponse, KnotError> {
-    verify_turnstile(cf_turnstile_response, remote_ip).await?;
+    if !verify_turnstile(cf_turnstile_response, remote_ip).await? {
+        return Ok(Redirect::to("/login_failure/failed_turnstile"));
+    }
 
     if sqlx::query!("SELECT hashed_password FROM people WHERE id = $1", id)
         .fetch_one(&mut state.get_connection().await?)

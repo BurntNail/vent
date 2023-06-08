@@ -20,6 +20,9 @@
   <p>You've already set your password - to change it, login then click on your name in the navbar, and then click
     <i>Edit Profile</i>.
   </p>
+{% elsif was_password_related == "failed_turnstile" %}
+  <p>You failed Cloudflare Turnstile - make sure you waited for the turnstile window to appear before logging in.
+  </p>
 {% endif %}
 
 <a href="/login">Try Again.</a>
