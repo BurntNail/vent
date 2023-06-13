@@ -18,11 +18,11 @@ impl PostgresSessionStore {
 
 #[async_trait::async_trait]
 impl SessionStore for PostgresSessionStore {
-    #[instrument(level = "trace")]
+    #[instrument(level = "debug", skip(cookie_value, self), fields(id = ?Session::id_from_cookie_value(&cookie_value)))]
     async fn load_session(&self, cookie_value: String) -> ASResult<Option<Session>> {
         let id = Session::id_from_cookie_value(&cookie_value)?;
 
-        trace!(?id, "Loading");
+        debug!(?id, "Loading");
 
         let json = sqlx::query!("SELECT * FROM sessions WHERE id = $1 AND (expires IS NULL OR expires > $2)", id, Local::now().naive_local())
             .fetch_optional(&mut self.pool.acquire().await?)
@@ -35,7 +35,7 @@ impl SessionStore for PostgresSessionStore {
         Ok(None)
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "debug", skip(session, self), fields(id = ?session.id()))]
     async fn store_session(&self, session: Session) -> ASResult<Option<String>> {
         if sqlx::query!(
             "SELECT id FROM sessions WHERE id = $1",
@@ -64,13 +64,13 @@ impl SessionStore for PostgresSessionStore {
             .await?;
         }
 
-        trace!(id=?session.id(), "Storing");
+        debug!(id=?session.id(), "Storing");
 
         session.reset_data_changed();
         Ok(session.into_cookie_value())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "debug", skip(session, self), values(id = ?session.id()))]
     async fn destroy_session(&self, session: Session) -> ASResult {
         sqlx::query!(
             "DELETE FROM sessions WHERE id = $1",
@@ -79,18 +79,18 @@ impl SessionStore for PostgresSessionStore {
         .execute(&mut self.pool.acquire().await?)
         .await?;
 
-        trace!(id=?session.id(), "Destroying");
+        debug!(id=?session.id(), "Destroying");
 
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "info", skip(self))]
     async fn clear_store(&self) -> ASResult {
         sqlx::query!("TRUNCATE sessions")
             .execute(&mut self.pool.acquire().await?)
             .await?;
 
-        trace!("Truncating");
+        debug!("Truncating");
 
         Ok(())
     }

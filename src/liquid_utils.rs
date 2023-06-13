@@ -3,6 +3,7 @@ use axum::response::Html;
 use chrono::NaiveDateTime;
 use liquid::{model::Value, Object, ParserBuilder};
 use once_cell::sync::Lazy;
+use tracing::Instrument;
 use std::{
     env::{self, var},
     fmt::Debug,
@@ -22,13 +23,16 @@ pub static DOMAIN: Lazy<(bool, String)> = Lazy::new(|| {
     }
 });
 
-#[instrument(level = "trace")]
+#[instrument(level = "trace", skip(globals))]
 pub async fn compile(
     path: impl AsRef<Path> + Debug,
     mut globals: Object,
 ) -> Result<Html<String>, KnotError> {
-    let liquid = read_to_string(path).await?;
-    let partial_compiler = PARTIALS.read().await.to_compiler();
+
+    let (liquid, partial_compiler) = async move {
+        (read_to_string(path).await, PARTIALS.read().await.to_compiler())
+    }.instrument(trace_span!("compile_preparations")).await;
+    let liquid = liquid?;
 
     trace!("Compiling");
 

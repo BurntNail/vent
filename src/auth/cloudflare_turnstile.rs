@@ -27,6 +27,7 @@ impl<S: Send + Sync> FromRequestParts<S> for GrabCFRemoteIP {
         if let Some(cfrip) = parts.headers.get("CF-Connecting-IP") {
             Ok(Self(cfrip.clone()))
         } else {
+            error!("Failed to get Remote IP");
             Err(get_error_page(
                 StatusCode::FORBIDDEN,
                 "Missing Cloudflare IP.",

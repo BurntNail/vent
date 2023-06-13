@@ -7,6 +7,7 @@ use std::{
 use axum::response::{IntoResponse, Redirect};
 use liquid::partials::{EagerCompiler, PartialSource};
 use once_cell::sync::Lazy;
+use opentelemetry::{trace::{FutureExt, TraceContextExt, Tracer}, Context, global};
 use tokio::{fs::read_to_string, sync::RwLock};
 use walkdir::{DirEntry, WalkDir};
 
@@ -54,6 +55,8 @@ pub async fn reload_partials() -> impl IntoResponse {
 /// Looks for the Partials in `www/partials/`, and sets their `liquid` names to be in the `partials/` directory, and accepts `html`, and `liquid` extensions
 #[instrument]
 async fn get_partials() -> HashMap<String, String> {
+    let tracer = global::tracer("get_partials");
+
     ///The directory which contains the partials
     const PARTIALS_DIR: &str = "www/partials/";
     ///The name that the partials will have for use in embedding, eg. "www/partials/li.liquid" would be referenced as `{% include "partials/li.liquid" %}`
@@ -69,31 +72,35 @@ async fn get_partials() -> HashMap<String, String> {
     let mut in_memory_source = HashMap::new(); //make a new source
 
     for partial in WalkDir::new(PARTIALS_DIR)
-        .into_iter() //for every file in PARTIALS_DIR
-        .filter_map(Result::ok) //that we can access
-        .map(DirEntry::into_path) //get it as a path
-        .filter(|x| {
-            //and check it has one of the extensions
-            x.extension().map_or(false, |x| {
-                //if it doesn't have an extension, ignore
-                partial_extensions.iter().any(|allowed| x == allowed)
-            })
+    .into_iter() //for every file in PARTIALS_DIR
+    .filter_map(Result::ok) //that we can access
+    .map(DirEntry::into_path) //get it as a path
+    .filter(|x| {
+        //and check it has one of the extensions
+        x.extension().map_or(false, |x| {
+            //if it doesn't have an extension, ignore
+            partial_extensions.iter().any(|allowed| x == allowed)
         })
+    })
     {
-        match read_to_string(&partial).await {
-            Ok(source) => {
-                trace!(?partial, "Got partial");
-                if let Some(name) = partial.file_name().and_then(OsStr::to_str) {
-                    in_memory_source.insert(LIQUID_PARTIALS_NAME.to_string() + name, source);
-                //add partial
-                } else {
-                    error!("Got partial, could not transform name to UTF-8");
+        async {
+            match read_to_string(&partial).await {
+                Ok(source) => {
+                    info!(?partial, "Loading Partial");
+                    if let Some(name) = partial.file_name().and_then(OsStr::to_str) {
+                        in_memory_source.insert(LIQUID_PARTIALS_NAME.to_string() + name, source);
+                    //add partial
+                    } else {
+                        error!("Got partial, could not transform name to UTF-8");
+                    }
+                }
+                Err(e) => {
+                    error!(?partial, ?e, "Error reading partial");
                 }
             }
-            Err(e) => {
-                error!(?partial, ?e, "Error reading partial");
-            }
         }
+        .with_context(Context::current_with_span(tracer.start("add_partial")))
+        .await;
     }
 
     in_memory_source

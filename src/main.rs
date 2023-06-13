@@ -13,8 +13,9 @@ mod state;
 
 use crate::{
     auth::{
-        get_add_password, get_blank_add_password, get_login, get_login_failure, post_add_password,
-        post_login, post_logout, RequireAuth, Store, pg_session::PostgresSessionStore, get_secret,
+        get_add_password, get_blank_add_password, get_login, get_login_failure, get_secret,
+        pg_session::PostgresSessionStore, post_add_password, post_login, post_logout, RequireAuth,
+        Store,
     },
     liquid_utils::partials::reload_partials,
     routes::{
@@ -38,10 +39,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use axum_login::{
-    axum_sessions::{SessionLayer},
-    AuthLayer,
-};
+use axum_login::{axum_sessions::SessionLayer, AuthLayer};
 use liquid_utils::partials::PARTIALS;
 use once_cell::sync::Lazy;
 use routes::{
@@ -58,11 +56,11 @@ use routes::{
     },
 };
 use sqlx::postgres::PgPoolOptions;
-use tracing_subscriber::{Registry, prelude::__tracing_subscriber_SubscriberExt, EnvFilter};
-use tracing_tree::HierarchicalLayer;
 use std::{env::var, net::SocketAddr};
 use tokio::signal;
 use tower_http::trace::TraceLayer;
+use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, EnvFilter, Registry};
+use tracing_tree::HierarchicalLayer;
 
 #[macro_use]
 extern crate tracing;
@@ -106,7 +104,18 @@ async fn shutdown_signal(state: KnotState) {
 async fn main() {
     dotenvy::dotenv().expect("unable to get env variables");
 
-    tracing::subscriber::set_global_default(Registry::default().with(HierarchicalLayer::new(2).with_ansi(true)).with(EnvFilter::from_default_env())).unwrap();
+    tracing::subscriber::set_global_default(
+        Registry::default()
+            .with(
+                HierarchicalLayer::new(2)
+                    .with_ansi(true)
+                    .with_bracketed_fields(true)
+                    .with_verbose_entry(true)
+                    .with_verbose_exit(true),
+            )
+            .with(EnvFilter::from_default_env()),
+    )
+    .unwrap();
 
     PARTIALS.write().await.reload().await;
 
@@ -117,7 +126,6 @@ async fn main() {
         .await
         .expect("cannot connect to DB");
 
-    
     let secret = get_secret(&pool).await.expect("unable to get secret");
     let session_layer = SessionLayer::new(PostgresSessionStore::new(pool.clone()), &secret);
     let auth_layer = AuthLayer::new(
@@ -131,16 +139,23 @@ FROM people WHERE id = $1
     );
 
     let _sentryguard = if let Ok(dsn) = var("SENTRY_DSN") {
-        Some(sentry::init((dsn, sentry::ClientOptions {
-            release: sentry::release_name!(),
-            ..Default::default()
-        })))
+        Some(sentry::init((
+            dsn,
+            sentry::ClientOptions {
+                release: sentry::release_name!(),
+                ..Default::default()
+            },
+        )))
     } else {
         warn!("No SENTRY_DSN detected.");
         None
     };
     let _honeyguard = if let Ok(api_key) = var("HONEYCOMB_API_KEY") {
-        Some(opentelemetry_honeycomb::new_pipeline(api_key, "knot".into()).install().expect("unable to install opentelemetry honeycomb pipeline"))
+        Some(
+            opentelemetry_honeycomb::new_pipeline(api_key, "knot".into())
+                .install()
+                .expect("unable to install opentelemetry honeycomb pipeline"),
+        )
     } else {
         None
     };
