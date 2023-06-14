@@ -13,6 +13,9 @@ mod state;
 
 use crate::{
     auth::{
+        get_add_password, get_blank_add_password, get_login, get_login_failure, get_secret,
+        pg_session::PostgresSessionStore, post_add_password, post_login, post_logout, RequireAuth,
+        Store,
         add_password::{get_add_password, get_blank_add_password, post_add_password},
         get_secret,
         login::{get_login, get_login_failure, post_login, post_logout},
@@ -62,6 +65,8 @@ use tower::limit::ConcurrencyLimitLayer;
 use std::{env::var, net::SocketAddr};
 use tokio::signal;
 use tower_http::trace::TraceLayer;
+use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, EnvFilter, Registry};
+use tracing_tree::HierarchicalLayer;
 
 #[macro_use]
 extern crate tracing;
@@ -104,7 +109,19 @@ async fn shutdown_signal(state: KnotState) {
 #[allow(clippy::too_many_lines)]
 async fn main() {
     dotenvy::dotenv().expect("unable to get env variables");
-    tracing_subscriber::fmt::init();
+
+    tracing::subscriber::set_global_default(
+        Registry::default()
+            .with(
+                HierarchicalLayer::new(2)
+                    .with_ansi(true)
+                    .with_bracketed_fields(true)
+                    .with_verbose_entry(true)
+                    .with_verbose_exit(true)
+            )
+            .with(EnvFilter::from_default_env()),
+    )
+    .unwrap();
 
     PARTIALS.write().await.reload().await;
 
@@ -117,7 +134,7 @@ async fn main() {
 
     let secret = get_secret(&pool).await.expect("unable to get secret");
 
-    let session_layer = SessionLayer::new(PostgresSessionStore::new(pool.clone()), &secret);
+  let session_layer = SessionLayer::new(PostgresSessionStore::new(pool.clone()), &secret);
     let auth_layer = AuthLayer::new(
         Store::new(pool.clone()).with_query(
             r#"
@@ -127,6 +144,19 @@ FROM people WHERE id = $1
         ),
         &secret,
     );
+
+    let _sentryguard = if let Ok(dsn) = var("SENTRY_DSN") {
+        Some(sentry::init((
+            dsn,
+            sentry::ClientOptions {
+                release: sentry::release_name!(),
+                ..Default::default()
+            },
+        )))
+    } else {
+        warn!("No SENTRY_DSN detected.");
+        None
+    };
 
     let state = KnotState::new(pool);
 

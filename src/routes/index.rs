@@ -1,6 +1,7 @@
 use axum::{extract::State, response::IntoResponse};
 use chrono::Utc;
 use serde::Serialize;
+use tracing::Instrument;
 
 use crate::{
     auth::{get_auth_object, Auth},
@@ -11,11 +12,12 @@ use crate::{
 };
 
 #[allow(clippy::too_many_lines)]
+#[instrument(level = "debug", skip(auth, state))]
 pub async fn get_index(
     auth: Auth,
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
-    #[derive(Serialize)]
+    #[derive(Serialize, Debug)]
     struct HTMLEvent {
         pub id: i32,
         pub event_name: String,
@@ -55,7 +57,7 @@ pub async fn get_index(
         pub form: String,
     }
 
-    #[derive(Serialize)]
+    #[derive(Serialize, Debug)]
     struct WholeEvent {
         event: HTMLEvent,
         participants: usize,
@@ -68,6 +70,8 @@ pub async fn get_index(
 
     let now = Utc::now().naive_local();
 
+    debug!("Getting all events");
+
     for event in sqlx::query_as!(
         DbEvent,
         r#"
@@ -79,61 +83,73 @@ ORDER BY events.date
     .fetch_all(&mut state.get_connection().await?)
     .await?
     {
-        //TODO: cache using HashMaps etc
-        let date = event.date;
-        let event = HTMLEvent::from(event);
+        let name = event.event_name.clone();
+        let r: Result<_, KnotError> = async {
+            //TODO: cache using HashMaps etc
+            let date = event.date;
+            let event = HTMLEvent::from(event);
 
-        let event_id = event.id;
-        let prefects = sqlx::query_as!(
-            PersonForm,
-            r#"
+            let event_id = event.id;
+            let prefects = sqlx::query_as!(
+                PersonForm,
+                r#"
 SELECT p.first_name, p.surname, p.form
 FROM people p
 INNER JOIN events e ON e.id = $1
 INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
-            "#,
-            event_id
-        )
-        .fetch_all(&mut state.get_connection().await?)
-        .await?
-        .len();
-
-        let participants = sqlx::query_as!(
-            PersonForm,
-            r#"
-SELECT p.first_name, p.surname, p.form
-FROM people p
-INNER JOIN events e ON e.id = $1
-INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $1
-            "#,
-            event_id
-        )
-        .fetch_all(&mut state.get_connection().await?)
-        .await?
-        .len();
-
-        let photos = sqlx::query!("SELECT FROM photos WHERE event_id = $1", event_id)
+    "#,
+                event_id
+            )
             .fetch_all(&mut state.get_connection().await?)
             .await?
             .len();
 
-        if date < now {
-            happened_events.push(WholeEvent {
-                event,
-                participants,
-                prefects,
-                no_photos: photos,
-            });
-        } else {
-            events_to_happen.push(WholeEvent {
-                event,
-                participants,
-                prefects,
-                no_photos: photos,
-            });
+            let participants = sqlx::query_as!(
+                PersonForm,
+                r#"
+SELECT p.first_name, p.surname, p.form
+FROM people p
+INNER JOIN events e ON e.id = $1
+INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $1
+    "#,
+                event_id
+            )
+            .fetch_all(&mut state.get_connection().await?)
+            .await?
+            .len();
+
+            let photos = sqlx::query!("SELECT FROM photos WHERE event_id = $1", event_id)
+                .fetch_all(&mut state.get_connection().await?)
+                .await?
+                .len();
+
+            if date < now {
+                trace!(?event, "Adding to old events");
+                happened_events.push(WholeEvent {
+                    event,
+                    participants,
+                    prefects,
+                    no_photos: photos,
+                });
+            } else {
+                trace!(?event, "Adding to new events");
+                events_to_happen.push(WholeEvent {
+                    event,
+                    participants,
+                    prefects,
+                    no_photos: photos,
+                });
+            }
+
+            Ok(())
         }
+        .instrument(debug_span!("getting_event_details", %name))
+        .await;
+        r?;
     }
     happened_events.reverse();
+
+    debug!("Compiling");
 
     compile("www/index.liquid", liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events, "auth": get_auth_object(auth) })).await
 }

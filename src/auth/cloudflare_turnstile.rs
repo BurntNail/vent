@@ -27,6 +27,7 @@ impl<S: Send + Sync> FromRequestParts<S> for GrabCFRemoteIP {
         if let Some(cfrip) = parts.headers.get("CF-Connecting-IP") {
             Ok(Self(cfrip.clone()))
         } else {
+            error!("Failed to get Remote IP");
             Err(get_error_page(
                 StatusCode::FORBIDDEN,
                 "Missing Cloudflare IP.",
@@ -68,8 +69,8 @@ struct TurnstileResponse {
     pub cdata: Option<String>,
 }
 
+#[instrument(level = "debug")]
 ///returns whether or not it worked
-#[instrument]
 pub async fn verify_turnstile(
     cf_turnstile_response: String,
     GrabCFRemoteIP(remote_ip): GrabCFRemoteIP,
@@ -83,6 +84,8 @@ pub async fn verify_turnstile(
     body.insert("response", &cf_turnstile_response);
     body.insert("remoteip", remote_ip.to_str()?);
 
+    debug!(?remote_ip, "Checking for CFT Response");
+
     let post_response = Client::new()
         .post("https://challenges.cloudflare.com/turnstile/v0/siteverify")
         .form(&body)
@@ -92,7 +95,7 @@ pub async fn verify_turnstile(
         .json::<TurnstileResponse>()
         .await?;
 
-    trace!(?post_response.hostname, ?post_response.cdata, ?post_response.action, ?post_response.challenge_ts, "Got CFT response");
+    debug!(?post_response.hostname, ?post_response.cdata, ?post_response.action, ?post_response.challenge_ts, "Got CFT response");
 
     if post_response.success {
         return Ok(true);

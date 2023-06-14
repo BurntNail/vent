@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use super::add_person::NoIDPerson;
 
+#[instrument(level = "debug", skip(auth, state))]
 pub async fn get_edit_person(
     auth: Auth,
     Path(id): Path<i32>,
@@ -28,6 +29,8 @@ pub async fn get_edit_person(
         pub password_is_set: bool,
         pub form: String,
     }
+
+    debug!("Getting relevant person");
 
     let person = sqlx::query_as!(
         DbPerson,
@@ -47,6 +50,8 @@ FROM people WHERE id = $1
         form: person.form,
         password_is_set: person.hashed_password.is_some(),
     };
+
+    debug!("Getting events supervised");
 
     #[derive(Serialize)]
     struct Event {
@@ -73,6 +78,8 @@ ON pe.event_id = e.id AND pe.prefect_id = $1
     })
     .collect::<Vec<_>>();
 
+    debug!("Getting events participated");
+
     let events_participated = sqlx::query!(
         r#"
 SELECT date, event_name, id FROM events e 
@@ -91,9 +98,12 @@ ON pe.event_id = e.id AND pe.participant_id = $1
     })
     .collect::<Vec<_>>();
 
+    debug!("Compiling");
+
     compile("www/edit_person.liquid", liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "auth": get_auth_object(auth) })).await
 }
 
+#[instrument(level = "debug", skip(state, first_name, surname))]
 pub async fn post_edit_person(
     Path(id): Path<i32>,
     State(state): State<KnotState>,
@@ -104,6 +114,7 @@ pub async fn post_edit_person(
         permissions,
     }): Form<NoIDPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
+    debug!("Editing person");
     sqlx::query!(
         r#"
 UPDATE public.people
@@ -127,11 +138,14 @@ pub struct PasswordReset {
     id: i32,
 }
 
+#[instrument(level = "debug", skip(auth, state))]
 pub async fn post_reset_password(
     mut auth: Auth,
     State(state): State<KnotState>,
     Form(PasswordReset { id }): Form<PasswordReset>,
 ) -> Result<impl IntoResponse, KnotError> {
+    debug!("Logging out.");
+
     if auth
         .current_user
         .clone()
@@ -142,6 +156,7 @@ pub async fn post_reset_password(
         auth.logout().await;
     }
 
+    debug!("Sending password reset");
     state.reset_password(id).await?;
     Ok(Redirect::to("/show_all"))
 }

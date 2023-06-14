@@ -13,16 +13,18 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
 };
 use tokio_util::io::ReaderStream;
+use tracing::Instrument;
 use walkdir::WalkDir;
 
 use super::public::serve_static_file;
 
-#[axum::debug_handler]
+#[instrument(level = "debug", skip(state))]
 pub async fn post_add_photo(
     Path(event_id): Path<i32>,
     State(state): State<KnotState>,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, KnotError> {
+    debug!("Zeroing old zip file");
     sqlx::query!(
         r#"
 UPDATE events
@@ -34,56 +36,79 @@ WHERE id = $1"#,
     .await?;
 
     while let Some(field) = multipart.next_field().await? {
-        let data = field.bytes().await?;
+        let res: Result<_, KnotError> = async {
+            debug!("Getting bytes");
+            let data = field.bytes().await?;
 
-        let format = image::guess_format(&data)?;
-        let ext = format
-            .extensions_str()
-            .first()
-            .ok_or(KnotError::NoImageExtension(format))?;
+            debug!(data_len = %data.len(), "Getting format/ext");
 
-        let file_name = loop {
-            let key = format!("uploads/{:x}.{ext}", thread_rng().gen::<u128>());
-            if sqlx::query!(
-                r#"
+            let format = image::guess_format(&data)?;
+            let ext = format
+                .extensions_str()
+                .first()
+                .ok_or(KnotError::NoImageExtension(format))?;
+
+            debug!("Finding file name");
+
+            let file_name = loop {
+                let key = format!("uploads/{:x}.{ext}", thread_rng().gen::<u128>());
+                if sqlx::query!(
+                    r#"
     SELECT * FROM photos
     WHERE path = $1
             "#,
-                key
-            )
-            .fetch_optional(&mut state.get_connection().await?)
-            .await?
-            .is_none()
-            {
-                break key;
-            }
-        };
+                    key
+                )
+                .fetch_optional(&mut state.get_connection().await?)
+                .await?
+                .is_none()
+                {
+                    break key;
+                }
+                trace!(file_name=?key, "Found");
+            };
 
-        sqlx::query!(
-            r#"
+            debug!(?file_name, "Adding photo to DB");
+
+            sqlx::query!(
+                r#"
 INSERT INTO public.photos
 ("path", event_id)
 VALUES($1, $2)"#,
-            file_name,
-            event_id
-        )
-        .execute(&mut state.get_connection().await?)
-        .await?;
+                file_name,
+                event_id
+            )
+            .execute(&mut state.get_connection().await?)
+            .await?;
 
-        let mut file = File::create(file_name).await?;
-        file.write_all(&data).await?;
+            debug!("Writing to file");
+
+            let mut file = File::create(file_name).await?;
+            file.write_all(&data).await?;
+            Ok(())
+        }
+        .instrument(debug_span!("adding_photo"))
+        .await;
+        res?;
     }
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
 
+
+#[instrument(level = "debug")]
 pub async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoResponse, KnotError> {
+    debug!("Getting path/ext");
+
     let path = PathBuf::from(img_path.as_str());
     let ext = path
         .extension()
         .ok_or_else(|| KnotError::MissingFile(img_path.clone()))?
         .to_str()
         .ok_or(KnotError::InvalidUTF8)?;
+
+    debug!("Getting body");
+
     let body = StreamBody::new(ReaderStream::new(
         File::open(format!("uploads/{img_path}")).await?,
     ));
@@ -96,14 +121,17 @@ pub async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoRespon
         ),
     ];
 
+    debug!("Returning");
+
     Ok((headers, body))
 }
 
+#[instrument(level = "debug", skip(state))]
 pub async fn get_all_images(
     Path(event_id): Path<i32>,
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
-    trace!(%event_id, "Checking for existing zip");
+    debug!(%event_id, "Checking for existing zip");
     if let Some(file_name) = sqlx::query!(
         r#"
 SELECT zip_file
@@ -115,7 +143,7 @@ WHERE id = $1"#,
     .await?
     .zip_file
     {
-        trace!(?file_name, %event_id, "Found existing zip file");
+        debug!(?file_name, %event_id, "Found existing zip file");
         return serve_static_file(file_name).await;
     }
     info!(%event_id, "Creating new zip file");
@@ -132,6 +160,7 @@ WHERE event_id = $1"#,
     .map(|x| x.path);
 
     let file_name = {
+        #[instrument(level = "debug")]
         fn get_existing() -> Vec<String> {
             let zip_ext = OsStr::new("zip");
             let mut files = vec![];
@@ -157,9 +186,12 @@ WHERE event_id = $1"#,
                 if !existing.contains(&key) {
                     break key;
                 }
+                trace!(file_name=?key, "Failed on");
             }
         )
     };
+
+    debug!("Creating FS stuff");
 
     let mut file = File::create(&file_name).await?;
     let mut writer = ZipFileWriter::with_tokio(&mut file);
@@ -168,26 +200,44 @@ WHERE event_id = $1"#,
     let mut buf = [0; 1024];
 
     for file_path in files_to_find {
-        let mut file = File::open(&file_path).await?;
+        let res: Result<_, KnotError> = async {
+            debug!(?file_path, "Opening file");
+            let mut file = File::open(&file_path).await?;
 
-        loop {
-            match file.read(&mut buf).await? {
-                0 => break,
-                n => data.extend(&buf[0..n]),
+            debug!("Reading file");
+
+            loop {
+                match file.read(&mut buf).await? {
+                    0 => break,
+                    n => {
+                        trace!(%n, "Got bytes");
+                        data.extend(&buf[0..n]);
+                    },
+                }
             }
-        }
 
-        writer
-            .write_entry_whole(
-                ZipEntryBuilder::new(file_path.into(), Compression::Deflate),
-                &data,
-            )
-            .await?;
-        data.clear();
+            debug!("Writing to zip file");
+    
+            writer
+                .write_entry_whole(
+                    ZipEntryBuilder::new(file_path.into(), Compression::Deflate),
+                    &data,
+                )
+                .await?;
+            data.clear();
+
+            Ok(())
+
+        }.instrument(debug_span!("reading_file")).await;
+        res?;
     }
+
+    debug!("Closing file");
 
     writer.close().await?;
     drop(file);
+
+    debug!("Updating SQL");
 
     sqlx::query!(
         r#"
@@ -199,6 +249,8 @@ WHERE id = $2"#,
     )
     .execute(&mut state.get_connection().await?)
     .await?;
+
+    debug!("Serving");
 
     serve_static_file(file_name).await
 }

@@ -3,6 +3,7 @@ use axum::response::Html;
 use chrono::NaiveDateTime;
 use liquid::{model::Value, Object, ParserBuilder};
 use once_cell::sync::Lazy;
+use tracing::Instrument;
 use std::{
     env::{self, var},
     fmt::Debug,
@@ -22,13 +23,19 @@ pub static DOMAIN: Lazy<(bool, String)> = Lazy::new(|| {
     }
 });
 
-#[instrument]
+#[instrument(level = "debug", skip(globals))]
 pub async fn compile(
     path: impl AsRef<Path> + Debug,
     mut globals: Object,
 ) -> Result<Html<String>, KnotError> {
-    let liquid = read_to_string(path).await?;
-    let partial_compiler = PARTIALS.read().await.to_compiler();
+
+    let (liquid, partial_compiler) = async move {
+        debug!("Reading in file + partials");
+        (read_to_string(path).await, PARTIALS.read().await.to_compiler())
+    }.instrument(debug_span!("compile_preparations")).await;
+    let liquid = liquid?;
+
+    debug!("Inserting globals");
 
     globals.insert("cft_sitekey".into(), Value::scalar(CFT_SITEKEY.as_str()));
     globals.insert(
@@ -40,15 +47,18 @@ pub async fn compile(
         })),
     );
 
-    Ok(tokio::task::spawn_blocking(move || {
+    let html = tokio::task::spawn_blocking(move || {
+        debug!("Compiling");
         ParserBuilder::with_stdlib()
             .partials(partial_compiler)
             .build()?
             .parse(&liquid)?
             .render(&globals)
     })
-    .await??)
-    .map(Html)
+    .instrument(debug_span!("acc_compilation"))
+    .await?;
+
+    Ok(html?).map(Html)
 }
 
 pub trait EnvFormatter {

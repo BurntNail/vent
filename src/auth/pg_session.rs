@@ -18,6 +18,7 @@ impl PostgresSessionStore {
 
 #[async_trait::async_trait]
 impl SessionStore for PostgresSessionStore {
+    #[instrument(level = "trace", skip(cookie_value, self), fields(id = ?Session::id_from_cookie_value(&cookie_value)))]
     async fn load_session(&self, cookie_value: String) -> ASResult<Option<Session>> {
         let id = Session::id_from_cookie_value(&cookie_value)?;
 
@@ -38,6 +39,7 @@ impl SessionStore for PostgresSessionStore {
         Ok(None)
     }
 
+    #[instrument(level = "trace", skip(session, self), fields(id = ?session.id()))]
     async fn store_session(&self, session: Session) -> ASResult<Option<String>> {
         if sqlx::query!(
             "SELECT id FROM sessions WHERE id = $1",
@@ -72,6 +74,7 @@ impl SessionStore for PostgresSessionStore {
         Ok(session.into_cookie_value())
     }
 
+    #[instrument(level = "trace", skip(session, self), values(id = ?session.id()))]
     async fn destroy_session(&self, session: Session) -> ASResult {
         sqlx::query!(
             "DELETE FROM sessions WHERE id = $1",
@@ -85,6 +88,7 @@ impl SessionStore for PostgresSessionStore {
         Ok(())
     }
 
+    #[instrument(level = "info", skip(self))]
     async fn clear_store(&self) -> ASResult {
         sqlx::query!("TRUNCATE sessions")
             .execute(&mut self.pool.acquire().await?)

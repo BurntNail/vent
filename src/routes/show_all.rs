@@ -42,6 +42,7 @@ impl From<SmolDbEvent> for SmolFormattedDbEvent {
     }
 }
 
+#[instrument(level = "debug", skip(auth, state))]
 pub async fn get_remove_stuff(
     auth: Auth,
     State(state): State<KnotState>,
@@ -54,6 +55,8 @@ pub async fn get_remove_stuff(
         pub id: i32,
     }
 
+    debug!("Gettinng people");
+
     let mut people = sqlx::query_as!(
         SmolPerson,
         r#"
@@ -65,6 +68,8 @@ FROM people p
     .await?;
     people.sort_by_key(|x| x.surname.clone());
     people.sort_by_key(|x| x.form.clone());
+
+    trace!("Getting events");
 
     let events: Vec<SmolFormattedDbEvent> = sqlx::query_as!(
         SmolDbEvent,
@@ -79,6 +84,8 @@ ORDER BY e.date
     .into_iter()
     .map(SmolFormattedDbEvent::from)
     .collect();
+
+    trace!("Compiling");
 
     compile(
         "www/show_all.liquid",
@@ -97,11 +104,14 @@ pub struct RemoveEvent {
     pub event_id: Vec<i32>,
 }
 
+
+#[instrument(level = "info", skip(state))]
 pub async fn post_remove_person(
     State(state): State<KnotState>,
     Form(RemovePerson { person_id }): Form<RemovePerson>,
 ) -> Result<impl IntoResponse, KnotError> {
     for person_id in person_id {
+        trace!(?person_id, "Removing");
         sqlx::query!(
             r#"
 DELETE FROM public.people
@@ -115,11 +125,14 @@ WHERE id=$1
 
     Ok(Redirect::to("/show_all"))
 }
+
+#[instrument(level = "info", skip(state))]
 pub async fn post_remove_event(
     State(state): State<KnotState>,
     Form(RemoveEvent { event_id }): Form<RemoveEvent>,
 ) -> Result<impl IntoResponse, KnotError> {
     for event_id in event_id {
+        trace!(?event_id, "Removing");
         sqlx::query!(
             r#"
     DELETE FROM public.events

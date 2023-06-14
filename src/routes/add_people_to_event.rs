@@ -15,7 +15,7 @@ pub struct AddPerson {
 }
 
 ///`POST` method that adds a prefect to an event
-#[axum::debug_handler]
+#[instrument(level = "debug", skip(state))]
 pub async fn post_add_prefect_to_event(
     State(state): State<KnotState>,
     Form(AddPerson {
@@ -37,6 +37,8 @@ pub async fn post_add_prefect_to_event(
         .is_none()
         //if we can't find anything assoiated with this prefect and this event
         {
+            debug!(%prefect_id, %event_id, "Adding prefect to event");
+
             //then we add the prefect to the event
             sqlx::query!(
                 r#"
@@ -49,6 +51,8 @@ pub async fn post_add_prefect_to_event(
             )
             .execute(&mut state.get_connection().await?)
             .await?;
+        } else {
+            warn!(%prefect_id, %event_id, "Prefect already in event");
         }
     }
 
@@ -56,7 +60,7 @@ pub async fn post_add_prefect_to_event(
 }
 
 ///`POST` method that adds a participant
-#[axum::debug_handler]
+#[instrument(level = "debug", skip(state))]
 pub async fn post_add_participant_to_event(
     State(state): State<KnotState>,
     Form(AddPerson {
@@ -78,6 +82,7 @@ pub async fn post_add_participant_to_event(
         .is_none()
         //if we can't find anything assoiated with this participant and this event
         {
+            debug!(%participant_id, %event_id, "Adding participant to event");
             //then we add the participant to the event
             sqlx::query!(
                 r#"
@@ -90,6 +95,8 @@ pub async fn post_add_participant_to_event(
             )
             .execute(&mut state.get_connection().await?)
             .await?;
+        } else {
+            warn!(%participant_id, %event_id, "Participant already in event.");
         }
     }
 

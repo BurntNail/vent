@@ -5,9 +5,11 @@ use rust_xlsxwriter::{Color, Format, FormatAlign, Workbook};
 use std::collections::HashMap;
 use tokio::task;
 
+#[instrument(level = "debug", skip(state))]
 pub async fn get_spreadsheet(
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
+    debug!("Getting people");
     let mut people = sqlx::query!(
         r#"
 SELECT id, first_name, surname, form  FROM people"#
@@ -17,6 +19,8 @@ SELECT id, first_name, surname, form  FROM people"#
     people.sort_by_key(|x| x.surname.clone());
     people.sort_by_key(|x| x.form.clone());
 
+    debug!("Getting events");
+
     let mut events = sqlx::query!(
         r#"
 SELECT * FROM events"#
@@ -24,6 +28,8 @@ SELECT * FROM events"#
     .fetch_all(&mut state.get_connection().await?)
     .await?;
     events.sort_by_key(|r| r.date);
+
+    debug!("Getting relationships");
 
     let mut participant_relationships = HashMap::new();
     sqlx::query!("SELECT participant_id, event_id FROM participant_events")
@@ -36,6 +42,8 @@ SELECT * FROM events"#
                 .or_insert(vec![])
                 .push(x.event_id);
         });
+
+    debug!("Building workbook");
 
     task::spawn_blocking(move || -> Result<(), KnotError> {
         let mut workbook = Workbook::new();
@@ -104,6 +112,8 @@ SELECT * FROM events"#
         Ok(())
     })
     .await??;
+
+    debug!("Serving spreadsheet");
 
     serve_static_file("student_spreadsheet.xlsx").await
 }

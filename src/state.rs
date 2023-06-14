@@ -19,7 +19,7 @@ pub struct EmailToSend {
     pub unique_id: i32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct KnotState {
     postgres: Pool<Postgres>,
     mail_sender: UnboundedSender<EmailToSend>,

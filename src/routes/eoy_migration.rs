@@ -13,10 +13,13 @@ use crate::{
     state::KnotState,
 };
 
+#[instrument(level = "debug", skip(auth, state))]
 pub async fn get_eoy_migration(
     auth: Auth,
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
+    debug!("Getting all forms");
+
     let forms: Vec<String> = sqlx::query!(r#"SELECT form FROM people"#)
         .fetch_all(&mut state.get_connection().await?)
         .await?
@@ -24,6 +27,8 @@ pub async fn get_eoy_migration(
         .map(|r| r.form)
         .unique()
         .collect();
+
+    debug!("Compiling");
 
     compile(
         "www/eoy_migration.liquid",
@@ -41,10 +46,12 @@ pub struct FormNameChange {
     pub new_name: String,
 }
 
+#[instrument(level = "debug", skip(state))]
 pub async fn post_eoy_migration(
     State(state): State<KnotState>,
     Form(FormNameChange { old_name, new_name }): Form<FormNameChange>,
 ) -> Result<impl IntoResponse, KnotError> {
+    debug!("Sending DB query");
     sqlx::query!(
         r#"
 UPDATE public.people
