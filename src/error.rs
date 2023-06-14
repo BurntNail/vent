@@ -62,11 +62,16 @@ pub enum KnotError {
     InvalidUTF8,
     #[error("CSV incorrect format")]
     MalformedCSV,
+    #[error("Missing Cloudflare IP in headers")]
+    MissingCFIP,
 }
 
-pub fn get_error_page(error_code: StatusCode, content: impl Debug) -> (StatusCode, Html<String>) {
+#[allow(clippy::needless_pass_by_value)]
+pub fn get_error_page(error_code: StatusCode, content: KnotError) -> (StatusCode, Html<String>) {
     static TS_URL: Lazy<String> =
         Lazy::new(|| var("TECH_SUPPORT").unwrap_or_else(|_e| "https://google.com".into()));
+
+    error!(?content, "Dealing with Error page: {content:#?}");
 
     (
         error_code,

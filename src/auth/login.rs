@@ -93,7 +93,7 @@ pub async fn post_login(
         r#"
 SELECT id, first_name, surname, username, form, hashed_password, permissions as "permissions: _" 
 FROM people 
-WHERE username = $1
+WHERE LOWER(username) = LOWER($1)
         "#,
         username
     )

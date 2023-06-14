@@ -91,6 +91,35 @@
 
 <br>
 
+{% if auth.permissions["add_rm_self_to_event"] %}
+  <div class="card">
+    <div class="card-body">
+      {% if already_in.is_in %}
+        <form method="POST" action="/remove_participant_from_event">
+          <input
+            type="hidden"
+            name="relation_id"
+            value="{{already_in.rel_id}}">
+          <button type="submit" class="btn btn-danger">Unsign up!</button>
+        </form>
+      {% else %}
+        <form method="POST" action="/add_participant">
+          <input
+            type="hidden"
+            name="person_ids"
+            value="{{auth.user.id}}">
+          <input
+            type="hidden"
+            name="event_id"
+            value="{{event.id}}">
+          <button type="submit" class="btn btn-primary">Sign up!</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+  <br>
+{% endif %}
+
 <div class="row">
   {% if auth.permissions["edit_prefects_on_events"] or auth.permissions["edit_participants_on_events"] %}
     <div class="col">

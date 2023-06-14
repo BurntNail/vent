@@ -1,6 +1,6 @@
 //! Module that publishes 2 `POST` methods that deal with adding prefects and participants to events based off of path parameters. This is a fair bit easier than an invisible form.
 
-use crate::{error::KnotError, state::KnotState};
+use crate::{error::KnotError, state::KnotState, auth::{Auth, PermissionsRole}};
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
@@ -62,12 +62,15 @@ pub async fn post_add_prefect_to_event(
 ///`POST` method that adds a participant
 #[instrument(level = "debug", skip(state))]
 pub async fn post_add_participant_to_event(
+    auth: Auth,
     State(state): State<KnotState>,
     Form(AddPerson {
         event_id,
         person_ids,
     }): Form<AddPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
+    let current_user = auth.current_user.expect("need to be logged in to add participants");
+
     for participant_id in person_ids {
         if sqlx::query!(
             r#"
@@ -82,6 +85,11 @@ pub async fn post_add_participant_to_event(
         .is_none()
         //if we can't find anything assoiated with this participant and this event
         {
+            if current_user.permissions < PermissionsRole::Prefect && current_user.id != participant_id {
+                warn!(?participant_id, perp=?current_user.id, "Participant did POST magic to get other participant, but failed.");
+                continue;
+            }
+
             debug!(%participant_id, %event_id, "Adding participant to event");
             //then we add the participant to the event
             sqlx::query!(

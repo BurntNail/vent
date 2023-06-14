@@ -1,14 +1,13 @@
 use axum::{
     extract::FromRequestParts,
     http::{request::Parts, HeaderValue},
-    response::Html,
 };
 use once_cell::sync::Lazy;
-use reqwest::{Client, StatusCode};
+use reqwest::Client;
 use serde::Deserialize;
 use std::{collections::HashMap, env::var};
 
-use crate::error::{get_error_page, KnotError};
+use crate::error::KnotError;
 
 static CFT_SECRETKEY: Lazy<String> =
     Lazy::new(|| var("CFT_SECRETKEY").expect("missing environment variable `CFT_SECRETKEY`"));
@@ -17,7 +16,7 @@ pub struct GrabCFRemoteIP(HeaderValue);
 
 #[async_trait]
 impl<S: Send + Sync> FromRequestParts<S> for GrabCFRemoteIP {
-    type Rejection = (StatusCode, Html<String>);
+    type Rejection = KnotError;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         if cfg!(debug_assertions) {
@@ -28,10 +27,7 @@ impl<S: Send + Sync> FromRequestParts<S> for GrabCFRemoteIP {
             Ok(Self(cfrip.clone()))
         } else {
             error!("Failed to get Remote IP");
-            Err(get_error_page(
-                StatusCode::FORBIDDEN,
-                "Missing Cloudflare IP.",
-            ))
+            Err(KnotError::MissingCFIP)
         }
     }
 }
