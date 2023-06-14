@@ -150,15 +150,6 @@ FROM people WHERE id = $1
         warn!("No SENTRY_DSN detected.");
         None
     };
-    let _honeyguard = if let Ok(api_key) = var("HONEYCOMB_API_KEY") {
-        Some(
-            opentelemetry_honeycomb::new_pipeline(api_key, "knot".into())
-                .install()
-                .expect("unable to install opentelemetry honeycomb pipeline"),
-        )
-    } else {
-        None
-    };
 
     let state = KnotState::new(pool);
 
