@@ -70,12 +70,13 @@ struct TurnstileResponse {
 }
 
 #[instrument(level = "debug")]
+///returns whether or not it worked
 pub async fn verify_turnstile(
     cf_turnstile_response: String,
     GrabCFRemoteIP(remote_ip): GrabCFRemoteIP,
-) -> Result<(), KnotError> {
+) -> Result<bool, KnotError> {
     if cfg!(debug_assertions) {
-        return Ok(());
+        return Ok(true);
     }
 
     let mut body = HashMap::new();
@@ -97,12 +98,12 @@ pub async fn verify_turnstile(
     debug!(?post_response.hostname, ?post_response.cdata, ?post_response.action, ?post_response.challenge_ts, "Got CFT response");
 
     if post_response.success {
-        return Ok(());
+        return Ok(true);
     }
 
     if !post_response.error_codes.is_empty() {
         error!(?post_response.error_codes, "CFT Response Error");
     }
 
-    Err(KnotError::FailedTurnstile)
+    Ok(false)
 }

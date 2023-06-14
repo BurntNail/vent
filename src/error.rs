@@ -60,8 +60,6 @@ pub enum KnotError {
     UnknownMIME(PathBuf),
     #[error("Encountered Invalid UTF-8")]
     InvalidUTF8,
-    #[error("Failed Cloudflare Turnstile")]
-    FailedTurnstile,
     #[error("CSV incorrect format")]
     MalformedCSV,
 }

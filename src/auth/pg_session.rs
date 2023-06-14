@@ -1,9 +1,9 @@
 use axum_login::axum_sessions::async_session::{
     serde_json::from_value, Result as ASResult, Session, SessionStore,
 };
+use chrono::Local;
 use serde_json::to_value;
 use sqlx::{Pool, Postgres};
-use chrono::Local;
 
 #[derive(Debug, Clone)]
 pub struct PostgresSessionStore {
@@ -24,9 +24,13 @@ impl SessionStore for PostgresSessionStore {
 
         trace!(?id, "Loading");
 
-        let json = sqlx::query!("SELECT * FROM sessions WHERE id = $1 AND (expires IS NULL OR expires > $2)", id, Local::now().naive_local())
-            .fetch_optional(&mut self.pool.acquire().await?)
-            .await?;
+        let json = sqlx::query!(
+            "SELECT * FROM sessions WHERE id = $1 AND (expires IS NULL OR expires > $2)",
+            id,
+            Local::now().naive_local()
+        )
+        .fetch_optional(&mut self.pool.acquire().await?)
+        .await?;
 
         if let Some(json) = json {
             let fv = from_value::<Session>(json.session_json)?;
