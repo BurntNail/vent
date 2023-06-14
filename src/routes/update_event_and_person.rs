@@ -17,11 +17,13 @@ use std::collections::HashMap;
 use tokio::fs::remove_file;
 
 #[allow(clippy::too_many_lines)]
+#[instrument(level = "debug", skip(state, auth))]
 pub async fn get_update_event(
     auth: Auth,
     Path(event_id): Path<i32>,
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
+    debug!("Getting event");
     let DbEvent {
         id,
         event_name,
@@ -61,6 +63,8 @@ SELECT * FROM events WHERE id = $1
         pub people: Vec<DbPerson>,
     }
 
+    debug!("Getting existing prefects");
+
     let mut existing_prefects = HashMap::new();
     for person in sqlx::query_as!(
         PersonPlusRelID,
@@ -74,7 +78,7 @@ INNER JOIN prefect_events pe ON pe.event_id = $1 AND pe.prefect_id = p.id
     .fetch_all(&mut state.get_connection().await?)
     .await?
     {
-        existing_prefects
+            existing_prefects
             .entry(person.form.clone())
             .or_insert(RelFormGroup {
                 form: person.form.clone(),
@@ -91,6 +95,8 @@ INNER JOIN prefect_events pe ON pe.event_id = $1 AND pe.prefect_id = p.id
         })
         .collect::<Vec<_>>();
     existing_prefects.sort_by_key(|rfg| rfg.form.clone());
+
+    debug!("Getting existing participants");
 
     let mut existing_participants = HashMap::new();
     for person in sqlx::query_as!(
@@ -122,6 +128,8 @@ INNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.i
         })
         .collect::<Vec<_>>();
     existing_participants.sort_by_key(|rfg| rfg.form.clone());
+
+    debug!("Getting possible prefects");
 
     let mut possible_prefects = HashMap::new();
     for person in sqlx::query_as!(
@@ -157,6 +165,8 @@ WHERE p.permissions != 'participant'
         })
         .collect::<Vec<_>>();
     possible_prefects.sort_by_key(|dfg| dfg.form.clone());
+
+    debug!("Getting possible participants");
 
     let mut possible_participants = HashMap::new();
     for person in sqlx::query_as!(
@@ -198,6 +208,8 @@ FROM people p
         id: i32,
     }
 
+    debug!("Getting photos");
+
     let photos: Vec<Image> = sqlx::query_as!(
         Image,
         r#"
@@ -208,6 +220,8 @@ WHERE event_id = $1
     )
     .fetch_all(&mut state.get_connection().await?)
     .await?;
+
+    debug!("Compiling");
 
     compile(
         "www/update_event.liquid",

@@ -9,8 +9,14 @@ use std::path::PathBuf;
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 
+
+#[instrument(level = "trace", skip(path))]
 pub async fn serve_static_file(path: impl Into<PathBuf>) -> Result<impl IntoResponse, KnotError> {
+    trace!("Getting file contents/details");
+
     let path = path.into();
+
+    trace!(?path);
 
     let file = File::open(path.clone()).await?;
     let file_size = file.metadata().await?.len();
@@ -20,9 +26,13 @@ pub async fn serve_static_file(path: impl Into<PathBuf>) -> Result<impl IntoResp
         .first()
         .ok_or(KnotError::UnknownMIME(path))?;
 
+    trace!("Building headers");
+
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, mime.essence_str().try_into()?);
     headers.insert(header::CONTENT_LENGTH, file_size.into());
+
+    trace!("Serving");
 
     Ok((headers, body))
 }

@@ -4,16 +4,17 @@ use crate::{error::KnotError, routes::DbEvent, state::KnotState};
 use axum::{extract::State, response::IntoResponse};
 use chrono::Duration;
 use icalendar::{Calendar, Component, Event, EventLike};
+use tracing::Instrument;
 use std::collections::HashMap;
 use tokio::{fs::File, io::AsyncWriteExt};
 
 use super::public::serve_static_file;
 
-#[instrument(level = "trace")]
+#[instrument(level = "debug", skip(state))]
 pub async fn get_calendar_feed(
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let prefect_events = {
+    let prefect_events: Result<_, KnotError> = async {
         let mut map: HashMap<i32, Vec<String>> = HashMap::new();
 
         let prefects = sqlx::query!(
@@ -38,10 +39,11 @@ pub async fn get_calendar_feed(
             }
         }
 
-        map
-    };
+        Ok(map)
+    }.instrument(debug_span!("getting_prefect_events")).await;
+    let prefect_events = prefect_events?;
 
-    trace!(?prefect_events, "Worked out PEs");
+    debug!(?prefect_events, "Worked out PEs");
 
     let mut calendar = Calendar::new();
     for DbEvent {
@@ -62,7 +64,7 @@ pub async fn get_calendar_feed(
             .map(|x| x.join(", "))
             .unwrap_or_default();
 
-        trace!(?event_name, ?date, "Adding event to calendar");
+        debug!(?event_name, ?date, "Adding event to calendar");
 
         calendar.push(
             Event::new()
@@ -81,12 +83,14 @@ Prefects Attending: {prefects}"#
     }
     calendar.name("Kingsley House Events");
 
-    {
+    let calr: Result<_, KnotError> = async {
         let mut local_file = File::create("calendar.ics").await?;
         local_file
             .write_all(calendar.done().to_string().as_bytes())
             .await?;
-    }
+        Ok(())
+    }.instrument(debug_span!("writing_calendar_to_file")).await;
+    calr?;
 
     serve_static_file("calendar.ics").await
 }

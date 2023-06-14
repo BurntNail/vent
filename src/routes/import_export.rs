@@ -15,6 +15,7 @@ use futures::stream::StreamExt;
 use serde::Deserialize;
 use std::collections::HashMap;
 use tokio::fs::File;
+use tracing::Instrument;
 
 pub async fn get_import_export_csv(auth: Auth) -> Result<impl IntoResponse, KnotError> {
     compile(
@@ -24,91 +25,116 @@ pub async fn get_import_export_csv(auth: Auth) -> Result<impl IntoResponse, Knot
     .await
 }
 
+#[instrument(level = "debug", skip(multipart, state))]
 pub async fn post_import_people_from_csv(
     State(state): State<KnotState>,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, KnotError> {
+    debug!("Getting CSV file");
     let Some(field) = multipart.next_field().await? else {
+        warn!("Missing import CSV file");
         return Ok(Redirect::to("/"))
     };
+
+    debug!(name=?field.name(), "Getting text + creating reader");
 
     let text = field.text().await?;
     let mut csv_reader = AsyncReaderBuilder::new()
         .create_reader(text.as_bytes())
         .into_records();
 
-    let existing_forms: HashMap<String, i32> = sqlx::query!("SELECT id, form FROM people")
-        .fetch_all(&mut state.get_connection().await?)
-        .await?
-        .into_iter()
-        .map(|r| (r.form, r.id))
-        .collect();
-    let existing_first_names: HashMap<String, i32> = sqlx::query!("SELECT id, surname FROM people")
-        .fetch_all(&mut state.get_connection().await?)
-        .await?
-        .into_iter()
-        .map(|r| (r.surname, r.id))
-        .collect();
-    let existing_surnames: HashMap<String, i32> = sqlx::query!("SELECT id, first_name FROM people")
-        .fetch_all(&mut state.get_connection().await?)
-        .await?
-        .into_iter()
-        .map(|r| (r.first_name, r.id))
-        .collect();
+    let res: Result<_, KnotError> = async {
+        let existing_forms: HashMap<String, i32> = sqlx::query!("SELECT id, form FROM people")
+            .fetch_all(&mut state.get_connection().await?)
+            .await?
+            .into_iter()
+            .map(|r| (r.form, r.id))
+            .collect();
+        let existing_first_names: HashMap<String, i32> =
+            sqlx::query!("SELECT id, surname FROM people")
+                .fetch_all(&mut state.get_connection().await?)
+                .await?
+                .into_iter()
+                .map(|r| (r.surname, r.id))
+                .collect();
+        let existing_surnames: HashMap<String, i32> =
+            sqlx::query!("SELECT id, first_name FROM people")
+                .fetch_all(&mut state.get_connection().await?)
+                .await?
+                .into_iter()
+                .map(|r| (r.first_name, r.id))
+                .collect();
+
+        Ok((existing_forms, existing_first_names, existing_surnames))
+    }
+    .instrument(debug_span!("Getting existing content"))
+    .await;
+    let (existing_forms, existing_first_names, existing_surnames) = res?;
 
     //possibility of baby data races here, but not too important
 
     while let Some(record) = csv_reader.next().await.transpose()? {
-        let first_name = record.get(0).ok_or(KnotError::MalformedCSV)?;
-        let surname = record.get(1).ok_or(KnotError::MalformedCSV)?;
-        let form = record.get(2).ok_or(KnotError::MalformedCSV)?;
-        let is_prefect: bool = record.get(3).ok_or(KnotError::MalformedCSV)?.parse()?;
-        let username = record.get(4).ok_or(KnotError::MalformedCSV)?;
+        let res: Result<_, KnotError> = async {
+            debug!("Getting details from record");
+            let first_name = record.get(0).ok_or(KnotError::MalformedCSV)?;
+            let surname = record.get(1).ok_or(KnotError::MalformedCSV)?;
+            let form = record.get(2).ok_or(KnotError::MalformedCSV)?;
+            let is_prefect: bool = record.get(3).ok_or(KnotError::MalformedCSV)?.parse()?;
+            let username = record.get(4).ok_or(KnotError::MalformedCSV)?;
 
-        let mut needs_to_update = None;
+            debug!("Checkinng if needs to be updated rather than created");
 
-        if let Some(form_id) = existing_forms.get(form) {
-            if let Some(fn_id) = existing_first_names.get(first_name) {
-                if form_id == fn_id {
-                    if let Some(sn_id) = existing_surnames.get(surname) {
-                        if sn_id == form_id {
-                            needs_to_update = Some(form_id);
+            let mut needs_to_update = None;
+
+            if let Some(form_id) = existing_forms.get(form) {
+                if let Some(fn_id) = existing_first_names.get(first_name) {
+                    if form_id == fn_id {
+                        if let Some(sn_id) = existing_surnames.get(surname) {
+                            if sn_id == form_id {
+                                needs_to_update = Some(form_id);
+                            }
                         }
                     }
                 }
             }
-        }
 
-        let perms = if is_prefect {
-            PermissionsRole::Prefect
-        } else {
-            PermissionsRole::Participant
-        };
+            let perms = if is_prefect {
+                PermissionsRole::Prefect
+            } else {
+                PermissionsRole::Participant
+            };
 
-        if let Some(needs_to_update) = needs_to_update {
-            sqlx::query!(
-                "UPDATE people SET permissions = $1, username = $2 WHERE id = $3",
-                perms as _,
-                username,
-                needs_to_update
-            )
-            .execute(&mut state.get_connection().await?)
-            .await?;
-        } else {
-            sqlx::query!(
-                r#"INSERT INTO public.people
+            if let Some(needs_to_update) = needs_to_update {
+                debug!("Updating");
+                sqlx::query!(
+                    "UPDATE people SET permissions = $1, username = $2 WHERE id = $3",
+                    perms as _,
+                    username,
+                    needs_to_update
+                )
+                .execute(&mut state.get_connection().await?)
+                .await?;
+            } else {
+                debug!("Creating");
+                sqlx::query!(
+                    r#"INSERT INTO public.people
             (first_name, surname, form, hashed_password, permissions, username, password_link_id)
             VALUES($1, $2, $3, NULL, $4, $5, NULL);
             "#,
-                first_name,
-                surname,
-                form,
-                perms as _,
-                username
-            )
-            .execute(&mut state.get_connection().await?)
-            .await?;
+                    first_name,
+                    surname,
+                    form,
+                    perms as _,
+                    username
+                )
+                .execute(&mut state.get_connection().await?)
+                .await?;
+            }
+            Ok(())
         }
+        .instrument(debug_span!("dealing_with_import_people"))
+        .await;
+        res?;
     }
 
     Ok(Redirect::to("/"))
@@ -118,9 +144,13 @@ pub async fn post_import_events_from_csv(
     State(state): State<KnotState>,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, KnotError> {
+    debug!("Getting CSV");
     let Some(field) = multipart.next_field().await? else {
+        warn!("Missing CSV for importing events");
         return Ok(Redirect::to("/"))
     };
+
+    debug!(name=?field.name(), "Getting text");
 
     let text = field.text().await?;
     let mut csv_reader = AsyncReaderBuilder::new()
@@ -128,7 +158,9 @@ pub async fn post_import_events_from_csv(
         .into_records();
 
     while let Some(record) = csv_reader.next().await.transpose()? {
-        let name = record.get(0).ok_or(KnotError::MalformedCSV)?;
+        let res: Result<_, KnotError> = async {
+            debug!("Getting details from record");
+            let name = record.get(0).ok_or(KnotError::MalformedCSV)?;
         let date_time = NaiveDateTime::parse_from_str(
             record.get(1).ok_or(KnotError::MalformedCSV)?,
             "%Y-%m-%dT%H:%M",
@@ -136,6 +168,8 @@ pub async fn post_import_events_from_csv(
         let location = record.get(2).ok_or(KnotError::MalformedCSV)?;
         let teacher = record.get(3).ok_or(KnotError::MalformedCSV)?;
         let other_info = record.get(4);
+
+        debug!("Creating");
 
         sqlx::query!(
             r#"
@@ -149,6 +183,10 @@ VALUES ($1, $2, $3, $4, $5)"#,
         )
         .execute(&mut state.get_connection().await?)
         .await?;
+
+            Ok(())
+        }.instrument(debug_span!("dealing_with_import_event")).await;
+        res?;
     }
 
     Ok(Redirect::to("/"))

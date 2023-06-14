@@ -8,6 +8,7 @@ use axum::response::{IntoResponse, Redirect};
 use liquid::partials::{EagerCompiler, PartialSource};
 use once_cell::sync::Lazy;
 use tokio::{fs::read_to_string, sync::RwLock};
+use tracing::Instrument;
 use walkdir::{DirEntry, WalkDir};
 
 ///Struct to hold all the partials - then I can use a convenience function to easily get a [`PartialCompiler`]
@@ -42,9 +43,9 @@ impl PartialSource for Partials {
 ///Static variable to store all of the partials
 pub static PARTIALS: Lazy<RwLock<Partials>> = Lazy::new(|| RwLock::new(Partials::default()));
 
-#[instrument(level = "trace")]
+#[instrument(level = "debug")]
 pub async fn reload_partials() -> impl IntoResponse {
-    trace!("Reloading Partials");
+    debug!("Reloading Partials");
     PARTIALS.write().await.reload().await;
     Redirect::to("/")
 }
@@ -80,20 +81,25 @@ async fn get_partials() -> HashMap<String, String> {
             })
         })
     {
-        match read_to_string(&partial).await {
-            Ok(source) => {
-                info!(?partial, "Loading Partial");
-                if let Some(name) = partial.file_name().and_then(OsStr::to_str) {
-                    in_memory_source.insert(LIQUID_PARTIALS_NAME.to_string() + name, source);
-                //add partial
-                } else {
-                    error!("Got partial, could not transform name to UTF-8");
+        let span = info_span!("adding_partial", ?partial);
+        async {
+            match read_to_string(&partial).await {
+                Ok(source) => {
+                    info!(?partial, "Loading Partial");
+                    if let Some(name) = partial.file_name().and_then(OsStr::to_str) {
+                        in_memory_source.insert(LIQUID_PARTIALS_NAME.to_string() + name, source);
+                    //add partial
+                    } else {
+                        error!("Got partial, could not transform name to UTF-8");
+                    }
+                }
+                Err(e) => {
+                    error!(?partial, ?e, "Error reading partial");
                 }
             }
-            Err(e) => {
-                error!(?partial, ?e, "Error reading partial");
-            }
         }
+        .instrument(span)
+        .await;
     }
 
     in_memory_source

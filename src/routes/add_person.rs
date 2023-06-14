@@ -14,7 +14,7 @@ use axum::{
 use serde::Deserialize;
 
 ///`GET` function to display the add person form
-#[instrument(level = "trace")]
+#[instrument(level = "debug")]
 pub async fn get_add_person(auth: Auth) -> Result<impl IntoResponse, KnotError> {
     compile(
         "www/add_person.liquid",
@@ -31,7 +31,7 @@ pub struct NoIDPerson {
     pub permissions: PermissionsRole,
 }
 
-#[instrument(level = "trace")]
+#[instrument(level = "info", skip(state, first_name, surname))]
 pub async fn post_add_person(
     State(state): State<KnotState>,
     Form(NoIDPerson {
@@ -41,6 +41,7 @@ pub async fn post_add_person(
         permissions,
     }): Form<NoIDPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
+    info!("Inserting new person into DB");
     sqlx::query!(
         r#"
 INSERT INTO public.people

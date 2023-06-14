@@ -27,6 +27,7 @@ pub struct LoginDetails {
     pub unhashed_password: String,
 }
 
+#[instrument(level = "debug", skip(auth, state, first_name, surname, unhashed_password))]
 pub async fn post_edit_user(
     auth: Auth,
     State(state): State<KnotState>,
@@ -37,7 +38,12 @@ pub async fn post_edit_user(
     }): Form<LoginDetails>,
 ) -> Result<impl IntoResponse, KnotError> {
     let current_id = auth.current_user.unwrap().id;
+
+    debug!(%current_id, "Hashing password");
+
     let hashed = hash(&unhashed_password, DEFAULT_COST)?;
+
+    debug!("Updating in DB");
 
     sqlx::query!(
         r#"

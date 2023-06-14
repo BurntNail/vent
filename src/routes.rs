@@ -31,7 +31,7 @@ pub struct DbPerson {
     pub permissions: PermissionsRole,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct DbEvent {
     pub id: i32,
     pub event_name: String,

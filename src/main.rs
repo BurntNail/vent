@@ -111,7 +111,7 @@ async fn main() {
                     .with_ansi(true)
                     .with_bracketed_fields(true)
                     .with_verbose_entry(true)
-                    .with_verbose_exit(true),
+                    .with_verbose_exit(true)
             )
             .with(EnvFilter::from_default_env()),
     )
