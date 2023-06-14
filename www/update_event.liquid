@@ -95,7 +95,7 @@
   <div class="card">
     <div class="card-body">
       {% if already_in.is_in %}
-        <form action="POST" action="/remove_participant_from_event">
+        <form method="POST" action="/remove_participant_from_event">
           <input
             type="hidden"
             name="relation_id"
@@ -103,7 +103,7 @@
           <button type="submit" class="btn btn-danger">Unsign up!</button>
         </form>
       {% else %}
-        <form action="POST" action="/add_participant">
+        <form method="POST" action="/add_participant">
           <input
             type="hidden"
             name="person_ids"

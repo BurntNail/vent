@@ -5,7 +5,7 @@ use axum::{
     response::{Html, IntoResponse},
 };
 use once_cell::sync::Lazy;
-use std::{env::var, fmt::{Debug, Display}, path::PathBuf};
+use std::{env::var, fmt::Debug, path::PathBuf};
 
 #[derive(thiserror::Error, Debug)]
 pub enum KnotError {
@@ -66,6 +66,7 @@ pub enum KnotError {
     MissingCFIP,
 }
 
+#[allow(clippy::needless_pass_by_value)]
 pub fn get_error_page(error_code: StatusCode, content: KnotError) -> (StatusCode, Html<String>) {
     static TS_URL: Lazy<String> =
         Lazy::new(|| var("TECH_SUPPORT").unwrap_or_else(|_e| "https://google.com".into()));

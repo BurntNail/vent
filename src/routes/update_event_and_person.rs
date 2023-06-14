@@ -1,6 +1,6 @@
 use super::FormEvent;
 use crate::{
-    auth::{get_auth_object, Auth},
+    auth::{get_auth_object, Auth, PermissionsRole},
     error::KnotError,
     liquid_utils::compile,
     routes::{DbEvent, DbPerson},
@@ -235,12 +235,10 @@ WHERE event_id = $1
             rel_id: -1,
         },
         |target_id| {
-            if let Some(relation) = existing_participants.iter().find(|rel_id| {
-                rel_id
-                    .people
-                    .iter()
-                    .any(|rel_id| rel_id.id == target_id.id)
-            }) {
+            if let Some(relation) = existing_participants
+                .iter()
+                .find(|rel_id| rel_id.people.iter().any(|rel_id| rel_id.id == target_id.id))
+            {
                 AlreadyIn {
                     is_in: true,
                     rel_id: relation
@@ -334,21 +332,31 @@ RETURNING event_id
     Ok(Redirect::to(&format!("/update_event/{id}")))
 }
 pub async fn get_remove_participant_from_event(
+    auth: Auth,
     State(state): State<KnotState>,
     Form(Removal { relation_id }): Form<Removal>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let id = sqlx::query!(
-        r#"
-DELETE FROM participant_events WHERE relation_id = $1 
-RETURNING event_id
-"#,
-        relation_id
-    )
-    .fetch_one(&mut state.get_connection().await?)
-    .await?
-    .event_id;
+    let current_user = auth
+        .current_user
+        .expect("need to be logged in to add participants");
 
-    Ok(Redirect::to(&format!("/update_event/{id}")))
+    let event_details = sqlx::query!("SELECT * FROM participant_events WHERE relation_id = $1", relation_id)
+        .fetch_one(&mut state.get_connection().await?)
+        .await?;
+
+    if current_user.permissions < PermissionsRole::Prefect && current_user.id != event_details.participant_id {
+        warn!(participant_id=?event_details.participant_id, perp=?current_user.id, "Participant did POST magic to get other participant, but failed.");
+    } else {
+        sqlx::query!(
+            r#"
+    DELETE FROM participant_events WHERE relation_id = $1 
+    "#,
+            relation_id
+        )
+        .execute(&mut state.get_connection().await?)
+        .await?;
+    }
+    Ok(Redirect::to(&format!("/update_event/{}", event_details.event_id)))
 }
 
 pub async fn delete_image(
