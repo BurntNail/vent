@@ -78,7 +78,7 @@ INNER JOIN prefect_events pe ON pe.event_id = $1 AND pe.prefect_id = p.id
     .fetch_all(&mut state.get_connection().await?)
     .await?
     {
-            existing_prefects
+        existing_prefects
             .entry(person.form.clone())
             .or_insert(RelFormGroup {
                 form: person.form.clone(),
@@ -223,6 +223,42 @@ WHERE event_id = $1
 
     debug!("Compiling");
 
+    #[derive(Serialize)]
+    pub struct AlreadyIn {
+        pub is_in: bool,
+        pub rel_id: i32,
+    }
+
+    let already_in = auth.current_user.clone().map_or(
+        AlreadyIn {
+            is_in: false,
+            rel_id: -1,
+        },
+        |target_id| {
+            if let Some(relation) = existing_participants.iter().find(|rel_id| {
+                rel_id
+                    .people
+                    .iter()
+                    .any(|rel_id| rel_id.id == target_id.id)
+            }) {
+                AlreadyIn {
+                    is_in: true,
+                    rel_id: relation
+                        .people
+                        .iter()
+                        .find(|rel_id| rel_id.id == target_id.id)
+                        .expect("but I just found one :(")
+                        .relation_id,
+                }
+            } else {
+                AlreadyIn {
+                    is_in: false,
+                    rel_id: -1,
+                }
+            }
+        },
+    );
+
     compile(
         "www/update_event.liquid",
         liquid::object!({"event": liquid::object!({
@@ -239,7 +275,7 @@ WHERE event_id = $1
     "participants": possible_participants,
     "n_imgs": photos.len(),
     "imgs": photos,
-    "auth": get_auth_object(auth) }),
+    "auth": get_auth_object(auth), "already_in": already_in }),
     )
     .await
 }
