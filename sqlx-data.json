@@ -1,34 +1,24 @@
 {
   "db": "PostgreSQL",
-  "059c46a2bff7a0924de0f9e83d6be3db2964c31632c7e54c6be2dda4bec1ec1a": {
+  "082f8dc4f4cbfd0c38253208f3fd03a5d4248935c70b2641b33fd6faf4033c97": {
     "describe": {
       "columns": [
         {
           "name": "id",
           "ordinal": 0,
-          "type_info": "Int4"
-        },
-        {
-          "name": "event_name",
-          "ordinal": 1,
           "type_info": "Text"
-        },
-        {
-          "name": "date",
-          "ordinal": 2,
-          "type_info": "Timestamp"
         }
       ],
       "nullable": [
-        false,
-        false,
         false
       ],
       "parameters": {
-        "Left": []
+        "Left": [
+          "Text"
+        ]
       }
     },
-    "query": "\nSELECT id, event_name, date\nFROM events e\nORDER BY e.date\n        "
+    "query": "SELECT id FROM sessions WHERE id = $1"
   },
   "0892bee0b2ae24b25dc3e969cbefa8320890f98012ce06e7034236d46a481e26": {
     "describe": {
@@ -138,6 +128,26 @@
     },
     "query": "SELECT * FROM events"
   },
+  "0ff19cdef3a2cb9d769eb960da59228aa7741f8ec1ce6370d90344d8cb8ec0f4": {
+    "describe": {
+      "columns": [
+        {
+          "name": "participant_id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT participant_id FROM participant_events WHERE participant_id = $1"
+  },
   "10315ae72795831c5371cccd49599543d5b5804231bd394fc59b3f9509f18c9d": {
     "describe": {
       "columns": [
@@ -170,6 +180,28 @@
       }
     },
     "query": "\n    SELECT * FROM public.prefect_events\n    WHERE prefect_id = $1\n    AND event_id = $2"
+  },
+  "106ef9804b1b7a375c39cb75f9a54d9ae247415eab8d77ba364261db12bc2b5c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "TRUNCATE sessions"
+  },
+  "11e96cfd8c2736f13ce55975ea910dd68640f6f14e38a4b3342d514804e3de27": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "DELETE FROM sessions WHERE id = $1"
   },
   "1219fa0d33d583fffc72277a9af9a5b7ddcd4cb2df33f59973c4908feddd5de2": {
     "describe": {
@@ -221,25 +253,23 @@
     },
     "query": "\nSELECT path, id FROM photos\nWHERE event_id = $1\n        "
   },
-  "182b514a4ef72381bb7899dce7558c39b29457e646577b099fc2a221d4df7fd2": {
+  "1dbe0a330d8ce297df4e472eefdb5487cec6dd8317f28e2feab791929d6fc8b1": {
     "describe": {
       "columns": [
         {
-          "name": "event_id",
+          "name": "sekrit",
           "ordinal": 0,
-          "type_info": "Int4"
+          "type_info": "Bytea"
         }
       ],
       "nullable": [
         false
       ],
       "parameters": {
-        "Left": [
-          "Int4"
-        ]
+        "Left": []
       }
     },
-    "query": "\nDELETE FROM participant_events WHERE relation_id = $1 \nRETURNING event_id\n"
+    "query": "SELECT sekrit FROM secrets"
   },
   "1de41a560bb27df8e97dfc5e2665f287331fb11901ec7e4d8420981aac8d67bf": {
     "describe": {
@@ -334,37 +364,17 @@
     },
     "query": "\nUPDATE public.events\nSET event_name=$2, date=$3, location=$4, teacher=$5, other_info=$6\nWHERE id=$1\n        "
   },
-  "301245cd7ec25cfee91050cb7d9081bbc359d6969bfdc568eb4f14bef91aeb24": {
+  "3265a2a1ac1d450aa4d080097323a417eaabd4c4c42fdac5bac8e6b56de19630": {
     "describe": {
-      "columns": [
-        {
-          "name": "first_name",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "surname",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "form",
-          "ordinal": 2,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
+      "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
-          "Int4"
+          "Bytea"
         ]
       }
     },
-    "query": "\nSELECT p.first_name, p.surname, p.form\nFROM people p\nINNER JOIN events e ON e.id = $1\nINNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $1\n            "
+    "query": "INSERT INTO secrets (sekrit) VALUES ($1)"
   },
   "33c501d39ca87e1aa6b4344377f85dc35dde8126be2899fa12039e632766fb71": {
     "describe": {
@@ -378,6 +388,26 @@
       }
     },
     "query": "\nUPDATE public.people\nSET form = $2\nWHERE form = $1\n"
+  },
+  "35fab83e059fd070e30401e40f29325ca25bcb0dd040dbe72574c098383ef911": {
+    "describe": {
+      "columns": [
+        {
+          "name": "password_link_id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT password_link_id FROM people WHERE id = $1"
   },
   "3c1bb2512f5bc65720b15762c78f11cbbfe24a1cb35eb68b64e910a1b7895889": {
     "describe": {
@@ -470,6 +500,48 @@
     },
     "query": "\nSELECT p.first_name, p.surname, pe.relation_id, p.id, p.form\nFROM people p\nINNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.id\n"
   },
+  "44b7dfb0c4d282aabf717dd399fbb5628dd0f734846734c559d09ca2201cc428": {
+    "describe": {
+      "columns": [
+        {
+          "name": "event_name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "date",
+          "ordinal": 1,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "location",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "teacher",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "other_info",
+          "ordinal": 4,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT event_name, date, location, teacher, other_info FROM events"
+  },
   "4b0781875c6539c700e0916356bebf626be3152cd589de09008ce9299af17ea8": {
     "describe": {
       "columns": [
@@ -506,6 +578,63 @@
     },
     "query": "\nSELECT first_name, surname, form, id\nFROM people p\n        "
   },
+  "4fe8c802170e9827f094a0b8bb0370e7a8cfa6fd87d80f46a3228d0d1c408847": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "session_json",
+          "ordinal": 1,
+          "type_info": "Json"
+        },
+        {
+          "name": "expires",
+          "ordinal": 2,
+          "type_info": "Timestamp"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Timestamp"
+        ]
+      }
+    },
+    "query": "SELECT * FROM sessions WHERE id = $1 AND (expires IS NULL OR expires > $2)"
+  },
+  "53b2efb234c95d0a0a87780dc1ce4fbee8e648674ec25aa2fadd45a921de699c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "first_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id, first_name FROM people"
+  },
   "53f49d19f8086730e9a1ebea0c05954021f566ddfde81003199c007cbd7f2add": {
     "describe": {
       "columns": [
@@ -532,20 +661,7 @@
     },
     "query": "\nDELETE FROM public.photos\nWHERE id=$1\nRETURNING path, event_id"
   },
-  "5f7453aefb4934a29ee78d6eaa25e6b63ace2622bc4583379c983e42f0c309f2": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int4",
-          "Int4"
-        ]
-      }
-    },
-    "query": "\n    INSERT INTO public.prefect_events\n    (prefect_id, event_id)\n    VALUES($1, $2);            \n                "
-  },
-  "74d15f34b056b7aa3484a21fa8bab1ee0f98b1037f43ba3b13e2555521448cf3": {
+  "54c8528a34839144aa3340043b8504c94804d4807dfcc0f6840618e794b6bf4f": {
     "describe": {
       "columns": [
         {
@@ -564,18 +680,23 @@
           "type_info": "Text"
         },
         {
-          "name": "form",
+          "name": "username",
           "ordinal": 3,
           "type_info": "Text"
         },
         {
-          "name": "hashed_password",
+          "name": "form",
           "ordinal": 4,
           "type_info": "Text"
         },
         {
-          "name": "permissions: _",
+          "name": "hashed_password",
           "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "permissions: _",
+          "ordinal": 6,
           "type_info": {
             "Custom": {
               "kind": {
@@ -596,21 +717,10 @@
         false,
         false,
         false,
+        false,
         true,
         false
       ],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
-      }
-    },
-    "query": "\nSELECT id, first_name, surname, form, hashed_password, permissions as \"permissions: _\"\nFROM people WHERE id = $1\n        "
-  },
-  "845100180dc6aa57ef6676ad62889568d790e1fc250a19b5109af02fd10c57f9": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
       "parameters": {
         "Left": [
           "Text",
@@ -618,9 +728,90 @@
         ]
       }
     },
-    "query": "\nINSERT INTO public.photos\n(\"path\", event_id)\nVALUES($1, $2)"
+    "query": "\nUPDATE people\nSET hashed_password = $1\nWHERE id = $2\nRETURNING id, first_name, surname, username, form, hashed_password, permissions as \"permissions: _\" \n    "
   },
-  "8fa6ea87635a06da7616d1e99f4dc2f61df57b2378d4eb9708b1f4f813257e76": {
+  "5c094ae0921be3c401cce0dc4b6a24e4aeca09d69a825dcf37eb3c493f275e10": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "first_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "username",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "form",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "hashed_password",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "permissions: _",
+          "ordinal": 6,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "dev",
+                  "admin",
+                  "prefect",
+                  "participant"
+                ]
+              },
+              "name": "user_role"
+            }
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\nSELECT id, first_name, surname, username, form, hashed_password, permissions as \"permissions: _\" \nFROM people \nWHERE LOWER(username) = LOWER($1)\n        "
+  },
+  "5f7453aefb4934a29ee78d6eaa25e6b63ace2622bc4583379c983e42f0c309f2": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4"
+        ]
+      }
+    },
+    "query": "\n    INSERT INTO public.prefect_events\n    (prefect_id, event_id)\n    VALUES($1, $2);            \n                "
+  },
+  "69305dc0930dff1cbb33a0bc93f3ed62b0f9793350dc371dee00c73f46c803d0": {
     "describe": {
       "columns": [
         {
@@ -650,7 +841,236 @@
         ]
       }
     },
-    "query": "\nSELECT p.first_name, p.surname, p.form\nFROM people p\nINNER JOIN events e ON e.id = $1\nINNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1\n            "
+    "query": "\nSELECT p.first_name, p.surname, p.form\nFROM people p\nINNER JOIN events e ON e.id = $1\nINNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1\n    "
+  },
+  "6b40a7ab3e2e64c747e4b4bc8016bd03dda9e9b7c2965c5e8b92127a36bf4045": {
+    "describe": {
+      "columns": [
+        {
+          "name": "participant_id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event_id",
+          "ordinal": 1,
+          "type_info": "Int4"
+        },
+        {
+          "name": "relation_id",
+          "ordinal": 2,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT * FROM participant_events WHERE relation_id = $1"
+  },
+  "72c99e5f1abaa364dd6854e9c906ea189739caea3080f137e206541474f9e980": {
+    "describe": {
+      "columns": [
+        {
+          "name": "first_name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "form",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\nSELECT p.first_name, p.surname, p.form\nFROM people p\nINNER JOIN events e ON e.id = $1\nINNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $1\n    "
+  },
+  "74b2b0666872a7c9030278c0c690d75dbd49632fd35628cc033e2d67b1d993e4": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "first_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "username",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "form",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "hashed_password",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "permissions: _",
+          "ordinal": 6,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "dev",
+                  "admin",
+                  "prefect",
+                  "participant"
+                ]
+              },
+              "name": "user_role"
+            }
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\nSELECT id, first_name, surname, username, form, hashed_password, permissions as \"permissions: _\"\nFROM people WHERE id = $1\n        "
+  },
+  "80b4713fac5a1bced8fcc09e815f739a94c053b42170262b596ddba4e7f9e31b": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Timestamp",
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "\nINSERT INTO events (event_name, date, location, teacher, other_info) \nVALUES ($1, $2, $3, $4, $5)"
+  },
+  "845100180dc6aa57ef6676ad62889568d790e1fc250a19b5109af02fd10c57f9": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Int4"
+        ]
+      }
+    },
+    "query": "\nINSERT INTO public.photos\n(\"path\", event_id)\nVALUES($1, $2)"
+  },
+  "8742b98f036c381c98eb197ea2371b5a9d8077d7f84b89dbb75fb9a4e633497a": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "dev",
+                  "admin",
+                  "prefect",
+                  "participant"
+                ]
+              },
+              "name": "user_role"
+            }
+          },
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO public.people\n            (first_name, surname, form, hashed_password, permissions, username, password_link_id)\n            VALUES($1, $2, $3, NULL, $4, $5, NULL);\n            "
+  },
+  "8f24a49ce29fc5d2a4fc947817982d0f89f4eca846243cec533d8b0f8a6b38f4": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "dev",
+                  "admin",
+                  "prefect",
+                  "participant"
+                ]
+              },
+              "name": "user_role"
+            }
+          },
+          "Text",
+          "Int4"
+        ]
+      }
+    },
+    "query": "UPDATE people SET permissions = $1, username = $2 WHERE id = $3"
+  },
+  "965428ef8d742b4200d45a829e600750d8b5fa3aacfc53726d8098472a220687": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Json",
+          "Timestamp"
+        ]
+      }
+    },
+    "query": "INSERT INTO sessions (id, session_json, expires) VALUES ($1, $2, $3)"
   },
   "965da25f335b8b89ec15923462f420184cb1128e460adf256afaadc36ef3481c": {
     "describe": {
@@ -708,18 +1128,6 @@
     },
     "query": "\nSELECT * FROM events WHERE id = $1\n"
   },
-  "98f03c709e45e233a36c0e15353f7d87d009557f5ae4107c78c9f8cefc691d45": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
-      }
-    },
-    "query": "\nUPDATE public.people\nSET hashed_password = NULL\nWHERE id=$1\n        "
-  },
   "a07227a4de0554319907b6f43ab367dd52c639ae97aa5cb2b02cf4c442cb7bd9": {
     "describe": {
       "columns": [
@@ -751,66 +1159,6 @@
       }
     },
     "query": "\nSELECT date, event_name, id FROM events e \nINNER JOIN prefect_events pe\nON pe.event_id = e.id AND pe.prefect_id = $1\n        "
-  },
-  "a07ffb04db269b2b196ecca7b56bafdb8bf90201e0ff9501ed9fbb6e83262690": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        },
-        {
-          "name": "first_name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "surname",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "form",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "hashed_password",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "permissions: _",
-          "ordinal": 5,
-          "type_info": {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "dev",
-                  "admin",
-                  "prefect",
-                  "participant"
-                ]
-              },
-              "name": "user_role"
-            }
-          }
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        true,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "\nSELECT id, first_name, surname, form, hashed_password, permissions as \"permissions: _\" \nFROM people p\nWHERE p.permissions != 'participant'\n"
   },
   "a175525df71240b66d1ccb5ace032fb217b6a82c51ec5361b4b92bdd0bd57b69": {
     "describe": {
@@ -847,6 +1195,92 @@
       }
     },
     "query": "\n    SELECT event_id, prefect_id FROM prefect_events"
+  },
+  "a2cbd8cd834ea2ff63f526b9acdd1dca3ed6098a482c436174cb106c1e302ac2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "hashed_password",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT hashed_password FROM people WHERE id = $1"
+  },
+  "a772cfe57f068144310adaec32967a2d36775740f015a39d7b685f0232d19b89": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "first_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "username",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "form",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "hashed_password",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "permissions: _",
+          "ordinal": 6,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "dev",
+                  "admin",
+                  "prefect",
+                  "participant"
+                ]
+              },
+              "name": "user_role"
+            }
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\nSELECT id, first_name, surname, username, form, hashed_password, permissions as \"permissions: _\" \nFROM people p\n"
   },
   "a884a61c9f96f8e4beaafff703464f8eae666445bd7c27cbbe00a0b9caa5a66c": {
     "describe": {
@@ -891,6 +1325,80 @@
       }
     },
     "query": "\nSELECT p.first_name, p.surname, pe.relation_id, p.id, p.form\nFROM people p\nINNER JOIN prefect_events pe ON pe.event_id = $1 AND pe.prefect_id = p.id\n"
+  },
+  "a9abafbd0f326a61751a8239e896905a9941e6898d39a4daddca33e86d369e53": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\n    DELETE FROM participant_events WHERE relation_id = $1 \n    "
+  },
+  "aa0d866b0db77c35f3b2b96f70611d904792ce1929bf5d73c61e10fc3a1da34d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "username",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "first_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT username, first_name, surname FROM people WHERE id = $1"
+  },
+  "b289dd5fd8d4a77cbe6f32362a4429bbc91b54c48d5553ef19253f4c5fb14358": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "date",
+          "ordinal": 2,
+          "type_info": "Timestamp"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\nSELECT id, event_name, date\nFROM events e\nORDER BY e.date DESC\n        "
   },
   "b737710c9e3c9b9028f88c58e2e637108d637fcfbe86f77afa4dd59bc90be7b6": {
     "describe": {
@@ -960,6 +1468,30 @@
     },
     "query": "\n    SELECT * FROM photos\n    WHERE path = $1\n            "
   },
+  "b8ed119308723677b5fc44afdd4f6f620c817977e2e4e6946dbe8a0e5ada551f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "form",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id, form FROM people"
+  },
   "b97612b0bce334fe2153fb7ec3b7f3da630c968f2644d0a935fe2e87a935a9d1": {
     "describe": {
       "columns": [
@@ -996,6 +1528,60 @@
     },
     "query": "\nSELECT id, first_name, surname, form  FROM people"
   },
+  "bede297a44e176733f1bbb92e9027b73065f36c4d9cc2efd6d01d37118f33b48": {
+    "describe": {
+      "columns": [
+        {
+          "name": "first_name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "form",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "permissions: _",
+          "ordinal": 3,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "dev",
+                  "admin",
+                  "prefect",
+                  "participant"
+                ]
+              },
+              "name": "user_role"
+            }
+          }
+        },
+        {
+          "name": "username",
+          "ordinal": 4,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT first_name, surname, form, permissions as \"permissions: _\", username FROM people"
+  },
   "c73ddeee786f49c7cd1575fd8a2ae21043da05db87f44911c152d54252b2bdb9": {
     "describe": {
       "columns": [],
@@ -1024,7 +1610,7 @@
     },
     "query": "\nUPDATE public.people\nSET permissions=$5, first_name=$2, surname=$3, form=$4\nWHERE id=$1\n        "
   },
-  "d250bafba96a48e39a8bc32dd67cc84a4363da8886a46659216c5f3c80a32dc1": {
+  "cb23a789cc91d34381b00a5c267af6c96783ed043a6cfce8c95bbaa1e206771a": {
     "describe": {
       "columns": [
         {
@@ -1033,113 +1619,51 @@
           "type_info": "Int4"
         },
         {
-          "name": "event_name",
+          "name": "surname",
           "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "date",
-          "ordinal": 2,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "location",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "teacher",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "other_info",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "zip_file",
-          "ordinal": 6,
           "type_info": "Text"
         }
       ],
       "nullable": [
         false,
-        false,
-        false,
-        false,
-        false,
-        true,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id, surname FROM people"
+  },
+  "cdbd135b0c0db4f89640a2cd5f8ff48e0e0ccaa2f75b3dfc14e78975cdb2491a": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4"
+        ]
+      }
+    },
+    "query": "UPDATE people SET password_link_id = $1, hashed_password = NULL WHERE id = $2"
+  },
+  "d0d33c473e2d75c13ab402a43e28c7fefd2a036c8507b75147b3eecdb2ae3cae": {
+    "describe": {
+      "columns": [
+        {
+          "name": "password_link_id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
         true
       ],
       "parameters": {
         "Left": []
       }
     },
-    "query": "\nSELECT *\nFROM events\nORDER BY events.date\n        "
-  },
-  "d471200b5736f9b261bea96dbbb75276b81190d226f89703f19bb66d18a49492": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        },
-        {
-          "name": "first_name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "surname",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "form",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "hashed_password",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "permissions: _",
-          "ordinal": 5,
-          "type_info": {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "dev",
-                  "admin",
-                  "prefect",
-                  "participant"
-                ]
-              },
-              "name": "user_role"
-            }
-          }
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        true,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Int4"
-        ]
-      }
-    },
-    "query": "\nUPDATE people\nSET hashed_password = $1\nWHERE id = $2\nRETURNING id, first_name, surname, form, hashed_password, permissions as \"permissions: _\" \n    "
+    "query": "SELECT password_link_id FROM people WHERE password_link_id <> NULL"
   },
   "d49f966c7c73218465cfe996cdc58a67f021a54eb1e645f7a5109024c6e97c10": {
     "describe": {
@@ -1195,6 +1719,74 @@
     },
     "query": "\nSELECT * FROM events"
   },
+  "e3e58f1604b349722ca9aa4994d00c1ed985ef3639f667b0def6cea50480c0a2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "first_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "username",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "form",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "hashed_password",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "permissions: _",
+          "ordinal": 6,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "dev",
+                  "admin",
+                  "prefect",
+                  "participant"
+                ]
+              },
+              "name": "user_role"
+            }
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\nSELECT id, first_name, surname, username, form, hashed_password, permissions as \"permissions: _\" \nFROM people \nWHERE id = $1"
+  },
   "e42aae22e1b3fa0406c57299cf1533a2c4e105aab6f83a93199ec8d168efd1a9": {
     "describe": {
       "columns": [],
@@ -1230,7 +1822,61 @@
     },
     "query": "\nDELETE FROM prefect_events WHERE relation_id = $1 \nRETURNING event_id\n"
   },
-  "e8a0b5042f19e8c2415427a29218a540dc62f761b0aab55eeb51f30831663ff4": {
+  "e95c30ae6b78acde418ca45694f9e5dda6438a6db72ba51190c7a9d0c1ceb925": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "date",
+          "ordinal": 2,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "location",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "teacher",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "other_info",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "zip_file",
+          "ordinal": 6,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\nSELECT *\nFROM events\nORDER BY events.date DESC\nLIMIT 25\n        "
+  },
+  "ecb14f1bb8da1fc393423a9ab8a01824cb4bb311cf2d611322c8c4f812ce440f": {
     "describe": {
       "columns": [
         {
@@ -1249,18 +1895,23 @@
           "type_info": "Text"
         },
         {
-          "name": "form",
+          "name": "username",
           "ordinal": 3,
           "type_info": "Text"
         },
         {
-          "name": "hashed_password",
+          "name": "form",
           "ordinal": 4,
           "type_info": "Text"
         },
         {
-          "name": "permissions: _",
+          "name": "hashed_password",
           "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "permissions: _",
+          "ordinal": 6,
           "type_info": {
             "Custom": {
               "kind": {
@@ -1281,6 +1932,7 @@
         false,
         false,
         false,
+        false,
         true,
         false
       ],
@@ -1288,7 +1940,7 @@
         "Left": []
       }
     },
-    "query": "\nSELECT id, first_name, surname, form, hashed_password, permissions as \"permissions: _\" \nFROM people p\n"
+    "query": "\nSELECT id, first_name, surname, username, form, hashed_password, permissions as \"permissions: _\" \nFROM people p\nWHERE p.permissions != 'participant'\n"
   },
   "eef0df38a5107cf892d970568ef75daa0dde88896d68a6f367d85e9b65a433ba": {
     "describe": {
@@ -1355,67 +2007,18 @@
     },
     "query": "\nSELECT date, event_name, id FROM events e \nINNER JOIN participant_events pe\nON pe.event_id = e.id AND pe.participant_id = $1\n        "
   },
-  "fc8514d66ea07ac46c091d5bbd261209150c940e3076fd87f60f9990bcc077fd": {
+  "fb6f52f1e90deb08765e765fd6e7b34dba806a70461497a5f1d323d4b18c3067": {
     "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        },
-        {
-          "name": "first_name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "surname",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "form",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "hashed_password",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "permissions: _",
-          "ordinal": 5,
-          "type_info": {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "dev",
-                  "admin",
-                  "prefect",
-                  "participant"
-                ]
-              },
-              "name": "user_role"
-            }
-          }
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        true,
-        false
-      ],
+      "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
           "Text",
-          "Text"
+          "Json",
+          "Timestamp"
         ]
       }
     },
-    "query": "\nSELECT id, first_name, surname, form, hashed_password, permissions as \"permissions: _\" \nFROM people \nWHERE first_name = $1 AND surname = $2\n        "
+    "query": "UPDATE sessions SET session_json = $2, expires = $3 WHERE id = $1"
   }
 }
