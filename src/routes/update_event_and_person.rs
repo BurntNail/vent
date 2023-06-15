@@ -11,7 +11,7 @@ use axum::{
     response::{IntoResponse, Redirect},
 };
 use axum_extra::extract::Form;
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tokio::fs::remove_file;
@@ -27,7 +27,7 @@ pub async fn get_update_event(
     let DbEvent {
         id,
         event_name,
-        date,
+        date: naive_date,
         location,
         teacher,
         other_info,
@@ -41,7 +41,7 @@ SELECT * FROM events WHERE id = $1
     )
     .fetch_one(&mut state.get_connection().await?)
     .await?;
-    let date = date.to_string();
+    let date = naive_date.to_string();
 
     #[derive(Deserialize, Serialize, Debug, Clone)]
     struct PersonPlusRelID {
@@ -226,12 +226,14 @@ WHERE event_id = $1
     #[derive(Serialize)]
     pub struct AlreadyIn {
         pub is_in: bool,
+        pub past_date: bool,
         pub rel_id: i32,
     }
 
     let already_in = auth.current_user.clone().map_or(
         AlreadyIn {
             is_in: false,
+            past_date: naive_date < Utc::now().naive_local(),
             rel_id: -1,
         },
         |target_id| {
@@ -241,6 +243,7 @@ WHERE event_id = $1
             {
                 AlreadyIn {
                     is_in: true,
+                    past_date: naive_date < Utc::now().naive_local(),
                     rel_id: relation
                         .people
                         .iter()
@@ -251,6 +254,7 @@ WHERE event_id = $1
             } else {
                 AlreadyIn {
                     is_in: false,
+                    past_date: naive_date < Utc::now().naive_local(),
                     rel_id: -1,
                 }
             }

@@ -94,7 +94,8 @@
 {% if auth.permissions["add_rm_self_to_event"] %}
   <div class="card">
     <div class="card-body">
-      {% if already_in.is_in %}
+      {% if auth.permissions["edit_participants_on_events"] or already_in.past_date != true %}
+      	{% if already_in.is_in %}
         <form method="POST" action="/remove_participant_from_event">
           <input
             type="hidden"
@@ -102,7 +103,7 @@
             value="{{already_in.rel_id}}">
           <button type="submit" class="btn btn-danger">Unsign up!</button>
         </form>
-      {% else %}
+      	{% else %}
         <form method="POST" action="/add_participant">
           <input
             type="hidden"
@@ -113,7 +114,12 @@
             name="event_id"
             value="{{event.id}}">
           <button type="submit" class="btn btn-primary">Sign up!</button>
-        </form>
+        </form>      	
+        {% endif %}
+      {% else %}
+      	<div class="alert alert-info" role="alert">
+      	  If you think there is a mistake here, contact a prefect to fix it!
+      	</div>
       {% endif %}
     </div>
   </div>
