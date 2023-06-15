@@ -58,7 +58,7 @@ use routes::{
     },
 };
 use sqlx::postgres::PgPoolOptions;
-use std::{env::var, net::SocketAddr};
+use std::{env::var, net::SocketAddr, time::Duration};
 use tokio::signal;
 use tower::limit::ConcurrencyLimitLayer;
 use tower_http::trace::TraceLayer;
@@ -131,7 +131,7 @@ async fn main() {
 
     let secret = get_secret(&pool).await.expect("unable to get secret");
 
-    let session_layer = SessionLayer::new(PostgresSessionStore::new(pool.clone()), &secret);
+    let session_layer = SessionLayer::new(PostgresSessionStore::new(pool.clone()), &secret).with_session_ttl(Some(Duration::from_secs(60 * 60 * 24 * 7))); // 1 week
     let auth_layer = AuthLayer::new(
         Store::new(pool.clone()).with_query(
             r#"

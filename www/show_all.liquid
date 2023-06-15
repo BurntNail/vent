@@ -9,7 +9,7 @@
         Name
       </th>
       <th scope="col">
-      	Points
+      	Pts
       </th>
       <th scope="col">
         Form
@@ -30,7 +30,7 @@
       {% if prev_form != person.form %}
         {% assign prev_form = person.form %}
         <tr>
-          <td colspan="4" id="{{person.form}}">
+          <td colspan="5" id="{{person.form}}">
             <h3>
               <a class="link-secondary" href="/show_all#{{person.form}}">{{ person.form }}</a>
             </h3>
@@ -39,7 +39,7 @@
       {% endif %}
       <tr>
       {% assign fn_array = person.first_name | split: "" %}
-        <td>{{ fn_array[1] }} {{ person.surname }}
+        <td>{{ fn_array[1] }}. {{ person.surname }}
         </td>
         <td>
         	{{person.pts}}
