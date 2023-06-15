@@ -9,6 +9,9 @@
         Name
       </th>
       <th scope="col">
+      	Points
+      </th>
+      <th scope="col">
         Form
       </th>
       {% if auth.permissions["edit_people"] %}
@@ -35,7 +38,11 @@
         </tr>
       {% endif %}
       <tr>
-        <td>{{ person.first_name }} {{ person.surname }}
+      {% assign fn_array = person.first_name | split: "" %}
+        <td>{{ fn_array[1] }} {{ person.surname }}
+        </td>
+        <td>
+        	{{person.pts}}
         </td>
         <td>
           {{ person.form }}

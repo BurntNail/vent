@@ -47,18 +47,18 @@ pub async fn get_remove_stuff(
     auth: Auth,
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
-    #[derive(Serialize)]
+	#[derive(Serialize)]
     pub struct SmolPerson {
-        pub first_name: String,
-        pub surname: String,
-        pub form: String,
-        pub id: i32,
-    }
+    	pub first_name: String,
+    	pub surname: String,
+    	pub form: String,
+    	pub id: i32,
+    	pub pts: usize
+      }
 
     debug!("Gettinng people");
 
-    let mut people = sqlx::query_as!(
-        SmolPerson,
+    let mut people = sqlx::query!(
         r#"
 SELECT first_name, surname, form, id
 FROM people p
@@ -68,6 +68,20 @@ FROM people p
     .await?;
     people.sort_by_key(|x| x.surname.clone());
     people.sort_by_key(|x| x.form.clone());
+
+    let mut new_people = vec![];
+    for person in people {
+    	let pts = sqlx::query!("SELECT participant_id FROM participant_events WHERE participant_id = $1", person.id).fetch_all(&mut state.get_connection().await?).await?.len();
+    	new_people.push(SmolPerson {
+    		first_name: person.first_name,
+    		surname: person.surname,	
+    		form: person.form,
+    		id: person.id,
+    		pts
+    	});
+    }
+
+    
 
     trace!("Getting events");
 
@@ -89,7 +103,7 @@ ORDER BY e.date
 
     compile(
         "www/show_all.liquid",
-        liquid::object!({ "people": people, "events": events, "auth": get_auth_object(auth) }),
+        liquid::object!({ "people": new_people, "events": events, "auth": get_auth_object(auth) }),
     )
     .await
 }
