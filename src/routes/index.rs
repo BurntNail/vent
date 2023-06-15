@@ -45,7 +45,7 @@ pub async fn get_index(
                 date: date.to_env_string(),
                 location,
                 teacher,
-                other_info: other_info.unwrap(),
+                other_info: other_info.unwrap_or_default(),
             }
         }
     }
@@ -77,7 +77,8 @@ pub async fn get_index(
         r#"
 SELECT *
 FROM events
-ORDER BY events.date
+ORDER BY events.date DESC
+LIMIT 25
         "#
     )
     .fetch_all(&mut state.get_connection().await?)
@@ -147,7 +148,7 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
         .await;
         r?;
     }
-    happened_events.reverse();
+    events_to_happen.reverse();
 
     debug!("Compiling");
 

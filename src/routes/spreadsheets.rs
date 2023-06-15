@@ -28,6 +28,7 @@ SELECT * FROM events"#
     .fetch_all(&mut state.get_connection().await?)
     .await?;
     events.sort_by_key(|r| r.date);
+    events.reverse();
 
     debug!("Getting relationships");
 

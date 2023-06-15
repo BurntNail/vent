@@ -90,7 +90,7 @@ FROM people p
         r#"
 SELECT id, event_name, date
 FROM events e
-ORDER BY e.date
+ORDER BY e.date DESC
         "#
     )
     .fetch_all(&mut state.get_connection().await?)
