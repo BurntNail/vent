@@ -55,7 +55,7 @@
     {% for row in events_to_happen %}
       <tr>
         <td scope="row" {% if auth.permissions["add_photos"] %} rowspan="2" {% endif %}>
-          <a href="/update_event/{{row.event.id}}" class="btn btn-primary centred">{{ row.event.event_name }}</a>
+          <a href="/update_event/{{row.event.id}}" class="centred">{{ row.event.event_name }}</a>
         </td>
         <td>{{ row.event.date }}</td>
         <td>
@@ -103,7 +103,7 @@
     {% for row in happened_events %}
       <tr>
     <td scope="row" {% if auth.permissions["add_photos"] %} rowspan="2" {% endif %}> 
-          <a href="/update_event/{{row.event.id}}" class="btn btn-primary centred">{{ row.event.event_name }}</a>
+          <a href="/update_event/{{row.event.id}}" class="centred">{{ row.event.event_name }}</a>
         </td>
         <td>{{ row.event.date }}</td>
         <td>
