@@ -7,6 +7,7 @@ use axum::{
 };
 use axum_extra::extract::Form;
 use serde::Deserialize;
+use chrono::Utc;
 
 #[derive(Deserialize)]
 pub struct AddPerson {
@@ -70,6 +71,13 @@ pub async fn post_add_participant_to_event(
     }): Form<AddPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
     let current_user = auth.current_user.expect("need to be logged in to add participants");
+
+    let event_date = sqlx::query!("SELECT date FROM events WHERE id = $1", event_id).fetch_one(&mut state.get_connection().await?).await?.date;
+
+    if event_date < (Utc::now() + chrono::Duration::hours(1)).naive_local() && current_user.permissions < PermissionsRole::Prefect {
+    	warn!("Student {person_ids:?} tried to add to {event_id}, but event out of date.");
+    	return Ok(Redirect::to(&format!("/update_event/{event_id}")));
+    }
 
     for participant_id in person_ids {
         if sqlx::query!(
