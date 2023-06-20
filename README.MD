@@ -39,7 +39,6 @@ You need to have a `.env` file with the following variables set:
 |`INSTANCE_NAME`|For the name of the application in the UI.|`"Not Knot"`|`"House Events Manager"`|
 |`TECH_SUPPORT`|For where user should be directed with 500-class errors.|`"https://github.com/yourname/yourfork/issues/new"`|`"https://google.com"`|
 |`DOMAIN`|This is the domain where the website will be served from and is used for the front page spreadsheet/calendar links.|`https://sub.domain.tld`|N/A|
-|`SENTRY_DSN`|This is the [Sentry](https://sentry.io) destination|`https://redacted@redacted.ingest.sentry.io/redacted`|N/A|
 |`HONEYCOMB_API_KEY`|This is the [Honeycomb](https://honeycomb.io) destination|`abcdefghijklmopqrstuvwxyz`|N/A|
 
 
