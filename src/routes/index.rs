@@ -1,7 +1,6 @@
 use axum::{extract::State, response::IntoResponse};
 use chrono::Utc;
 use serde::Serialize;
-use tracing::Instrument;
 
 use crate::{
     auth::{get_auth_object, Auth},
@@ -84,8 +83,6 @@ LIMIT 25
     .fetch_all(&mut state.get_connection().await?)
     .await?
     {
-        let name = event.event_name.clone();
-        let r: Result<_, KnotError> = async {
             //TODO: cache using HashMaps etc
             let date = event.date;
             let event = HTMLEvent::from(event);
@@ -141,12 +138,6 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
                     no_photos: photos,
                 });
             }
-
-            Ok(())
-        }
-        .instrument(debug_span!("getting_event_details", %name))
-        .await;
-        r?;
     }
     events_to_happen.reverse();
 

@@ -125,7 +125,7 @@ pub fn email_sender_thread() -> (UnboundedSender<EmailToSend>, UnboundedSender<(
 
 You've just tried to login to {}, but you don't have a password set yet.
 
-To set one, go to {}/add_password/{} , with the code {}.
+To set one, go to {}/add_password/{}?code={}.
 
 Have a nice day!"#,
                 to_fullname,

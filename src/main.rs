@@ -112,6 +112,7 @@ async fn main() {
             .with(
                 HierarchicalLayer::new(2)
                     .with_ansi(true)
+                    .with_targets(true)
                     .with_bracketed_fields(true)
                     .with_verbose_entry(true)
                     .with_verbose_exit(true),

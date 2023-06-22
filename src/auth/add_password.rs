@@ -9,7 +9,7 @@ use crate::{
     state::KnotState,
 };
 use axum::{
-    extract::{Path, State},
+    extract::{Path, State, Query},
     response::{IntoResponse, Redirect},
     Form,
 };
@@ -32,6 +32,7 @@ pub async fn get_add_password(
     auth: Auth,
     State(state): State<KnotState>,
     Path(id): Path<i32>,
+    Query(link_thingie): Query<i32>
 ) -> Result<impl IntoResponse, KnotError> {
     if sqlx::query!("SELECT password_link_id FROM people WHERE id = $1", id)
         .fetch_one(&mut state.get_connection().await?)
@@ -66,7 +67,8 @@ WHERE id = $1"#,
         liquid::object!({
             "is_authing_user": true,
             "person": person,
-            "auth": get_auth_object(auth)
+            "auth": get_auth_object(auth),
+            "link_id": link_thingie
         }),
     )
     .await?
