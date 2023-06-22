@@ -27,8 +27,8 @@ image = "0.24.6"
 rand = "0.8.5"
 async_zip = { version = "0.0.15", features = ["tokio", "tokio-fs", "deflate"] }
 csv-async = { version = "1.2.6", features = ["tokio"] }
-tower-http = { version = "0.4.0", features = ["trace"] }
-rust_xlsxwriter = "0.40.0"
+tower-http = { version = "0.4.1", features = ["trace"] }
+rust_xlsxwriter = {version = "0.41.0", features = ["chrono"]}
 axum-login = { version = "0.5.0", features = ["sqlx", "postgres"] }
 bcrypt = "0.14.0"
 eyre = "0.6.8"
@@ -40,5 +40,5 @@ http = "0.2.9"
 itertools = "0.10.5"
 lettre = { version = "0.10.4", features = ["tokio1", "tokio1-rustls-tls", "rustls-tls", "tracing", "builder", "smtp-transport"], default-features = false }
 futures = { version = "0.3.28", default-features = false }
-serde_json = "1.0.96"
+serde_json = "1.0.97"
 tower = { version = "0.4.13", features = ["limit"] }
