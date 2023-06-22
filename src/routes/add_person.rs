@@ -27,6 +27,7 @@ pub async fn get_add_person(auth: Auth) -> Result<impl IntoResponse, KnotError> 
 pub struct NoIDPerson {
     pub first_name: String,
     pub surname: String,
+    pub username: String,
     pub form: Option<String>,
     pub permissions: PermissionsRole,
 }
@@ -37,6 +38,7 @@ pub async fn post_add_person(
     Form(NoIDPerson {
         first_name,
         surname,
+        username,
         form,
         permissions,
     }): Form<NoIDPerson>,
@@ -45,12 +47,13 @@ pub async fn post_add_person(
     sqlx::query!(
         r#"
 INSERT INTO public.people
-(permissions, first_name, surname, form)
-VALUES($1, $2, $3, $4);    
+(permissions, first_name, surname, username, form)
+VALUES($1, $2, $3, $4, $5);    
     "#,
         permissions as _,
         first_name,
         surname,
+        username,
         form,
     )
     .execute(&mut state.get_connection().await?)

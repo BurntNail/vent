@@ -111,6 +111,7 @@ pub async fn post_edit_person(
         first_name,
         surname,
         form,
+        username,
         permissions,
     }): Form<NoIDPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
@@ -118,13 +119,14 @@ pub async fn post_edit_person(
     sqlx::query!(
         r#"
 UPDATE public.people
-SET permissions=$5, first_name=$2, surname=$3, form=$4
+SET permissions=$6, first_name=$2, surname=$3, form=$4, username=$5
 WHERE id=$1
         "#,
         id,
         first_name,
         surname,
         form,
+        username,
         permissions as _
     )
     .execute(&mut state.get_connection().await?)
