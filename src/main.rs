@@ -17,7 +17,7 @@ use crate::{
         get_secret,
         login::{get_login, get_login_failure, post_login, post_logout},
         pg_session::PostgresSessionStore,
-        RequireAuth, Store,
+        RequireAuth, Store, PermissionsRole
     },
     liquid_utils::partials::reload_partials,
     routes::{
@@ -35,7 +35,6 @@ use crate::{
     },
     state::KnotState,
 };
-use auth::PermissionsRole;
 use axum::{
     extract::DefaultBodyLimit,
     routing::{get, post},
@@ -58,12 +57,11 @@ use routes::{
     },
 };
 use sqlx::postgres::PgPoolOptions;
-use std::{env::var, net::SocketAddr, time::Duration};
+use std::{env::var, net::SocketAddr, time::Duration, fs::File};
 use tokio::signal;
 use tower::limit::ConcurrencyLimitLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, EnvFilter, Registry};
-use tracing_tree::HierarchicalLayer;
 
 #[macro_use]
 extern crate tracing;
@@ -109,15 +107,10 @@ async fn main() {
 
     tracing::subscriber::set_global_default(
         Registry::default()
+            .with(EnvFilter::from_default_env())
             .with(
-                HierarchicalLayer::new(2)
-                    .with_ansi(true)
-                    .with_targets(true)
-                    .with_bracketed_fields(true)
-                    .with_verbose_entry(true)
-                    .with_verbose_exit(true),
+                tracing_subscriber::fmt::layer().json().with_writer(|| File::create("./precipice-log.json").expect("unable to get log file"))
             )
-            .with(EnvFilter::from_default_env()),
     )
     .unwrap();
 

@@ -11,17 +11,14 @@ axum-extra = { version = "0.7.4", features = ["form"] }
 chrono = { version = "0.4.26", features = ["rkyv", "serde", "clock"] }
 chrono-tz = "0.8.2"
 icalendar = { version = "0.15.4", features = ["chrono-tz"] }
-time = "0.3.22"
 dotenvy = "0.15.7"
 liquid = "0.26.4"
 serde = "1.0.164"
 sqlx = { version = "0.6.3", features = ["runtime-tokio-rustls", "postgres", "macros", "offline", "chrono", "json"] }
 thiserror = "1.0.40"
 tokio = { version = "1.28.2", features = ["full"] }
-tokio-util = { version = "0.7.8", features = ["io"] }
 tracing = "0.1.37"
-tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-tracing-tree = "0.2.3"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
 walkdir = "2.3.3"
 image = "0.24.6"
 rand = "0.8.5"
@@ -42,3 +39,4 @@ lettre = { version = "0.10.4", features = ["tokio1", "tokio1-rustls-tls", "rustl
 futures = { version = "0.3.28", default-features = false }
 serde_json = "1.0.97"
 tower = { version = "0.4.13", features = ["limit"] }
+tokio-util = { version = "0.7.8", features = ["io"] }
