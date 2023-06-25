@@ -409,33 +409,6 @@
     },
     "query": "SELECT password_link_id FROM people WHERE id = $1"
   },
-  "3c1bb2512f5bc65720b15762c78f11cbbfe24a1cb35eb68b64e910a1b7895889": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "dev",
-                  "admin",
-                  "prefect",
-                  "participant"
-                ]
-              },
-              "name": "user_role"
-            }
-          },
-          "Text",
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "\nINSERT INTO public.people\n(permissions, first_name, surname, form)\nVALUES($1, $2, $3, $4);    \n    "
-  },
   "3d481e488039cd2bb614d5508b02f79531f6c60ecf0be5bfd94f5e519519b766": {
     "describe": {
       "columns": [
@@ -455,6 +428,26 @@
       }
     },
     "query": "\nSELECT path FROM public.photos\nWHERE event_id = $1"
+  },
+  "3d8ebca41733d704ec231bde389138f168d3db07641a543007db6e2a7c81d55a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "date",
+          "ordinal": 0,
+          "type_info": "Timestamp"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT date FROM events WHERE id = $1"
   },
   "3ead69a0c01f6a841bbc45d590c0c498b94ff89ac6cdcebe9143ef2d1b1c839f": {
     "describe": {
@@ -810,6 +803,35 @@
       }
     },
     "query": "\n    INSERT INTO public.prefect_events\n    (prefect_id, event_id)\n    VALUES($1, $2);            \n                "
+  },
+  "651308558de1633c42f05ba9452101df6f989c3b1e1c1e95319c30ac46602c5b": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "dev",
+                  "admin",
+                  "prefect",
+                  "participant"
+                ]
+              },
+              "name": "user_role"
+            }
+          }
+        ]
+      }
+    },
+    "query": "\nUPDATE public.people\nSET permissions=$6, first_name=$2, surname=$3, form=$4, username=$5\nWHERE id=$1\n        "
   },
   "69305dc0930dff1cbb33a0bc93f3ed62b0f9793350dc371dee00c73f46c803d0": {
     "describe": {
@@ -1582,34 +1604,6 @@
     },
     "query": "SELECT first_name, surname, form, permissions as \"permissions: _\", username FROM people"
   },
-  "c73ddeee786f49c7cd1575fd8a2ae21043da05db87f44911c152d54252b2bdb9": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int4",
-          "Text",
-          "Text",
-          "Text",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "dev",
-                  "admin",
-                  "prefect",
-                  "participant"
-                ]
-              },
-              "name": "user_role"
-            }
-          }
-        ]
-      }
-    },
-    "query": "\nUPDATE public.people\nSET permissions=$5, first_name=$2, surname=$3, form=$4\nWHERE id=$1\n        "
-  },
   "cb23a789cc91d34381b00a5c267af6c96783ed043a6cfce8c95bbaa1e206771a": {
     "describe": {
       "columns": [
@@ -1801,6 +1795,34 @@
       }
     },
     "query": "\nUPDATE people\nSET first_name=$1, surname = $2, hashed_password=$3\nWHERE id=$4;\n        "
+  },
+  "e4dc429c402df72ee5830931bec4bfcc35e79ff47d502e878fe62a781bdd1864": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "dev",
+                  "admin",
+                  "prefect",
+                  "participant"
+                ]
+              },
+              "name": "user_role"
+            }
+          },
+          "Text",
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "\nINSERT INTO public.people\n(permissions, first_name, surname, username, form)\nVALUES($1, $2, $3, $4, $5);    \n    "
   },
   "e79518b095388865b266ac6f35b1c1063256200f83d1f0f2c30fdc7e4810d794": {
     "describe": {
