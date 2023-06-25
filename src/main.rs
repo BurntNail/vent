@@ -29,7 +29,7 @@ use crate::{
             export_events_to_csv, export_people_to_csv, get_import_export_csv,
             post_import_events_from_csv, post_import_people_from_csv,
         },
-        public::{get_256, get_512, get_manifest, get_offline, get_sw},
+        public::{get_256, get_512, get_manifest, get_offline, get_sw, get_log},
         spreadsheets::get_spreadsheet,
         update_event_and_person::delete_image,
     },
@@ -109,7 +109,7 @@ async fn main() {
         Registry::default()
             .with(EnvFilter::from_default_env())
             .with(
-                tracing_subscriber::fmt::layer().json().with_writer(|| File::create("./precipice-log.json").expect("unable to get log file"))
+                tracing_subscriber::fmt::layer().json()
             )
     )
     .unwrap();
@@ -140,6 +140,7 @@ FROM people WHERE id = $1
 
     let app = Router::new()
         .route("/reload_partials", get(reload_partials))
+        .route("/logs", get(get_log))
         .route_layer(RequireAuth::login_with_role(PermissionsRole::Dev..)) //dev ^
         .route("/add_person", get(get_add_person).post(post_add_person))
         .route("/remove_person", post(post_remove_person))

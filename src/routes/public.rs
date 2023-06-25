@@ -5,13 +5,13 @@ use axum::{
     response::IntoResponse,
 };
 use new_mime_guess::from_path;
-use std::path::PathBuf;
+use std::{path::PathBuf, fmt::Debug};
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 
 
-#[instrument(level = "trace", skip(path))]
-pub async fn serve_static_file(path: impl Into<PathBuf>) -> Result<impl IntoResponse, KnotError> {
+#[instrument(level = "trace")]
+pub async fn serve_static_file(path: impl Into<PathBuf> + Debug) -> Result<impl IntoResponse, KnotError> {
     trace!("Getting file contents/details");
 
     let path = path.into();
@@ -51,3 +51,4 @@ get_x!(get_sw, "public/sw.js");
 get_x!(get_offline, "public/offline.html");
 get_x!(get_512, "public/512x512.png");
 get_x!(get_256, "public/256x256.png");
+get_x!(get_log, "./precipice-log.json");
