@@ -57,7 +57,7 @@ use routes::{
     },
 };
 use sqlx::postgres::PgPoolOptions;
-use std::{env::var, net::SocketAddr, time::Duration, fs::File};
+use std::{env::var, net::SocketAddr, time::Duration};
 use tokio::signal;
 use tower::limit::ConcurrencyLimitLayer;
 use tower_http::trace::TraceLayer;

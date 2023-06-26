@@ -2,13 +2,13 @@ use crate::error::KnotError;
 use axum::{
     body::StreamBody,
     http::{header, HeaderMap},
-    response::IntoResponse,
+    response::{IntoResponse, Json},
 };
 use new_mime_guess::from_path;
 use std::{path::PathBuf, fmt::Debug};
-use tokio::fs::File;
+use tokio::fs::{File, read_to_string};
 use tokio_util::io::ReaderStream;
-
+use serde_json::{Value, from_str};
 
 #[instrument(level = "trace")]
 pub async fn serve_static_file(path: impl Into<PathBuf> + Debug) -> Result<impl IntoResponse, KnotError> {
@@ -37,6 +37,12 @@ pub async fn serve_static_file(path: impl Into<PathBuf> + Debug) -> Result<impl 
     Ok((headers, body))
 }
 
+pub async fn get_log () -> Result<Json<Vec<Value>>, KnotError> {
+	let contents = read_to_string("./precipice-log.json").await?;
+	let items = contents.lines().map(from_str).collect::<Result<_, _>>()?;
+	Ok(Json(items))
+}
+
 macro_rules! get_x {
     ($func_name:ident, $path:expr) => {
         pub async fn $func_name() -> Result<impl IntoResponse, KnotError> {
@@ -51,4 +57,3 @@ get_x!(get_sw, "public/sw.js");
 get_x!(get_offline, "public/offline.html");
 get_x!(get_512, "public/512x512.png");
 get_x!(get_256, "public/256x256.png");
-get_x!(get_log, "./precipice-log.json");

@@ -50,8 +50,11 @@ pub enum KnotError {
     LettreSMTP(#[from] lettre::transport::smtp::Error),
     #[error("Error with CSV Files")]
     Csv(#[from] csv_async::Error),
+    #[error("JSON error")]
+    SerdeJson(#[from] serde_json::Error),
     #[error("Random Eyre Error")]
     Eyre(#[from] eyre::Error), //thanks axum_login ;)
+
 
     // internal errors
     #[error("Missing File: {0:?}")]
