@@ -26,6 +26,7 @@ pub async fn get_edit_person(
         pub permissions: PermissionsRole,
         pub first_name: String,
         pub surname: String,
+        pub username: String,
         pub password_is_set: bool,
         pub form: String,
     }
@@ -47,6 +48,7 @@ FROM people WHERE id = $1
         permissions: person.permissions,
         first_name: person.first_name,
         surname: person.surname,
+        username: person.username,
         form: person.form,
         password_is_set: person.hashed_password.is_some(),
     };
