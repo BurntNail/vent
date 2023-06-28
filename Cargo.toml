@@ -9,7 +9,7 @@ edition = "2021"
 axum = { version = "0.6.18", features = ["form", "tracing", "macros", "headers", "multipart"] }
 axum-extra = { version = "0.7.4", features = ["form"] }
 chrono = { version = "0.4.26", features = ["rkyv", "serde", "clock"] }
-chrono-tz = "0.8.2"
+chrono-tz = "0.8.3"
 icalendar = { version = "0.15.4", features = ["chrono-tz"] }
 dotenvy = "0.15.7"
 liquid = "0.26.4"
