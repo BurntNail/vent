@@ -1,4 +1,4 @@
-use crate::{error::KnotError, state::KnotState};
+use crate::{error::KnotError, state::KnotState, auth::Auth};
 use async_zip::{tokio::write::ZipFileWriter, Compression, ZipEntryBuilder};
 use axum::{
     body::StreamBody,
@@ -20,6 +20,7 @@ use super::public::serve_static_file;
 
 #[instrument(level = "debug", skip(state))]
 pub async fn post_add_photo(
+    auth: Auth,
     Path(event_id): Path<i32>,
     State(state): State<KnotState>,
     mut multipart: Multipart,
@@ -34,6 +35,8 @@ WHERE id = $1"#,
     )
     .execute(&mut state.get_connection().await?)
     .await?;
+
+    let user_id = auth.current_user.unwrap().id;
 
     while let Some(field) = multipart.next_field().await? {
         let res: Result<_, KnotError> = async {
@@ -73,10 +76,11 @@ WHERE id = $1"#,
             sqlx::query!(
                 r#"
 INSERT INTO public.photos
-("path", event_id)
-VALUES($1, $2)"#,
+("path", event_id, added_by)
+VALUES($1, $2, $3)"#,
                 file_name,
-                event_id
+                event_id,
+                user_id,
             )
             .execute(&mut state.get_connection().await?)
             .await?;
