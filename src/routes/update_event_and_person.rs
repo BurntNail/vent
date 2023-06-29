@@ -206,20 +206,36 @@ FROM people p
     struct Image {
         path: String,
         id: i32,
+        added_by: Vec<String>, // len 2 if we got stuff, len 0 if not
+        has_added_by: bool,
     }
 
     debug!("Getting photos");
+    let mut photos = vec![];
 
-    let photos: Vec<Image> = sqlx::query_as!(
-        Image,
+    for raw in sqlx::query!(
         r#"
-SELECT path, id FROM photos
+SELECT path, id, added_by FROM photos
 WHERE event_id = $1
         "#,
         event_id
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?;
+    .await? {
+        let added_by = if let Some(added_by) = raw.added_by {
+            let nf = sqlx::query!("SELECT first_name, surname, form FROM people WHERE id = $1", added_by).fetch_one(&mut state.get_connection().await?).await?;
+            vec![format!("{} {}", nf.first_name, nf.surname), nf.form]
+        } else {
+            vec![]
+        };
+
+        photos.push(Image {
+            path: raw.path,
+            id: raw.id,
+            has_added_by: added_by.len() == 2,
+            added_by,
+        });
+    }
 
     debug!("Compiling");
 
