@@ -1,5 +1,18 @@
 {
   "db": "PostgreSQL",
+  "057dce8d313ff81be3ca4ebdcdfaccce06ac212f4d1fdda701a115da14c2ebb8": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4"
+        ]
+      }
+    },
+    "query": "\n    INSERT INTO public.participant_events\n    (participant_id, event_id, is_verified)\n    VALUES($1, $2, false);            \n                "
+  },
   "082f8dc4f4cbfd0c38253208f3fd03a5d4248935c70b2641b33fd6faf4033c97": {
     "describe": {
       "columns": [
@@ -128,26 +141,6 @@
     },
     "query": "SELECT * FROM events"
   },
-  "0ff19cdef3a2cb9d769eb960da59228aa7741f8ec1ce6370d90344d8cb8ec0f4": {
-    "describe": {
-      "columns": [
-        {
-          "name": "participant_id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
-      }
-    },
-    "query": "SELECT participant_id FROM participant_events WHERE participant_id = $1"
-  },
   "10315ae72795831c5371cccd49599543d5b5804231bd394fc59b3f9509f18c9d": {
     "describe": {
       "columns": [
@@ -227,32 +220,6 @@
     },
     "query": "\nUPDATE events\nSET zip_file = NULL\nWHERE id = $1"
   },
-  "1394356b70fc3cf67aac7fb7a751a820c9e1b77179326d59b2a88229cc63152d": {
-    "describe": {
-      "columns": [
-        {
-          "name": "path",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "id",
-          "ordinal": 1,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
-      }
-    },
-    "query": "\nSELECT path, id FROM photos\nWHERE event_id = $1\n        "
-  },
   "1dbe0a330d8ce297df4e472eefdb5487cec6dd8317f28e2feab791929d6fc8b1": {
     "describe": {
       "columns": [
@@ -288,9 +255,15 @@
           "name": "relation_id",
           "ordinal": 2,
           "type_info": "Int4"
+        },
+        {
+          "name": "is_verified",
+          "ordinal": 3,
+          "type_info": "Bool"
         }
       ],
       "nullable": [
+        false,
         false,
         false,
         false
@@ -303,19 +276,6 @@
       }
     },
     "query": "\n    SELECT * FROM public.participant_events\n    WHERE participant_id = $1\n    AND event_id = $2"
-  },
-  "1e77684096219ba21f956618f5aa1b7f35238ab690c98e2b6077041c0ff7ef9b": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int4",
-          "Int4"
-        ]
-      }
-    },
-    "query": "\n    INSERT INTO public.participant_events\n    (participant_id, event_id)\n    VALUES($1, $2);            \n                "
   },
   "249cb744a5c5f9f512ade6ad85e9efc747e3a51db8f7e02fd423cfb65b387f57": {
     "describe": {
@@ -346,6 +306,56 @@
       }
     },
     "query": "SELECT FROM photos WHERE event_id = $1"
+  },
+  "282ebd61fd60f48e4f56d5dbb5d3cc916332702148ac234718016fdbce870cb0": {
+    "describe": {
+      "columns": [
+        {
+          "name": "first_name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "relation_id",
+          "ordinal": 2,
+          "type_info": "Int4"
+        },
+        {
+          "name": "id",
+          "ordinal": 3,
+          "type_info": "Int4"
+        },
+        {
+          "name": "form",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "is_verified",
+          "ordinal": 5,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\nSELECT p.first_name, p.surname, pe.relation_id, p.id, p.form, pe.is_verified\nFROM people p\nINNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.id\n"
   },
   "2b43b916cad5d4f5354ba03aa65088ea071dd511946b3e32a809e3ee60b9e0a8": {
     "describe": {
@@ -409,6 +419,38 @@
     },
     "query": "SELECT password_link_id FROM people WHERE id = $1"
   },
+  "383e38705aa89634fb6851ebc7e2603c8400b4ff9d883aca286fd739e818b9bb": {
+    "describe": {
+      "columns": [
+        {
+          "name": "first_name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "form",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\nSELECT p.first_name, p.surname, p.form\nFROM people p\nINNER JOIN events e ON e.id = $1\nINNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $1 AND pe.is_verified = true\n    "
+  },
   "3d481e488039cd2bb614d5508b02f79531f6c60ecf0be5bfd94f5e519519b766": {
     "describe": {
       "columns": [
@@ -448,50 +490,6 @@
       }
     },
     "query": "SELECT date FROM events WHERE id = $1"
-  },
-  "3ead69a0c01f6a841bbc45d590c0c498b94ff89ac6cdcebe9143ef2d1b1c839f": {
-    "describe": {
-      "columns": [
-        {
-          "name": "first_name",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "surname",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "relation_id",
-          "ordinal": 2,
-          "type_info": "Int4"
-        },
-        {
-          "name": "id",
-          "ordinal": 3,
-          "type_info": "Int4"
-        },
-        {
-          "name": "form",
-          "ordinal": 4,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
-      }
-    },
-    "query": "\nSELECT p.first_name, p.surname, pe.relation_id, p.id, p.form\nFROM people p\nINNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.id\n"
   },
   "44b7dfb0c4d282aabf717dd399fbb5628dd0f734846734c559d09ca2201cc428": {
     "describe": {
@@ -791,6 +789,30 @@
     },
     "query": "\nSELECT id, first_name, surname, username, form, hashed_password, permissions as \"permissions: _\" \nFROM people \nWHERE LOWER(username) = LOWER($1)\n        "
   },
+  "5e121dd3d77d0506ef59dd24bb3611f49d44979cadb7e9810a6254d505662c77": {
+    "describe": {
+      "columns": [
+        {
+          "name": "participant_id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event_id",
+          "ordinal": 1,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT participant_id, event_id FROM participant_events WHERE is_verified = true"
+  },
   "5f7453aefb4934a29ee78d6eaa25e6b63ace2622bc4583379c983e42f0c309f2": {
     "describe": {
       "columns": [],
@@ -882,9 +904,15 @@
           "name": "relation_id",
           "ordinal": 2,
           "type_info": "Int4"
+        },
+        {
+          "name": "is_verified",
+          "ordinal": 3,
+          "type_info": "Bool"
         }
       ],
       "nullable": [
+        false,
         false,
         false,
         false
@@ -896,38 +924,6 @@
       }
     },
     "query": "SELECT * FROM participant_events WHERE relation_id = $1"
-  },
-  "72c99e5f1abaa364dd6854e9c906ea189739caea3080f137e206541474f9e980": {
-    "describe": {
-      "columns": [
-        {
-          "name": "first_name",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "surname",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "form",
-          "ordinal": 2,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
-      }
-    },
-    "query": "\nSELECT p.first_name, p.surname, p.form\nFROM people p\nINNER JOIN events e ON e.id = $1\nINNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $1\n    "
   },
   "74b2b0666872a7c9030278c0c690d75dbd49632fd35628cc033e2d67b1d993e4": {
     "describe": {
@@ -997,6 +993,19 @@
     },
     "query": "\nSELECT id, first_name, surname, username, form, hashed_password, permissions as \"permissions: _\"\nFROM people WHERE id = $1\n        "
   },
+  "757880978c188c1297baa95483c3aa305d8fb02f53416a74f9cb05ba6cc40dc7": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4"
+        ]
+      }
+    },
+    "query": "UPDATE participant_events SET is_verified = true WHERE event_id = $1 AND participant_id = $2"
+  },
   "80b4713fac5a1bced8fcc09e815f739a94c053b42170262b596ddba4e7f9e31b": {
     "describe": {
       "columns": [],
@@ -1012,19 +1021,6 @@
       }
     },
     "query": "\nINSERT INTO events (event_name, date, location, teacher, other_info) \nVALUES ($1, $2, $3, $4, $5)"
-  },
-  "845100180dc6aa57ef6676ad62889568d790e1fc250a19b5109af02fd10c57f9": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Int4"
-        ]
-      }
-    },
-    "query": "\nINSERT INTO public.photos\n(\"path\", event_id)\nVALUES($1, $2)"
   },
   "8742b98f036c381c98eb197ea2371b5a9d8077d7f84b89dbb75fb9a4e633497a": {
     "describe": {
@@ -1053,6 +1049,44 @@
       }
     },
     "query": "INSERT INTO public.people\n            (first_name, surname, form, hashed_password, permissions, username, password_link_id)\n            VALUES($1, $2, $3, NULL, $4, $5, NULL);\n            "
+  },
+  "8dedeb6e2edd4678146499b2cd31e616d77b52fca2dab9c6d7ce7820e1995aea": {
+    "describe": {
+      "columns": [
+        {
+          "name": "date",
+          "ordinal": 0,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "event_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "id",
+          "ordinal": 2,
+          "type_info": "Int4"
+        },
+        {
+          "name": "is_verified",
+          "ordinal": 3,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\nSELECT date, event_name, id, is_verified FROM events e \nINNER JOIN participant_events pe\nON pe.event_id = e.id AND pe.participant_id = $1\n        "
   },
   "8f24a49ce29fc5d2a4fc947817982d0f89f4eca846243cec533d8b0f8a6b38f4": {
     "describe": {
@@ -1434,30 +1468,6 @@
     },
     "query": "\nDELETE FROM public.people\nWHERE id=$1\n            "
   },
-  "b7fbea3137c5e7f88d06868fd2a220a85512463cea122d760369482e5a28befe": {
-    "describe": {
-      "columns": [
-        {
-          "name": "participant_id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        },
-        {
-          "name": "event_id",
-          "ordinal": 1,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "SELECT participant_id, event_id FROM participant_events"
-  },
   "b888ba58e6fd1a333fd2e467cf78e8ed96ce254d79f13dae22ef26d7c612804e": {
     "describe": {
       "columns": [
@@ -1475,12 +1485,18 @@
           "name": "event_id",
           "ordinal": 2,
           "type_info": "Int4"
+        },
+        {
+          "name": "added_by",
+          "ordinal": 3,
+          "type_info": "Int4"
         }
       ],
       "nullable": [
         false,
         false,
-        false
+        false,
+        true
       ],
       "parameters": {
         "Left": [
@@ -1550,6 +1566,38 @@
     },
     "query": "\nSELECT id, first_name, surname, form  FROM people"
   },
+  "b97b21167d1e1de8371038d488b5e9430ab87c1286505d08cfdd77cde00d9695": {
+    "describe": {
+      "columns": [
+        {
+          "name": "first_name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "surname",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "form",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT first_name, surname, form FROM people WHERE id = $1"
+  },
   "bede297a44e176733f1bbb92e9027b73065f36c4d9cc2efd6d01d37118f33b48": {
     "describe": {
       "columns": [
@@ -1603,6 +1651,20 @@
       }
     },
     "query": "SELECT first_name, surname, form, permissions as \"permissions: _\", username FROM people"
+  },
+  "c44480c47e4a6efdcceb41088c942f76636b590e271cb0b29fe6a7c76eb3bc5d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Int4",
+          "Int4"
+        ]
+      }
+    },
+    "query": "\nINSERT INTO public.photos\n(\"path\", event_id, added_by)\nVALUES($1, $2, $3)"
   },
   "cb23a789cc91d34381b00a5c267af6c96783ed043a6cfce8c95bbaa1e206771a": {
     "describe": {
@@ -1712,6 +1774,51 @@
       }
     },
     "query": "\nSELECT * FROM events"
+  },
+  "d6be2c7043b31b317027cd88db8719caa9d96ddcb689df9ac3ac1548921dc28c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4"
+        ]
+      }
+    },
+    "query": "UPDATE participant_events SET is_verified = false WHERE event_id = $1 AND participant_id = $2"
+  },
+  "ddff074d6bd2ab78c78b011dc071c05d877d9c4de457b20e90897ccf545af0af": {
+    "describe": {
+      "columns": [
+        {
+          "name": "path",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "id",
+          "ordinal": 1,
+          "type_info": "Int4"
+        },
+        {
+          "name": "added_by",
+          "ordinal": 2,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\nSELECT path, id, added_by FROM photos\nWHERE event_id = $1\n        "
   },
   "e3e58f1604b349722ca9aa4994d00c1ed985ef3639f667b0def6cea50480c0a2": {
     "describe": {
@@ -1823,6 +1930,26 @@
       }
     },
     "query": "\nINSERT INTO public.people\n(permissions, first_name, surname, username, form)\nVALUES($1, $2, $3, $4, $5);    \n    "
+  },
+  "e54c60e56e6e113e4d3354fc72d6ed207a93e343db83b2c8be8faed106c53dbb": {
+    "describe": {
+      "columns": [
+        {
+          "name": "participant_id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT participant_id FROM participant_events WHERE participant_id = $1 AND is_verified = true"
   },
   "e79518b095388865b266ac6f35b1c1063256200f83d1f0f2c30fdc7e4810d794": {
     "describe": {
@@ -1996,38 +2123,6 @@
       }
     },
     "query": "\nSELECT zip_file\nFROM events\nWHERE id = $1"
-  },
-  "f88e26dd72d22d794301709cb15b823f636c8bd8cc5146c0c986b7d47de31e4f": {
-    "describe": {
-      "columns": [
-        {
-          "name": "date",
-          "ordinal": 0,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "event_name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "id",
-          "ordinal": 2,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
-      }
-    },
-    "query": "\nSELECT date, event_name, id FROM events e \nINNER JOIN participant_events pe\nON pe.event_id = e.id AND pe.participant_id = $1\n        "
   },
   "fb6f52f1e90deb08765e765fd6e7b34dba806a70461497a5f1d323d4b18c3067": {
     "describe": {
