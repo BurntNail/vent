@@ -9,7 +9,7 @@ use crate::{
     state::KnotState,
 };
 use axum::{
-    extract::{Path, State, Query},
+    extract::{Path, Query, State},
     response::{IntoResponse, Redirect},
     Form,
 };
@@ -30,14 +30,14 @@ pub async fn get_blank_add_password(auth: Auth) -> Result<impl IntoResponse, Kno
 
 #[derive(Debug, Deserialize)]
 pub struct Link {
-	code: i32
+    code: i32,
 }
 
 pub async fn get_add_password(
     auth: Auth,
     State(state): State<KnotState>,
     Path(id): Path<i32>,
-    Query(Link {code: link_thingie}): Query<Link>
+    Query(Link { code: link_thingie }): Query<Link>,
 ) -> Result<impl IntoResponse, KnotError> {
     if sqlx::query!("SELECT password_link_id FROM people WHERE id = $1", id)
         .fetch_one(&mut state.get_connection().await?)

@@ -3,13 +3,13 @@ use axum::response::Html;
 use chrono::NaiveDateTime;
 use liquid::{model::Value, Object, ParserBuilder};
 use once_cell::sync::Lazy;
-use tracing::Instrument;
 use std::{
     env::{self, var},
     fmt::Debug,
     path::Path,
 };
 use tokio::fs::read_to_string;
+use tracing::Instrument;
 
 pub mod partials;
 
@@ -28,11 +28,15 @@ pub async fn compile(
     path: impl AsRef<Path> + Debug,
     mut globals: Object,
 ) -> Result<Html<String>, KnotError> {
-
     let (liquid, partial_compiler) = async move {
         debug!("Reading in file + partials");
-        (read_to_string(path).await, PARTIALS.read().await.to_compiler())
-    }.instrument(debug_span!("compile_preparations")).await;
+        (
+            read_to_string(path).await,
+            PARTIALS.read().await.to_compiler(),
+        )
+    }
+    .instrument(debug_span!("compile_preparations"))
+    .await;
     let liquid = liquid?;
 
     debug!("Inserting globals");

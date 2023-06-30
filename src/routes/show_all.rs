@@ -47,14 +47,14 @@ pub async fn get_remove_stuff(
     auth: Auth,
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
-	#[derive(Serialize)]
+    #[derive(Serialize)]
     pub struct SmolPerson {
-    	pub first_name: String,
-    	pub surname: String,
-    	pub form: String,
-    	pub id: i32,
-    	pub pts: usize
-      }
+        pub first_name: String,
+        pub surname: String,
+        pub form: String,
+        pub id: i32,
+        pub pts: usize,
+    }
 
     debug!("Gettinng people");
 
@@ -71,17 +71,15 @@ FROM people p
 
     let mut new_people = vec![];
     for person in people {
-    	let pts = sqlx::query!("SELECT participant_id FROM participant_events WHERE participant_id = $1 AND is_verified = true", person.id).fetch_all(&mut state.get_connection().await?).await?.len();
-    	new_people.push(SmolPerson {
-    		first_name: person.first_name,
-    		surname: person.surname,	
-    		form: person.form,
-    		id: person.id,
-    		pts
-    	});
+        let pts = sqlx::query!("SELECT participant_id FROM participant_events WHERE participant_id = $1 AND is_verified = true", person.id).fetch_all(&mut state.get_connection().await?).await?.len();
+        new_people.push(SmolPerson {
+            first_name: person.first_name,
+            surname: person.surname,
+            form: person.form,
+            id: person.id,
+            pts,
+        });
     }
-
-    
 
     trace!("Getting events");
 
@@ -117,7 +115,6 @@ pub struct RemovePerson {
 pub struct RemoveEvent {
     pub event_id: Vec<i32>,
 }
-
 
 #[instrument(level = "info", skip(state))]
 pub async fn post_remove_person(

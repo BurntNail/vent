@@ -161,31 +161,33 @@ pub async fn post_import_events_from_csv(
         let res: Result<_, KnotError> = async {
             debug!("Getting details from record");
             let name = record.get(0).ok_or(KnotError::MalformedCSV)?;
-        let date_time = NaiveDateTime::parse_from_str(
-            record.get(1).ok_or(KnotError::MalformedCSV)?,
-            "%Y-%m-%dT%H:%M",
-        )?;
-        let location = record.get(2).ok_or(KnotError::MalformedCSV)?;
-        let teacher = record.get(3).ok_or(KnotError::MalformedCSV)?;
-        let other_info = record.get(4);
+            let date_time = NaiveDateTime::parse_from_str(
+                record.get(1).ok_or(KnotError::MalformedCSV)?,
+                "%Y-%m-%dT%H:%M",
+            )?;
+            let location = record.get(2).ok_or(KnotError::MalformedCSV)?;
+            let teacher = record.get(3).ok_or(KnotError::MalformedCSV)?;
+            let other_info = record.get(4);
 
-        debug!("Creating");
+            debug!("Creating");
 
-        sqlx::query!(
-            r#"
+            sqlx::query!(
+                r#"
 INSERT INTO events (event_name, date, location, teacher, other_info) 
 VALUES ($1, $2, $3, $4, $5)"#,
-            name,
-            date_time,
-            location,
-            teacher,
-            other_info
-        )
-        .execute(&mut state.get_connection().await?)
-        .await?;
+                name,
+                date_time,
+                location,
+                teacher,
+                other_info
+            )
+            .execute(&mut state.get_connection().await?)
+            .await?;
 
             Ok(())
-        }.instrument(debug_span!("dealing_with_import_event")).await;
+        }
+        .instrument(debug_span!("dealing_with_import_event"))
+        .await;
         res?;
     }
 

@@ -17,7 +17,7 @@ use crate::{
         get_secret,
         login::{get_login, get_login_failure, post_login, post_logout},
         pg_session::PostgresSessionStore,
-        RequireAuth, Store, PermissionsRole
+        PermissionsRole, RequireAuth, Store,
     },
     liquid_utils::partials::reload_partials,
     routes::{
@@ -29,9 +29,9 @@ use crate::{
             export_events_to_csv, export_people_to_csv, get_import_export_csv,
             post_import_events_from_csv, post_import_people_from_csv,
         },
-        public::{get_256, get_512, get_manifest, get_offline, get_sw, get_log},
+        public::{get_256, get_512, get_log, get_manifest, get_offline, get_sw},
         spreadsheets::get_spreadsheet,
-        update_event_and_person::{delete_image, post_verify_person, post_unverify_person},
+        update_event_and_person::{delete_image, post_unverify_person, post_verify_person},
     },
     state::KnotState,
 };
@@ -108,9 +108,7 @@ async fn main() {
     tracing::subscriber::set_global_default(
         Registry::default()
             .with(EnvFilter::from_default_env())
-            .with(
-                tracing_subscriber::fmt::layer().json()
-            )
+            .with(tracing_subscriber::fmt::layer().json()),
     )
     .unwrap();
 
@@ -125,7 +123,8 @@ async fn main() {
 
     let secret = get_secret(&pool).await.expect("unable to get secret");
 
-    let session_layer = SessionLayer::new(PostgresSessionStore::new(pool.clone()), &secret).with_session_ttl(Some(Duration::from_secs(60 * 60 * 24 * 7))); // 1 week
+    let session_layer = SessionLayer::new(PostgresSessionStore::new(pool.clone()), &secret)
+        .with_session_ttl(Some(Duration::from_secs(60 * 60 * 24 * 7))); // 1 week
     let auth_layer = AuthLayer::new(
         Store::new(pool.clone()).with_query(
             r#"

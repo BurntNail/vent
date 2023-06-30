@@ -83,26 +83,26 @@ LIMIT 25
     .fetch_all(&mut state.get_connection().await?)
     .await?
     {
-            //TODO: cache using HashMaps etc
-            let date = event.date;
-            let event = HTMLEvent::from(event);
+        //TODO: cache using HashMaps etc
+        let date = event.date;
+        let event = HTMLEvent::from(event);
 
-            let event_id = event.id;
-            let prefects = sqlx::query_as!(
-                PersonForm,
-                r#"
+        let event_id = event.id;
+        let prefects = sqlx::query_as!(
+            PersonForm,
+            r#"
 SELECT p.first_name, p.surname, p.form
 FROM people p
 INNER JOIN events e ON e.id = $1
 INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
     "#,
-                event_id
-            )
-            .fetch_all(&mut state.get_connection().await?)
-            .await?
-            .len();
+            event_id
+        )
+        .fetch_all(&mut state.get_connection().await?)
+        .await?
+        .len();
 
-            let participants = sqlx::query_as!(
+        let participants = sqlx::query_as!(
                 PersonForm,
                 r#"
 SELECT p.first_name, p.surname, p.form
@@ -116,28 +116,28 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
             .await?
             .len();
 
-            let photos = sqlx::query!("SELECT FROM photos WHERE event_id = $1", event_id)
-                .fetch_all(&mut state.get_connection().await?)
-                .await?
-                .len();
+        let photos = sqlx::query!("SELECT FROM photos WHERE event_id = $1", event_id)
+            .fetch_all(&mut state.get_connection().await?)
+            .await?
+            .len();
 
-            if date < now {
-                trace!(?event, "Adding to old events");
-                happened_events.push(WholeEvent {
-                    event,
-                    participants,
-                    prefects,
-                    no_photos: photos,
-                });
-            } else {
-                trace!(?event, "Adding to new events");
-                events_to_happen.push(WholeEvent {
-                    event,
-                    participants,
-                    prefects,
-                    no_photos: photos,
-                });
-            }
+        if date < now {
+            trace!(?event, "Adding to old events");
+            happened_events.push(WholeEvent {
+                event,
+                participants,
+                prefects,
+                no_photos: photos,
+            });
+        } else {
+            trace!(?event, "Adding to new events");
+            events_to_happen.push(WholeEvent {
+                event,
+                participants,
+                prefects,
+                no_photos: photos,
+            });
+        }
     }
     events_to_happen.reverse();
 

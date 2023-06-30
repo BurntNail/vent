@@ -55,7 +55,6 @@ pub enum KnotError {
     #[error("Random Eyre Error")]
     Eyre(#[from] eyre::Error), //thanks axum_login ;)
 
-
     // internal errors
     #[error("Missing File: {0:?}")]
     MissingFile(String),

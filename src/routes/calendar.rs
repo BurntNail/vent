@@ -4,9 +4,9 @@ use crate::{error::KnotError, routes::DbEvent, state::KnotState};
 use axum::{extract::State, response::IntoResponse};
 use chrono::Duration;
 use icalendar::{Calendar, Component, Event, EventLike};
-use tracing::Instrument;
 use std::collections::HashMap;
 use tokio::{fs::File, io::AsyncWriteExt};
+use tracing::Instrument;
 
 use super::public::serve_static_file;
 
@@ -40,7 +40,9 @@ pub async fn get_calendar_feed(
         }
 
         Ok(map)
-    }.instrument(debug_span!("getting_prefect_events")).await;
+    }
+    .instrument(debug_span!("getting_prefect_events"))
+    .await;
     let prefect_events = prefect_events?;
 
     debug!(?prefect_events, "Worked out PEs");
@@ -89,7 +91,9 @@ Prefects Attending: {prefects}"#
             .write_all(calendar.done().to_string().as_bytes())
             .await?;
         Ok(())
-    }.instrument(debug_span!("writing_calendar_to_file")).await;
+    }
+    .instrument(debug_span!("writing_calendar_to_file"))
+    .await;
     calr?;
 
     serve_static_file("calendar.ics").await

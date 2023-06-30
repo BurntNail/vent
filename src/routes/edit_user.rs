@@ -27,7 +27,10 @@ pub struct LoginDetails {
     pub unhashed_password: String,
 }
 
-#[instrument(level = "debug", skip(auth, state, first_name, surname, unhashed_password))]
+#[instrument(
+    level = "debug",
+    skip(auth, state, first_name, surname, unhashed_password)
+)]
 pub async fn post_edit_user(
     auth: Auth,
     State(state): State<KnotState>,

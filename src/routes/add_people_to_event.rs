@@ -1,13 +1,17 @@
 //! Module that publishes 2 `POST` methods that deal with adding prefects and participants to events based off of path parameters. This is a fair bit easier than an invisible form.
 
-use crate::{error::KnotError, state::KnotState, auth::{Auth, PermissionsRole}};
+use crate::{
+    auth::{Auth, PermissionsRole},
+    error::KnotError,
+    state::KnotState,
+};
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
 };
 use axum_extra::extract::Form;
-use serde::Deserialize;
 use chrono::Utc;
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct AddPerson {
@@ -70,13 +74,20 @@ pub async fn post_add_participant_to_event(
         person_ids,
     }): Form<AddPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let current_user = auth.current_user.expect("need to be logged in to add participants");
+    let current_user = auth
+        .current_user
+        .expect("need to be logged in to add participants");
 
-    let event_date = sqlx::query!("SELECT date FROM events WHERE id = $1", event_id).fetch_one(&mut state.get_connection().await?).await?.date;
+    let event_date = sqlx::query!("SELECT date FROM events WHERE id = $1", event_id)
+        .fetch_one(&mut state.get_connection().await?)
+        .await?
+        .date;
 
-    if event_date < (Utc::now() + chrono::Duration::hours(1)).naive_local() && current_user.permissions < PermissionsRole::Prefect {
-    	warn!("Student {person_ids:?} tried to add to {event_id}, but event out of date.");
-    	return Ok(Redirect::to(&format!("/update_event/{event_id}")));
+    if event_date < (Utc::now() + chrono::Duration::hours(1)).naive_local()
+        && current_user.permissions < PermissionsRole::Prefect
+    {
+        warn!("Student {person_ids:?} tried to add to {event_id}, but event out of date.");
+        return Ok(Redirect::to(&format!("/update_event/{event_id}")));
     }
 
     for participant_id in person_ids {
@@ -93,7 +104,9 @@ pub async fn post_add_participant_to_event(
         .is_none()
         //if we can't find anything assoiated with this participant and this event
         {
-            if current_user.permissions < PermissionsRole::Prefect && current_user.id != participant_id {
+            if current_user.permissions < PermissionsRole::Prefect
+                && current_user.id != participant_id
+            {
                 warn!(?participant_id, perp=?current_user.id, "Participant did POST magic to get other participant, but failed.");
                 continue;
             }

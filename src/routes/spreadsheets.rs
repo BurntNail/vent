@@ -33,16 +33,18 @@ SELECT * FROM events"#
     debug!("Getting relationships");
 
     let mut participant_relationships = HashMap::new();
-    sqlx::query!("SELECT participant_id, event_id FROM participant_events WHERE is_verified = true")
-        .fetch_all(&mut state.get_connection().await?)
-        .await?
-        .into_iter()
-        .for_each(|x| {
-            participant_relationships
-                .entry(x.participant_id)
-                .or_insert(vec![])
-                .push(x.event_id);
-        });
+    sqlx::query!(
+        "SELECT participant_id, event_id FROM participant_events WHERE is_verified = true"
+    )
+    .fetch_all(&mut state.get_connection().await?)
+    .await?
+    .into_iter()
+    .for_each(|x| {
+        participant_relationships
+            .entry(x.participant_id)
+            .or_insert(vec![])
+            .push(x.event_id);
+    });
 
     debug!("Building workbook");
 

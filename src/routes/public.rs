@@ -5,13 +5,15 @@ use axum::{
     response::{IntoResponse, Json},
 };
 use new_mime_guess::from_path;
-use std::{path::PathBuf, fmt::Debug};
-use tokio::fs::{File, read_to_string};
+use serde_json::{from_str, Value};
+use std::{fmt::Debug, path::PathBuf};
+use tokio::fs::{read_to_string, File};
 use tokio_util::io::ReaderStream;
-use serde_json::{Value, from_str};
 
 #[instrument(level = "trace")]
-pub async fn serve_static_file(path: impl Into<PathBuf> + Debug) -> Result<impl IntoResponse, KnotError> {
+pub async fn serve_static_file(
+    path: impl Into<PathBuf> + Debug,
+) -> Result<impl IntoResponse, KnotError> {
     trace!("Getting file contents/details");
 
     let path = path.into();
@@ -37,10 +39,10 @@ pub async fn serve_static_file(path: impl Into<PathBuf> + Debug) -> Result<impl 
     Ok((headers, body))
 }
 
-pub async fn get_log () -> Result<Json<Vec<Value>>, KnotError> {
-	let contents = read_to_string("./precipice-log.json").await?;
-	let items = contents.lines().map(from_str).collect::<Result<_, _>>()?;
-	Ok(Json(items))
+pub async fn get_log() -> Result<Json<Vec<Value>>, KnotError> {
+    let contents = read_to_string("./precipice-log.json").await?;
+    let items = contents.lines().map(from_str).collect::<Result<_, _>>()?;
+    Ok(Json(items))
 }
 
 macro_rules! get_x {

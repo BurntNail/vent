@@ -85,7 +85,14 @@ INNER JOIN prefect_events pe ON pe.event_id = $1 AND pe.prefect_id = p.id
                 people: vec![],
             })
             .people
-            .push(PersonPlusRelID { id: person.id, first_name: person.first_name, surname: person.surname, form: person.form, relation_id: person.relation_id, is_verified: true });
+            .push(PersonPlusRelID {
+                id: person.id,
+                first_name: person.first_name,
+                surname: person.surname,
+                form: person.form,
+                relation_id: person.relation_id,
+                is_verified: true,
+            });
     }
     let mut existing_prefects = existing_prefects
         .into_values()

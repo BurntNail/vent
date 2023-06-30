@@ -1,4 +1,4 @@
-use crate::{error::KnotError, state::KnotState, auth::Auth};
+use crate::{auth::Auth, error::KnotError, state::KnotState};
 use async_zip::{tokio::write::ZipFileWriter, Compression, ZipEntryBuilder};
 use axum::{
     body::StreamBody,
@@ -98,7 +98,6 @@ VALUES($1, $2, $3)"#,
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
-
 
 #[instrument(level = "debug")]
 pub async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoResponse, KnotError> {
@@ -216,12 +215,12 @@ WHERE event_id = $1"#,
                     n => {
                         trace!(%n, "Got bytes");
                         data.extend(&buf[0..n]);
-                    },
+                    }
                 }
             }
 
             debug!("Writing to zip file");
-    
+
             writer
                 .write_entry_whole(
                     ZipEntryBuilder::new(file_path.into(), Compression::Deflate),
@@ -231,8 +230,9 @@ WHERE event_id = $1"#,
             data.clear();
 
             Ok(())
-
-        }.instrument(debug_span!("reading_file")).await;
+        }
+        .instrument(debug_span!("reading_file"))
+        .await;
         res?;
     }
 

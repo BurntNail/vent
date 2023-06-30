@@ -78,7 +78,7 @@ ON pe.event_id = e.id AND pe.prefect_id = $1
         name: r.event_name,
         date: r.date.to_env_string(),
         id: r.id,
-        verified: true
+        verified: true,
     })
     .collect::<Vec<_>>();
 
