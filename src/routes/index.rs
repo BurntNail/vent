@@ -108,7 +108,7 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
 SELECT p.first_name, p.surname, p.form
 FROM people p
 INNER JOIN events e ON e.id = $1
-INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $1
+INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $1 AND pe.is_verified = true
     "#,
                 event_id
             )

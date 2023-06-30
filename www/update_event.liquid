@@ -274,28 +274,64 @@
 
         <h3>Participants</h3>
         {% if existing_participants.size > 0 %}
-          <ul class="list-group list-group-flush">
+          <table class="table">
+            <thread>
+              <tr>
+                <th scope="col">Name</th>
+                {% if auth.permissions["edit_participants_on_events"] %}
+                  <th scope="col">Remove</th>
+                {% endif %}
+                {% if auth.permissions["verify_events"] %}
+                  <th scope="col">Verify</th>
+                {% endif %}
+              </tr>
+            </thread>
+            <tbody>
+
             {% for form in existing_participants %}
-              <li class="list-group-item">
-                <b>{{ form.form }}</b>
-              </li>
+              <tr>
+                <th colspan="3" class="text-align: center">{{ form.form }}</th>
+              </tr>
               {% for person in form.people %}
-                <li class="list-group-item">
-                  {% if auth.permissions["edit_participants_on_events"] %}
+                <td>{{ person.first_name }} {{ person.surname }}</th>
+                {% if auth.permissions["edit_participants_on_events"] %}
+                  <td>
                     <form action="/remove_participant_from_event" method="POST">
                       <input
                         type="hidden"
                         name="relation_id"
                         value="{{person.relation_id}}">
-                      <button type="submit" class="btn btn-link">Remove {{ person.first_name }} {{ person.surname }}</button>
+                      <button type="submit" class="btn btn-danger">Remove</button>
                     </form>
+                  </td>
+                {% else %}
+                <td></td>
+              {% endif %}
+                {% if auth.permissions["verify_events"] %}
+                  {% if person.is_verified %}
+                    <td> Verified! </td>
                   {% else %}
-                    {{ person.first_name }} {{ person.surname }}
-                  {% endif %}
-                </li>
-              {% endfor %}
+                    <td>
+                      <form action="/verify_participant" method="POST">
+                        <input
+                          type="hidden"
+                          name="event_id"
+                          value="{{event.id}}">
+                        <input
+                          type="hidden"
+                          name="person_id"
+                          value="{{person.id}}">
+                        <button type="submit" class="btn btn-info">Verify</button>
+                      </form>
+                    </td>
+                {% endif %}
+                {% else %}
+                  <td></td>
+                {% endif %}
+                {% endfor %}
             {% endfor %}
-          </ul>
+            </tbody>
+          </table>
         {% else %}
           <p>No participants yet.</p>
           <br>

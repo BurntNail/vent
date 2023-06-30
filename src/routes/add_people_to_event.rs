@@ -103,8 +103,8 @@ pub async fn post_add_participant_to_event(
             sqlx::query!(
                 r#"
     INSERT INTO public.participant_events
-    (participant_id, event_id)
-    VALUES($1, $2);            
+    (participant_id, event_id, is_verified)
+    VALUES($1, $2, false);            
                 "#,
                 participant_id,
                 event_id

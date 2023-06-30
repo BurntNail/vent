@@ -31,7 +31,7 @@ use crate::{
         },
         public::{get_256, get_512, get_manifest, get_offline, get_sw, get_log},
         spreadsheets::get_spreadsheet,
-        update_event_and_person::delete_image,
+        update_event_and_person::{delete_image, post_verify_person},
     },
     state::KnotState,
 };
@@ -164,6 +164,7 @@ FROM people WHERE id = $1
         )
         .route("/add_image/:event_id", post(post_add_photo))
         .route("/remove_img/:id", get(delete_image))
+        .route("/verify_participant", post(post_verify_person))
         .route_layer(RequireAuth::login_with_role(PermissionsRole::Prefect..)) //prefect ^
         .route("/add_participant", post(post_add_participant_to_event))
         .route(

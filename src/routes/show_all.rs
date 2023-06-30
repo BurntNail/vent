@@ -71,7 +71,7 @@ FROM people p
 
     let mut new_people = vec![];
     for person in people {
-    	let pts = sqlx::query!("SELECT participant_id FROM participant_events WHERE participant_id = $1", person.id).fetch_all(&mut state.get_connection().await?).await?.len();
+    	let pts = sqlx::query!("SELECT participant_id FROM participant_events WHERE participant_id = $1 AND is_verified = true", person.id).fetch_all(&mut state.get_connection().await?).await?.len();
     	new_people.push(SmolPerson {
     		first_name: person.first_name,
     		surname: person.surname,	

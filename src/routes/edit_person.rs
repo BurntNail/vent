@@ -60,6 +60,7 @@ FROM people WHERE id = $1
         name: String,
         date: String,
         id: i32,
+        verified: bool,
     }
 
     let events_supervised = sqlx::query!(
@@ -77,6 +78,7 @@ ON pe.event_id = e.id AND pe.prefect_id = $1
         name: r.event_name,
         date: r.date.to_env_string(),
         id: r.id,
+        verified: true
     })
     .collect::<Vec<_>>();
 
@@ -84,7 +86,7 @@ ON pe.event_id = e.id AND pe.prefect_id = $1
 
     let events_participated = sqlx::query!(
         r#"
-SELECT date, event_name, id FROM events e 
+SELECT date, event_name, id, is_verified FROM events e 
 INNER JOIN participant_events pe
 ON pe.event_id = e.id AND pe.participant_id = $1
         "#,
@@ -96,6 +98,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1
     .map(|r| Event {
         name: r.event_name,
         date: r.date.to_env_string(),
+        verified: r.is_verified,
         id: r.id,
     })
     .collect::<Vec<_>>();

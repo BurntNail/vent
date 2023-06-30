@@ -50,6 +50,7 @@ SELECT * FROM events WHERE id = $1
         pub surname: String,
         pub form: String,
         pub relation_id: i32,
+        pub is_verified: bool,
     }
 
     #[derive(Serialize, Clone)]
@@ -66,8 +67,7 @@ SELECT * FROM events WHERE id = $1
     debug!("Getting existing prefects");
 
     let mut existing_prefects = HashMap::new();
-    for person in sqlx::query_as!(
-        PersonPlusRelID,
+    for person in sqlx::query!(
         r#"
 SELECT p.first_name, p.surname, pe.relation_id, p.id, p.form
 FROM people p
@@ -85,7 +85,7 @@ INNER JOIN prefect_events pe ON pe.event_id = $1 AND pe.prefect_id = p.id
                 people: vec![],
             })
             .people
-            .push(person);
+            .push(PersonPlusRelID { id: person.id, first_name: person.first_name, surname: person.surname, form: person.form, relation_id: person.relation_id, is_verified: true });
     }
     let mut existing_prefects = existing_prefects
         .into_values()
@@ -102,7 +102,7 @@ INNER JOIN prefect_events pe ON pe.event_id = $1 AND pe.prefect_id = p.id
     for person in sqlx::query_as!(
         PersonPlusRelID,
         r#"
-SELECT p.first_name, p.surname, pe.relation_id, p.id, p.form
+SELECT p.first_name, p.surname, pe.relation_id, p.id, p.form, pe.is_verified
 FROM people p
 INNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.id
 "#,
@@ -221,9 +221,15 @@ WHERE event_id = $1
         event_id
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await? {
+    .await?
+    {
         let added_by = if let Some(added_by) = raw.added_by {
-            let nf = sqlx::query!("SELECT first_name, surname, form FROM people WHERE id = $1", added_by).fetch_one(&mut state.get_connection().await?).await?;
+            let nf = sqlx::query!(
+                "SELECT first_name, surname, form FROM people WHERE id = $1",
+                added_by
+            )
+            .fetch_one(&mut state.get_connection().await?)
+            .await?;
             vec![format!("{} {}", nf.first_name, nf.surname), nf.form]
         } else {
             vec![]
@@ -279,21 +285,22 @@ WHERE event_id = $1
 
     compile(
         "www/update_event.liquid",
-        liquid::object!({"event": liquid::object!({
-        "id": id,
-        "event_name": event_name,
-        "date": date.to_string(),
-        "location": location,
-        "teacher": teacher,
-        "other_info": other_info.unwrap_or_default()
-    }),
-    "existing_prefects": existing_prefects,
-    "existing_participants": existing_participants,
-    "prefects": possible_prefects,
-    "participants": possible_participants,
-    "n_imgs": photos.len(),
-    "imgs": photos,
-    "auth": get_auth_object(auth), "already_in": already_in }),
+        liquid::object!({"event": 
+            liquid::object!({
+                "id": id,
+                "event_name": event_name,
+                "date": date.to_string(),
+                "location": location,
+                "teacher": teacher,
+                "other_info": other_info.unwrap_or_default()
+            }),
+        "existing_prefects": existing_prefects,
+        "existing_participants": existing_participants,
+        "prefects": possible_prefects,
+        "participants": possible_participants,
+        "n_imgs": photos.len(),
+        "imgs": photos,
+        "auth": get_auth_object(auth), "already_in": already_in }),
     )
     .await
 }
@@ -360,11 +367,16 @@ pub async fn get_remove_participant_from_event(
         .current_user
         .expect("need to be logged in to add participants");
 
-    let event_details = sqlx::query!("SELECT * FROM participant_events WHERE relation_id = $1", relation_id)
-        .fetch_one(&mut state.get_connection().await?)
-        .await?;
+    let event_details = sqlx::query!(
+        "SELECT * FROM participant_events WHERE relation_id = $1",
+        relation_id
+    )
+    .fetch_one(&mut state.get_connection().await?)
+    .await?;
 
-    if current_user.permissions < PermissionsRole::Prefect && current_user.id != event_details.participant_id {
+    if current_user.permissions < PermissionsRole::Prefect
+        && current_user.id != event_details.participant_id
+    {
         warn!(participant_id=?event_details.participant_id, perp=?current_user.id, "Participant did POST magic to get other participant, but failed.");
     } else {
         sqlx::query!(
@@ -376,7 +388,10 @@ pub async fn get_remove_participant_from_event(
         .execute(&mut state.get_connection().await?)
         .await?;
     }
-    Ok(Redirect::to(&format!("/update_event/{}", event_details.event_id)))
+    Ok(Redirect::to(&format!(
+        "/update_event/{}",
+        event_details.event_id
+    )))
 }
 
 pub async fn delete_image(
@@ -420,4 +435,22 @@ WHERE id = $1"#,
     remove_file(event.path).await?;
 
     Ok(Redirect::to(&format!("/update_event/{}", event.event_id)))
+}
+
+#[derive(Deserialize)]
+pub struct VerifyPerson {
+    event_id: i32,
+    person_id: i32,
+}
+
+pub async fn post_verify_person(
+    State(state): State<KnotState>,
+    Form(VerifyPerson {
+        event_id,
+        person_id,
+    }): Form<VerifyPerson>,
+) -> Result<impl IntoResponse, KnotError> {
+    sqlx::query!("UPDATE participant_events SET is_verified = true WHERE event_id = $1 AND participant_id = $2", event_id, person_id).execute(&mut state.get_connection().await?).await?;
+
+    Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
