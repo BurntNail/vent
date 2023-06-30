@@ -293,6 +293,7 @@
                 <th colspan="3" class="text-align: center">{{ form.form }}</th>
               </tr>
               {% for person in form.people %}
+              <tr>
                 <td>{{ person.first_name }} {{ person.surname }}</th>
                 {% if auth.permissions["edit_participants_on_events"] %}
                   <td>
@@ -329,6 +330,7 @@
                   <td></td>
                 {% endif %}
                 {% endfor %}
+                </tr>
             {% endfor %}
             </tbody>
           </table>
