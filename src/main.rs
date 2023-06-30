@@ -162,10 +162,10 @@ FROM people WHERE id = $1
             "/remove_prefect_from_event",
             post(get_remove_prefect_from_event),
         )
-        .route("/add_image/:event_id", post(post_add_photo))
         .route("/remove_img/:id", get(delete_image))
         .route("/verify_participant", post(post_verify_person))
         .route_layer(RequireAuth::login_with_role(PermissionsRole::Prefect..)) //prefect ^
+        .route("/add_image/:event_id", post(post_add_photo))
         .route("/add_participant", post(post_add_participant_to_event))
         .route(
             "/remove_participant_from_event",
