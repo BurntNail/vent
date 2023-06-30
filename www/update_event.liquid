@@ -283,6 +283,8 @@
                 {% endif %}
                 {% if auth.permissions["verify_events"] %}
                   <th scope="col">Verify</th>
+                {% else %}
+                  <th scope="col">Attended</th>
                 {% endif %}
               </tr>
             </thread>
@@ -305,12 +307,22 @@
                       <button type="submit" class="btn btn-danger">Remove</button>
                     </form>
                   </td>
-                {% else %}
-                <td></td>
               {% endif %}
                 {% if auth.permissions["verify_events"] %}
                   {% if person.is_verified %}
-                    <td> Verified! </td>
+                    <td>
+                      <form action="/unverify_participant" method="POST">
+                        <input
+                          type="hidden"
+                          name="event_id"
+                          value="{{event.id}}">
+                        <input
+                          type="hidden"
+                          name="person_id"
+                          value="{{person.id}}">
+                        <button type="submit" class="btn btn-danger">Unverify</button>
+                      </form>
+                    </td>
                   {% else %}
                     <td>
                       <form action="/verify_participant" method="POST">
@@ -327,7 +339,11 @@
                     </td>
                 {% endif %}
                 {% else %}
-                  <td></td>
+                    {% if person.is_verified %}
+                      <td>Y</td>
+                    {% else %}
+                      <td>N</td>
+                  {% endif %}
                 {% endif %}
                 {% endfor %}
                 </tr>

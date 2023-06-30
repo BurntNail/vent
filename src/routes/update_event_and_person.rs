@@ -454,3 +454,15 @@ pub async fn post_verify_person(
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
+
+pub async fn post_unverify_person(
+    State(state): State<KnotState>,
+    Form(VerifyPerson {
+        event_id,
+        person_id,
+    }): Form<VerifyPerson>,
+) -> Result<impl IntoResponse, KnotError> {
+    sqlx::query!("UPDATE participant_events SET is_verified = false WHERE event_id = $1 AND participant_id = $2", event_id, person_id).execute(&mut state.get_connection().await?).await?;
+
+    Ok(Redirect::to(&format!("/update_event/{event_id}")))
+}
