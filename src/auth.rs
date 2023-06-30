@@ -75,11 +75,13 @@ pub fn get_auth_object(auth: Auth) -> liquid::Object {
             "run_migrations": user.permissions >= PermissionsRole::Admin,
             "edit_people": user.permissions >= PermissionsRole::Admin,
             "edit_events": user.permissions >= PermissionsRole::Prefect,
-            "add_photos": user.permissions >= PermissionsRole::Prefect,
+            "view_photo_adders": user.permissions >= PermissionsRole::Prefect,
             "edit_prefects_on_events": user.permissions >= PermissionsRole::Prefect,
             "edit_participants_on_events": user.permissions >= PermissionsRole::Prefect,
+            "verify_events": user.permissions >= PermissionsRole::Prefect,
             "add_rm_self_to_event": user.permissions >= PermissionsRole::Participant,
             "see_photos": user.permissions >= PermissionsRole::Participant,
+            "add_photos": user.permissions >= PermissionsRole::Participant,
             "export_csv": user.permissions >= PermissionsRole::Participant,
         });
 
@@ -92,9 +94,11 @@ pub fn get_auth_object(auth: Auth) -> liquid::Object {
             "edit_people": false,
             "edit_events": false,
             "add_photos": false,
+            "view_photo_adders": false,
             "edit_prefects_on_events": false,
             "edit_participants_on_events": false,
             "add_rm_self_to_event": false,
+            "verify_events": false,
             "see_photos": false,
             "export_csv": false,
         });
