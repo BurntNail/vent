@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use axum::{response::{IntoResponse, Redirect}, extract::{State, Form}};
 use itertools::Itertools;
 use serde::{Serialize, Deserialize};
@@ -25,14 +27,26 @@ pub async fn get_rewards (auth: Auth, State(state): State<KnotState>) -> Result<
     }
 
     let general_awards = sqlx::query_as!(Reward, "SELECT * FROM rewards").fetch_all(&mut state.get_connection().await?).await?;
+    let general_awards_by_id: HashMap<_, _> = general_awards.clone().into_iter().map(|x| (x.id, x)).collect();
 
 
-    let mut final_people = vec![];
+    let mut to_be_awarded = vec![];
+    let mut already_awarded = vec![];
     for record in sqlx::query!(r#"
     SELECT first_name, surname, form, id, was_first_entry, (select count(*) from participant_events pe where pe.participant_id = id and pe.is_verified = true) as no_events
     FROM people
     "#).fetch_all(&mut state.get_connection().await?).await? {
         let already_got_award_ids = sqlx::query!("SELECT reward_id FROM rewards_received WHERE person_id = $1", record.id).fetch_all(&mut state.get_connection().await?).await?.into_iter().map(|x| x.reward_id).collect_vec();
+
+        already_awarded.push(Person {
+            first_name: record.first_name.clone(),
+            surname: record.surname.clone(),
+            form: record.form.clone(),
+            id: record.id,
+            n_awards: already_got_award_ids.len(),
+            awards: already_got_award_ids.clone().into_iter().map(|x| general_awards_by_id.get(&x).cloned().unwrap()).collect()
+        });
+
 
         if already_got_award_ids.len() == general_awards.len() {
             continue;
@@ -55,7 +69,7 @@ pub async fn get_rewards (auth: Auth, State(state): State<KnotState>) -> Result<
             continue;
         }
 
-        final_people.push(Person {
+        to_be_awarded.push(Person {
             first_name: record.first_name,
             surname: record.surname,
             form: record.form,
@@ -66,14 +80,14 @@ pub async fn get_rewards (auth: Auth, State(state): State<KnotState>) -> Result<
     }
 
 
-    final_people.sort_by_cached_key(|x| x.surname.clone());
-    final_people.sort_by_cached_key(|x| x.form.clone());
-    final_people.sort_by_cached_key(|x| x.awards.clone());
+    to_be_awarded.sort_by_cached_key(|x| x.surname.clone());
+    to_be_awarded.sort_by_cached_key(|x| x.form.clone());
+    to_be_awarded.sort_by_cached_key(|x| x.awards.clone());
 
 
     compile(
         "www/rewards.liquid",
-        liquid::object!({ "people": final_people, "auth": get_auth_object(auth) }),
+        liquid::object!({ "tba": to_be_awarded, "aa": already_awarded, "auth": get_auth_object(auth) }),
     )
     .await
 }
