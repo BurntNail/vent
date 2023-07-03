@@ -31,7 +31,7 @@ use crate::{
         },
         public::{get_256, get_512, get_log, get_manifest, get_offline, get_sw},
         spreadsheets::get_spreadsheet,
-        update_event_and_person::{delete_image, post_unverify_person, post_verify_person},
+        update_event_and_person::{delete_image, post_unverify_person, post_verify_person}, rewards::{get_rewards, post_add_reward},
     },
     state::KnotState,
 };
@@ -178,6 +178,7 @@ FROM people WHERE id = $1
         .route("/csv", get(get_import_export_csv))
         .route("/csv_people", get(export_people_to_csv))
         .route("/csv_events", get(export_events_to_csv))
+        .route("/add_reward", get(get_rewards).post(post_add_reward))
         .route_layer(RequireAuth::login()) //^ REQUIRE LOGIN ^
         .route("/", get(get_index))
         .route(

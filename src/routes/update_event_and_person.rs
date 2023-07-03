@@ -142,7 +142,7 @@ INNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.i
     for person in sqlx::query_as!(
         DbPerson,
         r#"
-SELECT id, first_name, surname, username, form, hashed_password, permissions as "permissions: _" 
+SELECT id, first_name, surname, username, form, hashed_password, permissions as "permissions: _", was_first_entry
 FROM people p
 WHERE p.permissions != 'participant'
 "#
@@ -179,7 +179,7 @@ WHERE p.permissions != 'participant'
     for person in sqlx::query_as!(
         DbPerson,
         r#"
-SELECT id, first_name, surname, username, form, hashed_password, permissions as "permissions: _" 
+SELECT id, first_name, surname, username, form, hashed_password, permissions as "permissions: _", was_first_entry
 FROM people p
 "#
     )

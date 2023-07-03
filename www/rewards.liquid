@@ -1,0 +1,98 @@
+{% include "partials/header.liquid" %}
+
+<h2>Rewards to be given:</h2>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">
+        Name
+      </th>
+      <th scope="col">
+        Reward Name
+      </th>
+      {% if auth.permissions["add_rewards"] %}
+        <th scope="col">
+          Give Reward
+        </th>
+
+      {% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for person in tba %}
+      <tr>
+        <td rowspan="{{person.n_awards}}">
+          <a href="{{siteinfo.domain}}/edit_person/{{person.id}}">{{ person.first_name }} {{ person.surname }}
+            <i>({{ person.form }})</i>
+          </a>
+        </td>
+        {% for award in person.awards %}
+          <td>
+            {{ award.name }}
+          </td>
+          {% if auth.permissions["add_rewards"] %}
+
+            <td>
+              <form action="/add_reward" method="post">
+                <input
+                  type="hidden"
+                  name="reward_id"
+                  value="{{award.id}}">
+                <input
+                  type="hidden"
+                  name="person_id"
+                  value="{{person.id}}">
+                <button type="submit" class="btn btn-primary">Award!</button>
+              </form>
+            </td>
+          {% endif %}
+
+
+        </tr>
+        {% unless forloop.last %}
+          <tr>
+          {% endunless %}
+        {% endfor %}
+      {% endfor %}
+    </tbody>
+  </tbody>
+</table>
+
+<h2>Already Rewarded:</h2>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">
+        Name
+      </th>
+      <th scope="col">
+        Reward Name
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for person in tba %}
+      <tr>
+        <td rowspan="{{person.n_awards}}">
+          <a href="{{siteinfo.domain}}/edit_person/{{person.id}}">{{ person.first_name }} {{ person.surname }}
+            <i>({{ person.form }})</i>
+          </a>
+        </td>
+        {% for award in person.awards %}
+          <td>
+            {{ award.name }}
+          </td>
+        </tr>
+        {% unless forloop.last %}
+          <tr>
+          {% endunless %}
+        {% endfor %}
+      {% endfor %}
+    </tbody>
+  </tbody>
+</table>
+
+
+{% include "partials/footer.liquid" %}

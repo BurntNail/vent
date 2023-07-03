@@ -81,8 +81,9 @@ pub async fn post_import_people_from_csv(
             let form = record.get(2).ok_or(KnotError::MalformedCSV)?;
             let is_prefect: bool = record.get(3).ok_or(KnotError::MalformedCSV)?.parse()?;
             let username = record.get(4).ok_or(KnotError::MalformedCSV)?;
+            let was_first_entry: bool = record.get(5).ok_or(KnotError::MalformedCSV)?.parse()?;
 
-            debug!("Checkinng if needs to be updated rather than created");
+            debug!("Checking if needs to be updated rather than created");
 
             let mut needs_to_update = None;
 
@@ -118,14 +119,15 @@ pub async fn post_import_people_from_csv(
                 debug!("Creating");
                 sqlx::query!(
                     r#"INSERT INTO public.people
-            (first_name, surname, form, hashed_password, permissions, username, password_link_id)
-            VALUES($1, $2, $3, NULL, $4, $5, NULL);
+            (first_name, surname, form, hashed_password, permissions, username, password_link_id, was_first_entry)
+            VALUES($1, $2, $3, NULL, $4, $5, NULL, $6);
             "#,
                     first_name,
                     surname,
                     form,
                     perms as _,
-                    username
+                    username,
+                    was_first_entry
                 )
                 .execute(&mut state.get_connection().await?)
                 .await?;
@@ -242,7 +244,7 @@ pub async fn export_people_to_csv(
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut asw = AsyncWriterBuilder::new().create_writer(File::create("public/people.csv").await?);
-    asw.write_record(&["first_name", "surname", "form", "is_prefect", "username"])
+    asw.write_record(&["first_name", "surname", "form", "is_prefect", "username", "was_first_entry"])
         .await?;
 
     #[derive(Deserialize)]
@@ -252,6 +254,7 @@ pub async fn export_people_to_csv(
         pub form: String,
         pub permissions: PermissionsRole,
         pub username: String,
+        pub was_first_entry: bool,
     }
 
     for SmolPerson {
@@ -260,9 +263,10 @@ pub async fn export_people_to_csv(
         form,
         permissions,
         username,
+        was_first_entry
     } in sqlx::query_as!(
         SmolPerson,
-        r#"SELECT first_name, surname, form, permissions as "permissions: _", username FROM people"#
+        r#"SELECT first_name, surname, form, permissions as "permissions: _", username, was_first_entry FROM people"#
     )
     .fetch_all(&mut state.get_connection().await?)
     .await?
@@ -273,6 +277,7 @@ pub async fn export_people_to_csv(
             form,
             (permissions >= PermissionsRole::Prefect).to_string(),
             username,
+            was_first_entry.to_string()
         ])
         .await?;
     }
