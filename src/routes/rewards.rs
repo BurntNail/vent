@@ -4,14 +4,15 @@ use serde::{Serialize, Deserialize};
 
 use crate::{error::KnotError, state::KnotState, liquid_utils::compile, auth::{get_auth_object, Auth}};
 
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Reward {
+    pub name: String,
+    pub first_entry_pts: i32,
+    pub second_entry_pts: i32,
+    pub id: i32,
+}
+
 pub async fn get_rewards (auth: Auth, State(state): State<KnotState>) -> Result<impl IntoResponse, KnotError> {
-    #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    struct Reward {
-        pub name: String,
-        pub first_entry_pts: i32,
-        pub second_entry_pts: i32,
-        pub id: i32,
-    }
     ///NB: these are rewards TO BE RECEIVED
     #[derive(Serialize, Deserialize)]
     struct Person {

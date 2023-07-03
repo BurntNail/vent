@@ -59,7 +59,7 @@ pub async fn get_add_password(
     let person = sqlx::query_as!(
         DbPerson,
         r#"
-SELECT id, first_name, surname, username, form, hashed_password, permissions as "permissions: _" 
+SELECT id, first_name, surname, username, form, hashed_password, permissions as "permissions: _", was_first_entry
 FROM people 
 WHERE id = $1"#,
         id
@@ -133,7 +133,7 @@ pub async fn post_add_password(
 UPDATE people
 SET hashed_password = $1
 WHERE id = $2
-RETURNING id, first_name, surname, username, form, hashed_password, permissions as "permissions: _" 
+RETURNING id, first_name, surname, username, form, hashed_password, permissions as "permissions: _", was_first_entry
     "#,
         hashed,
         id

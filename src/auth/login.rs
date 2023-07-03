@@ -91,7 +91,7 @@ pub async fn post_login(
     let db_user = sqlx::query_as!(
         DbPerson,
         r#"
-SELECT id, first_name, surname, username, form, hashed_password, permissions as "permissions: _" 
+SELECT id, first_name, surname, username, form, hashed_password, permissions as "permissions: _", was_first_entry
 FROM people 
 WHERE LOWER(username) = LOWER($1)
         "#,
