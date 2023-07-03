@@ -12,6 +12,7 @@ pub mod public;
 pub mod show_all;
 pub mod spreadsheets;
 pub mod update_event_and_person;
+pub mod rewards;
 
 use crate::auth::PermissionsRole;
 use chrono::NaiveDateTime;
