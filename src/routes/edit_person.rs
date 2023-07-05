@@ -87,7 +87,7 @@ ON pe.event_id = e.id AND pe.prefect_id = $1
         r#"
 SELECT date, event_name, id, is_verified FROM events e 
 INNER JOIN participant_events pe
-ON pe.event_id = e.id AND pe.participant_id = $1
+ON pe.event_id = e.id AND pe.participant_id = $1 AND pe.is_verified = true
         "#,
         person.id
     )
