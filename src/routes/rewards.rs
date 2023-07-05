@@ -31,22 +31,12 @@ pub async fn get_rewards (auth: Auth, State(state): State<KnotState>) -> Result<
 
 
     let mut to_be_awarded = vec![];
-    let mut already_awarded = vec![];
+        
     for record in sqlx::query!(r#"
     SELECT first_name, surname, form, id, was_first_entry, (select count(*) from participant_events pe where pe.participant_id = id and pe.is_verified = true) as no_events
     FROM people
     "#).fetch_all(&mut state.get_connection().await?).await? {
         let already_got_award_ids = sqlx::query!("SELECT reward_id FROM rewards_received WHERE person_id = $1", record.id).fetch_all(&mut state.get_connection().await?).await?.into_iter().map(|x| x.reward_id).collect_vec();
-
-        already_awarded.push(Person {
-            first_name: record.first_name.clone(),
-            surname: record.surname.clone(),
-            form: record.form.clone(),
-            id: record.id,
-            n_awards: already_got_award_ids.len(),
-            awards: already_got_award_ids.clone().into_iter().map(|x| general_awards_by_id.get(&x).cloned().unwrap()).collect()
-        });
-
 
         if already_got_award_ids.len() == general_awards.len() {
             continue;
@@ -84,6 +74,30 @@ pub async fn get_rewards (auth: Auth, State(state): State<KnotState>) -> Result<
     to_be_awarded.sort_by_cached_key(|x| x.form.clone());
     to_be_awarded.sort_by_cached_key(|x| x.awards.clone());
 
+    let mut already_awarded_hm = HashMap::new();
+
+    for record in sqlx::query!("SELECT * FROM rewards_received").fetch_all(&mut state.get_connection().await?).await? {
+    	already_awarded_hm.entry(record.person_id).or_insert(vec![]).push(general_awards_by_id[&record.reward_id].clone());
+    }
+
+    let mut already_awarded = vec![];
+    for (person_id, awards) in already_awarded_hm.into_iter() {
+    	let record = sqlx::query!("SELECT first_name, surname, form FROM people WHERE id = $1", person_id).fetch_one(&mut state.get_connection().await?).await?;
+    	already_awarded.push(
+    		Person {
+            	first_name: record.first_name,
+            	surname: record.surname,
+            	form: record.form,
+            	id: person_id,
+            	n_awards: awards.len(),
+            	awards    		
+            }
+    	);
+    }
+
+    already_awarded.sort_by_cached_key(|x| x.surname.clone());
+    already_awarded.sort_by_cached_key(|x| x.form.clone());
+    already_awarded.sort_by_cached_key(|x| x.awards.clone());
 
     compile(
         "www/rewards.liquid",
