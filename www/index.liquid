@@ -102,7 +102,7 @@
   <tbody>
     {% for row in happened_events %}
       <tr>
-    <td scope="row" {% if auth.permissions["add_photos"] %} rowspan="2" {% endif %}> 
+    <td scope="row" {% if false %} rowspan="2" {% endif %}> 
           <a href="/update_event/{{row.event.id}}" class="centred">{{ row.event.event_name }}</a>
         </td>
         <td>{{ row.event.date }}</td>
@@ -110,7 +110,7 @@
           {{ row.prefects }}/{{ row.participants }}/{{ row.no_photos }}
         </td>
 		</tr>
-		{% if auth.permissions["add_photos"] %}
+		{% if false %}
     <tr>
         <td>
           <form
