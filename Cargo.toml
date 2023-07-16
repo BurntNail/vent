@@ -32,7 +32,7 @@ eyre = "0.6.8"
 once_cell = "1.18.0"
 new_mime_guess = { version = "4.0.1", default-features = false }
 reqwest = { version = "0.11.18", features = ["json"] }
-async-trait = "0.1.69"
+async-trait = "0.1.71"
 http = "0.2.9"
 itertools = "0.11.0"
 lettre = { version = "0.10.4", features = ["tokio1", "tokio1-rustls-tls", "rustls-tls", "tracing", "builder", "smtp-transport"], default-features = false }
