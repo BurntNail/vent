@@ -1349,9 +1349,9 @@ dependencies = [
 
 [[package]]
 name = "icalendar"
-version = "0.15.4"
+version = "0.15.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f730bf0dc0a06f7e19c4ca6b731427d741384338b60128e5d0d00aeb0b5f071"
+checksum = "f8ff1325f611351fcf1d9add6b66761ce98bff4bd95a737aa2d2ae204a8e3971"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -3326,6 +3326,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fa2982af2eec27de306107c027578ff7f423d65f7250e40ce0fea8f45248b81"
 dependencies = [
  "getrandom",
+ "wasm-bindgen",
 ]
 
 [[package]]

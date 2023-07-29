@@ -10,7 +10,7 @@ axum = { version = "0.6.18", features = ["form", "tracing", "macros", "headers",
 axum-extra = { version = "0.7.4", features = ["form"] }
 chrono = { version = "0.4.26", features = ["rkyv", "serde", "clock"] }
 chrono-tz = "0.8.3"
-icalendar = { version = "0.15.4", features = ["chrono-tz"] }
+icalendar = { version = "0.15.6", features = ["chrono-tz"] }
 dotenvy = "0.15.7"
 liquid = "0.26.4"
 serde = "1.0.171"
