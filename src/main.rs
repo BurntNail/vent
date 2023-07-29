@@ -150,6 +150,7 @@ FROM people WHERE id = $1
         .route("/reset_password", post(post_reset_password))
         .route("/import_people_from_csv", post(post_import_people_from_csv))
         .route("/import_events_from_csv", post(post_import_events_from_csv))
+        .route("/add_reward", post(post_add_reward))
         .route_layer(RequireAuth::login_with_role(PermissionsRole::Admin..)) //admin ^
         .route(
             "/add_event",
@@ -178,8 +179,8 @@ FROM people WHERE id = $1
         .route("/csv", get(get_import_export_csv))
         .route("/csv_people", get(export_people_to_csv))
         .route("/csv_events", get(export_events_to_csv))
-        .route("/add_reward", get(get_rewards).post(post_add_reward))
         .route_layer(RequireAuth::login()) //^ REQUIRE LOGIN ^
+        .route("/add_reward", get(get_rewards))
         .route("/", get(get_index))
         .route(
             "/edit_person/:id",
