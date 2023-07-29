@@ -81,7 +81,7 @@ pub async fn get_rewards (auth: Auth, State(state): State<KnotState>) -> Result<
     }
 
     let mut already_awarded = vec![];
-    for (person_id, awards) in already_awarded_hm.into_iter() {
+    for (person_id, awards) in already_awarded_hm {
     	let record = sqlx::query!("SELECT first_name, surname, form FROM people WHERE id = $1", person_id).fetch_one(&mut state.get_connection().await?).await?;
     	already_awarded.push(
     		Person {
