@@ -1,5 +1,4 @@
 use axum::{extract::State, response::IntoResponse};
-use chrono::Utc;
 use serde::Serialize;
 
 use crate::{
@@ -67,24 +66,21 @@ pub async fn get_index(
     let mut happened_events = vec![];
     let mut events_to_happen = vec![];
 
-    let now = Utc::now().naive_local();
-
     debug!("Getting all events");
 
     for event in sqlx::query_as!(
         DbEvent,
         r#"
 SELECT *
-FROM events
-ORDER BY events.date DESC
-LIMIT 25
+FROM events e
+WHERE e.date > now()
+ORDER BY e.date ASC
+LIMIT 15
         "#
     )
     .fetch_all(&mut state.get_connection().await?)
     .await?
     {
-        //TODO: cache using HashMaps etc
-        let date = event.date;
         let event = HTMLEvent::from(event);
 
         let event_id = event.id;
@@ -121,27 +117,70 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
             .await?
             .len();
 
-        if date < now {
-            trace!(?event, "Adding to old events");
-            happened_events.push(WholeEvent {
-                event,
-                participants,
-                prefects,
-                no_photos: photos,
-            });
-        } else {
-            trace!(?event, "Adding to new events");
             events_to_happen.push(WholeEvent {
                 event,
                 participants,
                 prefects,
                 no_photos: photos,
             });
-        }
     }
-    events_to_happen.reverse();
 
-    debug!("Compiling");
+    for event in sqlx::query_as!(
+        DbEvent,
+        r#"
+SELECT *
+FROM events e
+WHERE e.date < now()
+ORDER BY e.date DESC
+LIMIT 10
+        "#
+    )
+    .fetch_all(&mut state.get_connection().await?)
+    .await?
+    {
+        let event = HTMLEvent::from(event);
 
+        let event_id = event.id;
+        let prefects = sqlx::query_as!(
+            PersonForm,
+            r#"
+SELECT p.first_name, p.surname, p.form
+FROM people p
+INNER JOIN events e ON e.id = $1
+INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
+    "#,
+            event_id
+        )
+        .fetch_all(&mut state.get_connection().await?)
+        .await?
+        .len();
+
+        let participants = sqlx::query_as!(
+                PersonForm,
+                r#"
+SELECT p.first_name, p.surname, p.form
+FROM people p
+INNER JOIN events e ON e.id = $1
+INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $1 AND pe.is_verified = true
+    "#,
+                event_id
+            )
+            .fetch_all(&mut state.get_connection().await?)
+            .await?
+            .len();
+
+        let photos = sqlx::query!("SELECT FROM photos WHERE event_id = $1", event_id)
+            .fetch_all(&mut state.get_connection().await?)
+            .await?
+            .len();
+
+            happened_events.push(WholeEvent {
+                event,
+                participants,
+                prefects,
+                no_photos: photos,
+            });
+    }
+    
     compile("www/index.liquid", liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events, "auth": get_auth_object(auth) })).await
 }
