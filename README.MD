@@ -11,7 +11,7 @@ This was originally engineered as a replacement to a brittle spreadsheet that di
 This project requires:
  - `cargo` and the other rust build tools like a valid `C++` compiler
  - `cargo-sqlx` installed via `cargo` - this is used for postgres migrations
- - `devenv` - this is used for the postgres server
+ - `devenv` or `docker compose` - this is used for the postgres server
  - `libssl-dev` - this is used for the axum server
  - `clang` - this is used for the spreadsheet export
 
@@ -44,7 +44,7 @@ You need to have a `.env` file with the following variables set:
 
 ### Setup
 I would highly reccomend a `tmux` based setup to run this without needing an active ssh session to run whilst away.
-1) Setup the postgres server - `devenv up`
+1) Setup the postgres server - `devenv up` or `docker compose up`. 
 2) Run the postgres migrations - `sqlx migrate run`
 3) Run the binary - `cargo r --release` for production, or `cargo r` for development. In production to minimise downtime, I use `cargo b` rather than `cargo r` to quickly stop the old binary and launch into the new one without recompiling. 
 4) Enjoy!
