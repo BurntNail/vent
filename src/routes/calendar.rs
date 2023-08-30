@@ -71,7 +71,7 @@ pub async fn get_calendar_feed(
         calendar.push(
             Event::new()
                 .summary(&event_name)
-                .starts(date)
+                .starts((date, chrono_tz::Europe::London))
                 .ends(date + Duration::minutes(45))
                 .location(&location)
                 .description(&format!(
