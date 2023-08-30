@@ -9,7 +9,7 @@ use axum::{
     extract::{Multipart, State},
     response::{IntoResponse, Redirect},
 };
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, NaiveDate, NaiveTime};
 use csv_async::{AsyncReaderBuilder, AsyncWriterBuilder};
 use futures::stream::StreamExt;
 use serde::Deserialize;
@@ -160,37 +160,27 @@ pub async fn post_import_events_from_csv(
         .into_records();
 
     while let Some(record) = csv_reader.next().await.transpose()? {
-        let res: Result<_, KnotError> = async {
-            debug!("Getting details from record");
-            let name = record.get(0).ok_or(KnotError::MalformedCSV)?;
-            let date_time = NaiveDateTime::parse_from_str(
-                record.get(1).ok_or(KnotError::MalformedCSV)?,
-                "%Y-%m-%dT%H:%M",
-            )?;
-            let location = record.get(2).ok_or(KnotError::MalformedCSV)?;
+            let location = record.get(4).ok_or(KnotError::MalformedCSV)?;
             let teacher = record.get(3).ok_or(KnotError::MalformedCSV)?;
-            let other_info = record.get(4);
+            let date = NaiveDate::parse_from_str(record.get(0).ok_or(KnotError::MalformedCSV)?, "%A %d %B %Y")?;
+            let name = record.get(1).ok_or(KnotError::MalformedCSV)?;
+            let time = NaiveTime::parse_from_str(record.get(2).ok_or(KnotError::MalformedCSV)?, "%R")?;
+            let date_time = NaiveDateTime::new(date, time);
 
-            debug!("Creating");
+
+            debug!(?name, ?date, ?location, "Creating new event");
 
             sqlx::query!(
                 r#"
-INSERT INTO events (event_name, date, location, teacher, other_info) 
-VALUES ($1, $2, $3, $4, $5)"#,
+INSERT INTO events (event_name, date, location, teacher) 
+VALUES ($1, $2, $3, $4)"#,
                 name,
                 date_time,
                 location,
-                teacher,
-                other_info
+                teacher
             )
             .execute(&mut state.get_connection().await?)
             .await?;
-
-            Ok(())
-        }
-        .instrument(debug_span!("dealing_with_import_event"))
-        .await;
-        res?;
     }
 
     Ok(Redirect::to("/"))
