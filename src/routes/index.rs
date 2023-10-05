@@ -73,7 +73,7 @@ pub async fn get_index(
         r#"
 SELECT *
 FROM events e
-WHERE e.date > now()
+WHERE e.date > (now() - interval '12 hours')
 ORDER BY e.date ASC
 LIMIT 15
         "#
