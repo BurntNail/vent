@@ -28,6 +28,7 @@ pub async fn get_edit_person(
         pub username: String,
         pub password_is_set: bool,
         pub form: String,
+        pub was_first_entry: bool,
     }
 
     debug!("Getting relevant person");
@@ -50,6 +51,7 @@ FROM people WHERE id = $1
         username: person.username,
         form: person.form,
         password_is_set: person.hashed_password.is_some(),
+        was_first_entry: person.was_first_entry
     };
 
     debug!("Getting events supervised");
@@ -87,7 +89,7 @@ ON pe.event_id = e.id AND pe.prefect_id = $1
         r#"
 SELECT date, event_name, id, is_verified FROM events e 
 INNER JOIN participant_events pe
-ON pe.event_id = e.id AND pe.participant_id = $1 AND pe.is_verified = true
+ON pe.event_id = e.id AND pe.participant_id = $1
         "#,
         person.id
     )
