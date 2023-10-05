@@ -248,6 +248,27 @@ dependencies = [
  "mime",
  "pin-project-lite",
  "serde",
+ "tokio",
+ "tower",
+ "tower-layer",
+ "tower-service",
+]
+
+[[package]]
+name = "axum-extra"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ab90e7b70bea63a153137162affb6a0bce26b584c24a4c7885509783e2cf30b"
+dependencies = [
+ "axum",
+ "axum-core",
+ "bytes",
+ "futures-util",
+ "http",
+ "http-body",
+ "mime",
+ "pin-project-lite",
+ "serde",
  "serde_html_form",
  "tokio",
  "tower",
@@ -299,7 +320,7 @@ checksum = "714cad544cd87d8da821cda715bb9aaa5d4d1adbdb64c549b18138e3cbf93c44"
 dependencies = [
  "async-session",
  "axum",
- "axum-extra",
+ "axum-extra 0.7.7",
  "futures",
  "http-body",
  "tokio",
@@ -1516,7 +1537,7 @@ dependencies = [
  "async-trait",
  "async_zip",
  "axum",
- "axum-extra",
+ "axum-extra 0.8.0",
  "axum-login",
  "bcrypt",
  "chrono",
