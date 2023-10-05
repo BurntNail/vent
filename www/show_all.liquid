@@ -14,11 +14,6 @@
       <th scope="col">
         Form
       </th>
-      {% if auth.permissions["edit_people"] %}
-        <th scope="col">
-          Remove
-        </th>
-      {% endif %}
       <th scope="col">
         View/Edit
       </th>
@@ -47,17 +42,6 @@
         <td>
           {{ person.form }}
         </td>
-        {% if auth.permissions["edit_people"] %}
-          <td>
-            <form method="POST" action="/remove_person">
-              <input
-                type="hidden"
-                name="person_id"
-                value="{{person.id}}">
-              <button type="submit" class="btn btn-danger">Remove Person.</button>
-            </form>
-          </td>
-        {% endif %}
         <td>
           <a href="/edit_person/{{person.id}}" class="btn btn-secondary">View/Edit Person.</a>
         </td>
