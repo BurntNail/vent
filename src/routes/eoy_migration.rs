@@ -36,7 +36,7 @@ pub async fn get_eoy_migration(
             "auth": get_auth_object(auth),
             "forms": forms
         }),
-        &state.settings.instance_name,
+        &state.settings.brand.instance_name,
     )
     .await
 }

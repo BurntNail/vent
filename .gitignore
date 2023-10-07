@@ -10,3 +10,4 @@ devenv.local.nix
 *.xlsx
 uploads/*
 *.json
+config/

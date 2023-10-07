@@ -97,7 +97,9 @@ ORDER BY e.date DESC
     .fetch_all(&mut state.get_connection().await?)
     .await?
     .into_iter()
-    .map(|event| SmolFormattedDbEvent::from((event, state.settings.date_time_format.as_str())))
+    .map(|event| {
+        SmolFormattedDbEvent::from((event, state.settings.niche.date_time_format.as_str()))
+    })
     .collect();
 
     trace!("Compiling");
@@ -105,7 +107,7 @@ ORDER BY e.date DESC
     compile(
         "www/show_all.liquid",
         liquid::object!({ "people": new_people, "events": events, "auth": get_auth_object(auth) }),
-        &state.settings.instance_name,
+        &state.settings.brand.instance_name,
     )
     .await
 }

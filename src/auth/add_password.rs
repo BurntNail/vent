@@ -27,7 +27,7 @@ pub async fn get_blank_add_password(
             "is_authing_user": false,
             "auth": get_auth_object(auth),
         }),
-        &state.settings.instance_name,
+        &state.settings.brand.instance_name,
     )
     .await
 }
@@ -79,7 +79,7 @@ WHERE id = $1"#,
             "auth": get_auth_object(auth),
             "link_id": link_thingie
         }),
-        &state.settings.instance_name,
+        &state.settings.brand.instance_name,
     )
     .await?
     .into_response())

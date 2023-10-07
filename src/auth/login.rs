@@ -32,7 +32,7 @@ pub async fn get_login(
     compile(
         "www/login.liquid",
         liquid::object!({ "auth": get_auth_object(auth) }),
-        &state.settings.instance_name,
+        &state.settings.brand.instance_name,
     )
     .await
 }
@@ -73,7 +73,7 @@ pub async fn get_login_failure(
     let html = compile(
         "www/failed_auth.liquid",
         liquid::object!({ "auth": get_auth_object(auth), "was_password_related": was_password_related }),
-        &state.settings.instance_name
+        &state.settings.brand.instance_name
     )
     .await?;
 

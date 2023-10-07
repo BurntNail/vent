@@ -6,12 +6,21 @@ use tokio::task::spawn_blocking;
 use url::Url;
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct Settings {
-    pub date_time_format: String,
+pub struct BrandSettings {
     pub instance_name: String,
-    pub tech_support: Url,
-    pub username: String,
     pub domain: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct NicheSettings {
+    pub date_time_format: String,
+    pub tech_support: Url,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Settings {
+    pub niche: NicheSettings,
+    pub brand: BrandSettings,
     pub mail: MailSettings,
 }
 
@@ -28,9 +37,9 @@ impl Settings {
         let file_name = var("CONFIG_LOCATION").unwrap_or_else(|e| {
             error!(
                 ?e,
-                "Unable to get CONFIG_LOCATION - defaulting to config/local.yml"
+                "Unable to get CONFIG_LOCATION - defaulting to config/local.toml"
             );
-            "config/local.yml".to_string()
+            "config/local.toml".to_string()
         });
 
         let builder = Config::builder()
