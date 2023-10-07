@@ -76,7 +76,7 @@ ON pe.event_id = e.id AND pe.prefect_id = $1
     .into_iter()
     .map(|r| Event {
         name: r.event_name,
-        date: r.date.to_env_string(),
+        date: r.date.to_env_string(&state.settings.date_time_format),
         id: r.id,
         verified: true,
     })
@@ -97,7 +97,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1
     .into_iter()
     .map(|r| Event {
         name: r.event_name,
-        date: r.date.to_env_string(),
+        date: r.date.to_env_string(&state.settings.date_time_format),
         verified: r.is_verified,
         id: r.id,
     })
@@ -107,7 +107,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1
 
     debug!("Compiling");
 
-    compile("www/edit_person.liquid", liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "rewards": rewards,  "auth": get_auth_object(auth) })).await
+    compile("www/edit_person.liquid", liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "rewards": rewards,  "auth": get_auth_object(auth) }), &state.settings.instance_name).await
 }
 
 #[instrument(level = "debug", skip(state, first_name, surname))]

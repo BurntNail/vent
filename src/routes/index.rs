@@ -25,22 +25,25 @@ pub async fn get_index(
         pub other_info: String,
     }
 
-    impl From<DbEvent> for HTMLEvent {
+    impl<'a> From<(DbEvent, &'a str)> for HTMLEvent {
         fn from(
-            DbEvent {
-                id,
-                event_name,
-                date,
-                location,
-                teacher,
-                other_info,
-                zip_file: _,
-            }: DbEvent,
+            (
+                DbEvent {
+                    id,
+                    event_name,
+                    date,
+                    location,
+                    teacher,
+                    other_info,
+                    zip_file: _,
+                },
+                fmt,
+            ): (DbEvent, &'a str),
         ) -> Self {
             Self {
                 id,
                 event_name,
-                date: date.to_env_string(),
+                date: date.to_env_string(fmt),
                 location,
                 teacher,
                 other_info: other_info.unwrap_or_default(),
@@ -81,7 +84,7 @@ LIMIT 15
     .fetch_all(&mut state.get_connection().await?)
     .await?
     {
-        let event = HTMLEvent::from(event);
+        let event = HTMLEvent::from((event, state.settings.date_time_format.as_str()));
 
         let event_id = event.id;
         let prefects = sqlx::query_as!(
@@ -138,7 +141,7 @@ LIMIT 10
     .fetch_all(&mut state.get_connection().await?)
     .await?
     {
-        let event = HTMLEvent::from(event);
+        let event = HTMLEvent::from((event, state.settings.date_time_format.as_str()));
 
         let event_id = event.id;
         let prefects = sqlx::query_as!(
@@ -182,5 +185,5 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
         });
     }
 
-    compile("www/index.liquid", liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events, "auth": get_auth_object(auth) })).await
+    compile("www/index.liquid", liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events, "auth": get_auth_object(auth) }), &state.settings.instance_name).await
 }

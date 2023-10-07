@@ -20,10 +20,14 @@ use chrono::NaiveDateTime;
 
 ///`GET` method for the `add_event` form - just compiles and returns the liquid `www/add_event.liquid`
 #[instrument(level = "debug", skip(auth))]
-pub async fn get_add_event_form(auth: Auth) -> Result<impl IntoResponse, KnotError> {
+pub async fn get_add_event_form(
+    auth: Auth,
+    State(state): State<KnotState>,
+) -> Result<impl IntoResponse, KnotError> {
     compile(
         "www/add_event.liquid",
         liquid::object!({"auth": get_auth_object(auth)}),
+        &state.settings.instance_name,
     )
     .await
 }

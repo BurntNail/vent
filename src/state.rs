@@ -3,13 +3,11 @@ use lettre::{
     transport::smtp::authentication::Credentials, AsyncSmtpTransport, AsyncTransport, Message,
     Tokio1Executor,
 };
-use once_cell::sync::Lazy;
 use rand::{thread_rng, Rng};
 use sqlx::{pool::PoolConnection, Pool, Postgres};
-use std::env::var;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 
-use crate::{error::KnotError, liquid_utils::DOMAIN, PROJECT_NAME};
+use crate::{cfg::Settings, error::KnotError};
 
 #[derive(Debug)]
 pub struct EmailToSend {
@@ -24,16 +22,19 @@ pub struct KnotState {
     postgres: Pool<Postgres>,
     mail_sender: UnboundedSender<EmailToSend>,
     stop_sender: UnboundedSender<()>,
+    pub settings: Settings,
 }
 
 impl KnotState {
-    pub fn new(postgres: Pool<Postgres>) -> Self {
-        let (mail_sender, stop_sender) = email_sender_thread();
+    pub async fn new(postgres: Pool<Postgres>) -> Self {
+        let settings = Settings::new().await.expect("unable to get settings");
+        let (mail_sender, stop_sender) = email_sender_thread(settings.clone());
 
         Self {
             postgres,
             mail_sender,
             stop_sender,
+            settings,
         }
     }
 
@@ -94,16 +95,10 @@ impl KnotState {
     }
 }
 
-pub fn email_sender_thread() -> (UnboundedSender<EmailToSend>, UnboundedSender<()>) {
-    static MAIL_USERNAME: Lazy<String> =
-        Lazy::new(|| var("MAIL_USERNAME").expect("unable to get MAIL_USERNAME"));
-    static MAIL_PASSWORD: Lazy<String> =
-        Lazy::new(|| var("MAIL_PASSWORD").expect("unable to get MAIL_PASSWORD"));
-    static MAIL_SMTP: Lazy<String> =
-        Lazy::new(|| var("MAIL_SMTP").expect("unable to get MAIL_SMTP"));
-    static USERNAME_DOMAIN: Lazy<String> =
-        Lazy::new(|| var("USERNAME_DOMAIN").expect("unable to get USERNAME_DOMAIN"));
-
+pub fn email_sender_thread(
+    settings: Settings,
+) -> (UnboundedSender<EmailToSend>, UnboundedSender<()>) {
+    let mail_settings = settings.mail.clone();
     let (msg_tx, mut msg_rx) = unbounded_channel();
     let (stop_tx, mut stop_rx) = unbounded_channel();
 
@@ -115,10 +110,14 @@ pub fn email_sender_thread() -> (UnboundedSender<EmailToSend>, UnboundedSender<(
             unique_id,
         }: EmailToSend,
         mailer: &AsyncSmtpTransport<Tokio1Executor>,
+        from_username: &str,
+        username_domain: &str,
+        project_name: &str,
+        project_domain: &str,
     ) -> Result<(), KnotError> {
         let m = Message::builder()
-            .from(format!("Knot NoReply <{}>", MAIL_USERNAME.as_str()).parse()?)
-            .to(format!("{to_fullname} <{to_username}@{}>", USERNAME_DOMAIN.as_str()).parse()?)
+            .from(format!("Knot NoReply <{}>", from_username).parse()?)
+            .to(format!("{to_fullname} <{to_username}@{}>", username_domain).parse()?)
             .subject("Knot - Add Password".to_string())
             .body(format!(
                 r#"Dear {},
@@ -128,11 +127,7 @@ You've just tried to login to {}, but you don't have a password set yet.
 To set one, go to {}/add_password/{}?code={}.
 
 Have a nice day!"#,
-                to_fullname,
-                PROJECT_NAME.as_str(),
-                DOMAIN.1,
-                to_id,
-                unique_id
+                to_fullname, project_name, project_domain, to_id, unique_id
             ))?;
 
         info!(%to_fullname, %to_id, numbers=%unique_id, "Sending email.");
@@ -143,11 +138,11 @@ Have a nice day!"#,
     }
 
     tokio::spawn(async move {
-        let mailer = AsyncSmtpTransport::<Tokio1Executor>::relay(&MAIL_SMTP)
+        let mailer = AsyncSmtpTransport::<Tokio1Executor>::relay(&mail_settings.smtp)
             .expect("unable to get relay")
             .credentials(Credentials::new(
-                MAIL_USERNAME.clone(),
-                MAIL_PASSWORD.clone(),
+                mail_settings.username.clone(),
+                mail_settings.password.clone(),
             ))
             .build();
 
@@ -160,7 +155,7 @@ Have a nice day!"#,
                 msg = msg_rx.recv() => match msg {
                     None => Some(Ok(())),
                     Some(msg) => {
-                        if let Err(e) = send_email(msg, &mailer).await {
+                        if let Err(e) = send_email(msg, &mailer, &mail_settings.username, &mail_settings.password, &mail_settings.smtp, &settings.domain).await {
                             error!(?e, "Error sending email");
                         }
 

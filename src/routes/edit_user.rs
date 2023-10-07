@@ -12,10 +12,14 @@ use axum::{
 use bcrypt::{hash, DEFAULT_COST};
 use serde::Deserialize;
 
-pub async fn get_edit_user(auth: Auth) -> Result<impl IntoResponse, KnotError> {
+pub async fn get_edit_user(
+    auth: Auth,
+    State(state): State<KnotState>,
+) -> Result<impl IntoResponse, KnotError> {
     compile(
         "www/edit_user.liquid",
         liquid::object!({"auth": get_auth_object(auth)}),
+        &state.settings.instance_name,
     )
     .await
 }

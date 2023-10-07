@@ -6,6 +6,7 @@
 )]
 
 mod auth;
+mod cfg;
 mod error;
 mod liquid_utils;
 mod routes;
@@ -46,7 +47,6 @@ use axum::{
 };
 use axum_login::{axum_sessions::SessionLayer, AuthLayer};
 use liquid_utils::partials::PARTIALS;
-use once_cell::sync::Lazy;
 use routes::{
     add_event::{get_add_event_form, post_add_event_form},
     add_people_to_event::{post_add_participant_to_event, post_add_prefect_to_event},
@@ -72,9 +72,6 @@ extern crate tracing;
 
 #[macro_use]
 extern crate async_trait;
-
-pub static PROJECT_NAME: Lazy<String> =
-    Lazy::new(|| var("INSTANCE_NAME").unwrap_or_else(|_e| "House Events Manager".into()));
 
 // https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs
 async fn shutdown_signal(state: KnotState) {
@@ -139,7 +136,7 @@ FROM people WHERE id = $1
         &secret,
     );
 
-    let state = KnotState::new(pool);
+    let state = KnotState::new(pool).await;
 
     let app = Router::new()
         .route("/reload_partials", get(reload_partials))

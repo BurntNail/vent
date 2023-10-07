@@ -26,18 +26,21 @@ pub struct SmolFormattedDbEvent {
     pub date: String,
 }
 
-impl From<SmolDbEvent> for SmolFormattedDbEvent {
+impl<'a> From<(SmolDbEvent, &'a str)> for SmolFormattedDbEvent {
     fn from(
-        SmolDbEvent {
-            id,
-            event_name,
-            date,
-        }: SmolDbEvent,
+        (
+            SmolDbEvent {
+                id,
+                event_name,
+                date,
+            },
+            fmt,
+        ): (SmolDbEvent, &'a str),
     ) -> Self {
         Self {
             id,
             event_name,
-            date: date.to_env_string(),
+            date: date.to_env_string(fmt),
         }
     }
 }
@@ -94,7 +97,7 @@ ORDER BY e.date DESC
     .fetch_all(&mut state.get_connection().await?)
     .await?
     .into_iter()
-    .map(SmolFormattedDbEvent::from)
+    .map(|event| SmolFormattedDbEvent::from((event, state.settings.date_time_format.as_str())))
     .collect();
 
     trace!("Compiling");
@@ -102,6 +105,7 @@ ORDER BY e.date DESC
     compile(
         "www/show_all.liquid",
         liquid::object!({ "people": new_people, "events": events, "auth": get_auth_object(auth) }),
+        &state.settings.instance_name,
     )
     .await
 }
