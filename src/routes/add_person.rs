@@ -16,10 +16,14 @@ use serde::Deserialize;
 ///`GET` function to display the add person form
 #[instrument(level = "debug", skip(auth))]
 #[axum::debug_handler]
-pub async fn get_add_person(auth: Auth) -> Result<impl IntoResponse, KnotError> {
+pub async fn get_add_person(
+    auth: Auth,
+    State(state): State<KnotState>,
+) -> Result<impl IntoResponse, KnotError> {
     compile(
         "www/add_person.liquid",
         liquid::object!({"auth": get_auth_object(auth)}),
+        &state.settings.brand.instance_name,
     )
     .await
 }

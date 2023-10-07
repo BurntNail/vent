@@ -17,13 +17,17 @@ use bcrypt::{hash, DEFAULT_COST};
 use serde::Deserialize;
 
 //tried to use an Option<Path<_>>, but didn't work
-pub async fn get_blank_add_password(auth: Auth) -> Result<impl IntoResponse, KnotError> {
+pub async fn get_blank_add_password(
+    auth: Auth,
+    State(state): State<KnotState>,
+) -> Result<impl IntoResponse, KnotError> {
     compile(
         "www/add_password.liquid",
         liquid::object!({
             "is_authing_user": false,
             "auth": get_auth_object(auth),
         }),
+        &state.settings.brand.instance_name,
     )
     .await
 }
@@ -75,6 +79,7 @@ WHERE id = $1"#,
             "auth": get_auth_object(auth),
             "link_id": link_thingie
         }),
+        &state.settings.brand.instance_name,
     )
     .await?
     .into_response())

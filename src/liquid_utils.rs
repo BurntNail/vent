@@ -1,13 +1,9 @@
-use crate::{error::KnotError, liquid_utils::partials::PARTIALS, PROJECT_NAME};
+use crate::{error::KnotError, liquid_utils::partials::PARTIALS};
 use axum::response::Html;
 use chrono::NaiveDateTime;
 use liquid::{model::Value, Object, ParserBuilder};
 use once_cell::sync::Lazy;
-use std::{
-    env::{self, var},
-    fmt::Debug,
-    path::Path,
-};
+use std::{env::var, fmt::Debug, path::Path};
 use tokio::fs::read_to_string;
 use tracing::Instrument;
 
@@ -27,6 +23,7 @@ pub static DOMAIN: Lazy<(bool, String)> = Lazy::new(|| {
 pub async fn compile(
     path: impl AsRef<Path> + Debug,
     mut globals: Object,
+    project_name: &str,
 ) -> Result<Html<String>, KnotError> {
     let (liquid, partial_compiler) = async move {
         debug!("Reading in file + partials");
@@ -45,7 +42,7 @@ pub async fn compile(
     globals.insert(
         "siteinfo".into(),
         Value::Object(liquid::object!({
-            "instance_name": PROJECT_NAME.as_str(),
+            "instance_name": project_name,
             "domain_exists": DOMAIN.0,
             "domain": DOMAIN.1.as_str()
         })),
@@ -66,14 +63,10 @@ pub async fn compile(
 }
 
 pub trait EnvFormatter {
-    fn to_env_string(&self) -> String;
+    fn to_env_string(&self, format: &str) -> String;
 }
 impl EnvFormatter for NaiveDateTime {
-    fn to_env_string(&self) -> String {
-        self.format(&env::var("DATE_TIME_FORMAT").unwrap_or_else(|e| {
-            warn!(%e, "Missing DATE_TIME_FORMAT");
-            "%c".into()
-        }))
-        .to_string()
+    fn to_env_string(&self, format: &str) -> String {
+        self.format(format).to_string()
     }
 }

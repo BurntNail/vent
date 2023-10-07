@@ -308,6 +308,7 @@ WHERE event_id = $1
         "n_imgs": photos.len(),
         "imgs": photos,
         "auth": get_auth_object(auth), "already_in": already_in }),
+        &state.settings.brand.instance_name,
     )
     .await
 }

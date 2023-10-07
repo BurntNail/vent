@@ -25,10 +25,14 @@ pub struct LoginDetails {
     pub cf_turnstile_response: String,
 }
 
-pub async fn get_login(auth: Auth) -> Result<impl IntoResponse, KnotError> {
+pub async fn get_login(
+    auth: Auth,
+    State(state): State<KnotState>,
+) -> Result<impl IntoResponse, KnotError> {
     compile(
         "www/login.liquid",
         liquid::object!({ "auth": get_auth_object(auth) }),
+        &state.settings.brand.instance_name,
     )
     .await
 }
@@ -64,10 +68,12 @@ impl FailureReason {
 pub async fn get_login_failure(
     auth: Auth,
     Path(was_password_related): Path<FailureReason>,
+    State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
     let html = compile(
         "www/failed_auth.liquid",
         liquid::object!({ "auth": get_auth_object(auth), "was_password_related": was_password_related }),
+        &state.settings.brand.instance_name
     )
     .await?;
 

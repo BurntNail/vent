@@ -1,11 +1,9 @@
-use crate::PROJECT_NAME;
 use async_zip::error::ZipError;
 use axum::{
     http::StatusCode,
     response::{Html, IntoResponse},
 };
-use once_cell::sync::Lazy;
-use std::{env::var, fmt::Debug, path::PathBuf};
+use std::{fmt::Debug, path::PathBuf};
 
 #[derive(thiserror::Error, Debug)]
 pub enum KnotError {
@@ -69,21 +67,13 @@ pub enum KnotError {
 }
 
 #[allow(clippy::needless_pass_by_value)]
-pub fn get_error_page(error_code: StatusCode, content: KnotError) -> (StatusCode, Html<String>) {
-    static TS_URL: Lazy<String> =
-        Lazy::new(|| var("TECH_SUPPORT").unwrap_or_else(|_e| "https://google.com".into()));
-
+pub fn get_error_page(
+    error_code: StatusCode,
+    content: KnotError,
+) -> (StatusCode, Html<&'static str>) {
     error!(?content, "Dealing with Error page: {content:#?}");
 
-    (
-        error_code,
-        Html(format!(
-            include_str!("../www/server_error.html"),
-            instance_name = PROJECT_NAME.as_str(),
-            tech_support = TS_URL.as_str(),
-            error = content
-        )),
-    )
+    (error_code, Html(include_str!("../www/server_error.html")))
 }
 
 impl IntoResponse for KnotError {

@@ -17,10 +17,14 @@ use std::collections::HashMap;
 use tokio::fs::File;
 use tracing::Instrument;
 
-pub async fn get_import_export_csv(auth: Auth) -> Result<impl IntoResponse, KnotError> {
+pub async fn get_import_export_csv(
+    auth: Auth,
+    State(state): State<KnotState>,
+) -> Result<impl IntoResponse, KnotError> {
     compile(
         "www/csv.liquid",
         liquid::object!({ "auth": get_auth_object(auth) }),
+        &state.settings.brand.instance_name,
     )
     .await
 }

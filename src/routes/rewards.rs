@@ -125,7 +125,8 @@ pub async fn get_rewards(
 
     compile(
         "www/rewards.liquid",
-        liquid::object!({ "tba": to_be_awarded, "aa": already_awarded, "auth": get_auth_object(auth) }),
+        liquid::object!({ "tba": to_be_awarded, "aa": already_awarded, "auth": get_auth_object(auth) })
+        , &state.settings.brand.instance_name
     )
     .await
 }
