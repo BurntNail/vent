@@ -9,7 +9,7 @@ use axum::{
     extract::{Multipart, State},
     response::{IntoResponse, Redirect},
 };
-use chrono::{NaiveDateTime, NaiveDate, NaiveTime};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use csv_async::{AsyncReaderBuilder, AsyncWriterBuilder};
 use futures::stream::StreamExt;
 use serde::Deserialize;
@@ -33,7 +33,7 @@ pub async fn post_import_people_from_csv(
     debug!("Getting CSV file");
     let Some(field) = multipart.next_field().await? else {
         warn!("Missing import CSV file");
-        return Ok(Redirect::to("/"))
+        return Ok(Redirect::to("/"));
     };
 
     debug!(name=?field.name(), "Getting text + creating reader");
@@ -149,7 +149,7 @@ pub async fn post_import_events_from_csv(
     debug!("Getting CSV");
     let Some(field) = multipart.next_field().await? else {
         warn!("Missing CSV for importing events");
-        return Ok(Redirect::to("/"))
+        return Ok(Redirect::to("/"));
     };
 
     debug!(name=?field.name(), "Getting text");
@@ -160,27 +160,29 @@ pub async fn post_import_events_from_csv(
         .into_records();
 
     while let Some(record) = csv_reader.next().await.transpose()? {
-            let location = record.get(4).ok_or(KnotError::MalformedCSV)?;
-            let teacher = record.get(3).ok_or(KnotError::MalformedCSV)?;
-            let date = NaiveDate::parse_from_str(record.get(0).ok_or(KnotError::MalformedCSV)?, "%A %d %B %Y")?;
-            let name = record.get(1).ok_or(KnotError::MalformedCSV)?;
-            let time = NaiveTime::parse_from_str(record.get(2).ok_or(KnotError::MalformedCSV)?, "%R")?;
-            let date_time = NaiveDateTime::new(date, time);
+        let location = record.get(4).ok_or(KnotError::MalformedCSV)?;
+        let teacher = record.get(3).ok_or(KnotError::MalformedCSV)?;
+        let date = NaiveDate::parse_from_str(
+            record.get(0).ok_or(KnotError::MalformedCSV)?,
+            "%A %d %B %Y",
+        )?;
+        let name = record.get(1).ok_or(KnotError::MalformedCSV)?;
+        let time = NaiveTime::parse_from_str(record.get(2).ok_or(KnotError::MalformedCSV)?, "%R")?;
+        let date_time = NaiveDateTime::new(date, time);
 
+        debug!(?name, ?date, ?location, "Creating new event");
 
-            debug!(?name, ?date, ?location, "Creating new event");
-
-            sqlx::query!(
-                r#"
+        sqlx::query!(
+            r#"
 INSERT INTO events (event_name, date, location, teacher) 
 VALUES ($1, $2, $3, $4)"#,
-                name,
-                date_time,
-                location,
-                teacher
-            )
-            .execute(&mut state.get_connection().await?)
-            .await?;
+            name,
+            date_time,
+            location,
+            teacher
+        )
+        .execute(&mut state.get_connection().await?)
+        .await?;
     }
 
     Ok(Redirect::to("/"))
@@ -234,8 +236,15 @@ pub async fn export_people_to_csv(
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
     let mut asw = AsyncWriterBuilder::new().create_writer(File::create("public/people.csv").await?);
-    asw.write_record(&["first_name", "surname", "form", "is_prefect", "username", "was_first_entry"])
-        .await?;
+    asw.write_record(&[
+        "first_name",
+        "surname",
+        "form",
+        "is_prefect",
+        "username",
+        "was_first_entry",
+    ])
+    .await?;
 
     #[derive(Deserialize)]
     struct SmolPerson {

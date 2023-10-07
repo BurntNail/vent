@@ -9,10 +9,10 @@ pub mod images;
 pub mod import_export;
 pub mod index;
 pub mod public;
+pub mod rewards;
 pub mod show_all;
 pub mod spreadsheets;
 pub mod update_event_and_person;
-pub mod rewards;
 
 use crate::auth::PermissionsRole;
 use chrono::NaiveDateTime;

@@ -27,7 +27,7 @@ impl AuthUser<i32, PermissionsRole> for DbPerson {
         self.id
     }
 
-    fn get_password_hash(&self) -> axum_login::secrecy::SecretVec<u8> {
+    fn get_password_hash(&self) -> SecretVec<u8> {
         let Some(hp) = self.hashed_password.clone() else {
             error!(?self, "Missing Password");
             panic!("Missing Password!");
@@ -46,7 +46,7 @@ pub type Store = PostgresStore<DbPerson, PermissionsRole>;
 
 pub async fn get_secret(pool: &Pool<Postgres>) -> Result<Vec<u8>, KnotError> {
     if let Some(x) = sqlx::query!("SELECT sekrit FROM secrets")
-        .fetch_optional(&mut pool.acquire().await?)
+        .fetch_optional(&mut *pool.acquire().await?)
         .await?
     {
         Ok(x.sekrit)
@@ -60,7 +60,7 @@ pub async fn get_secret(pool: &Pool<Postgres>) -> Result<Vec<u8>, KnotError> {
         };
 
         sqlx::query!("INSERT INTO secrets (sekrit) VALUES ($1)", secret)
-            .execute(&mut pool.acquire().await?)
+            .execute(&mut *pool.acquire().await?)
             .await?;
 
         Ok(secret)
@@ -84,7 +84,7 @@ pub fn get_auth_object(auth: Auth) -> liquid::Object {
             "see_photos": user.permissions >= PermissionsRole::Participant,
             "add_photos": user.permissions >= PermissionsRole::Participant,
             "export_csv": user.permissions >= PermissionsRole::Participant,
-            
+
         });
 
         liquid::object!({ "role": user.permissions, "permissions": perms, "user": user })

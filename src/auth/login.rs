@@ -101,7 +101,7 @@ WHERE LOWER(username) = LOWER($1)
     .await?;
 
     let Some(db_user) = db_user else {
-        return Ok(Redirect::to("/login_failure/user_not_found"))
+        return Ok(Redirect::to("/login_failure/user_not_found"));
     };
 
     Ok(match &db_user.hashed_password {

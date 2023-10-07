@@ -2,7 +2,7 @@ use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
     error::KnotError,
     liquid_utils::{compile, EnvFormatter},
-    routes::DbPerson,
+    routes::{add_person::NoIDPerson, rewards::Reward, DbPerson},
     state::KnotState,
 };
 use axum::{
@@ -11,7 +11,6 @@ use axum::{
     Form,
 };
 use serde::{Deserialize, Serialize};
-use crate::routes::{rewards::Reward, add_person::NoIDPerson};
 
 #[instrument(level = "debug", skip(auth, state))]
 pub async fn get_edit_person(
@@ -51,7 +50,7 @@ FROM people WHERE id = $1
         username: person.username,
         form: person.form,
         password_is_set: person.hashed_password.is_some(),
-        was_first_entry: person.was_first_entry
+        was_first_entry: person.was_first_entry,
     };
 
     debug!("Getting events supervised");
@@ -105,7 +104,6 @@ ON pe.event_id = e.id AND pe.participant_id = $1
     .collect::<Vec<_>>();
 
     let rewards = sqlx::query_as!(Reward, "select name, first_entry_pts, second_entry_pts, id FROM rewards_received rr inner join rewards r on r.id = rr.reward_id and rr.person_id = $1", person.id).fetch_all(&mut state.get_connection().await?).await?;
-
 
     debug!("Compiling");
 

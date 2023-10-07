@@ -99,30 +99,30 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
         .len();
 
         let participants = sqlx::query_as!(
-                PersonForm,
-                r#"
+            PersonForm,
+            r#"
 SELECT p.first_name, p.surname, p.form
 FROM people p
 INNER JOIN events e ON e.id = $1
 INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $1
     "#,
-                event_id
-            )
-            .fetch_all(&mut state.get_connection().await?)
-            .await?
-            .len();
+            event_id
+        )
+        .fetch_all(&mut state.get_connection().await?)
+        .await?
+        .len();
 
         let photos = sqlx::query!("SELECT FROM photos WHERE event_id = $1", event_id)
             .fetch_all(&mut state.get_connection().await?)
             .await?
             .len();
 
-            events_to_happen.push(WholeEvent {
-                event,
-                participants,
-                prefects,
-                no_photos: photos,
-            });
+        events_to_happen.push(WholeEvent {
+            event,
+            participants,
+            prefects,
+            no_photos: photos,
+        });
     }
 
     for event in sqlx::query_as!(
@@ -174,13 +174,13 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
             .await?
             .len();
 
-            happened_events.push(WholeEvent {
-                event,
-                participants,
-                prefects,
-                no_photos: photos,
-            });
+        happened_events.push(WholeEvent {
+            event,
+            participants,
+            prefects,
+            no_photos: photos,
+        });
     }
-    
+
     compile("www/index.liquid", liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events, "auth": get_auth_object(auth) })).await
 }
