@@ -24,7 +24,7 @@ image = "0.24.7"
 rand = "0.8.5"
 async_zip = { version = "0.0.15", features = ["tokio", "tokio-fs", "deflate"] }
 csv-async = { version = "1.2.6", features = ["tokio"] }
-tower-http = { version = "0.4.3", features = ["trace"] }
+tower-http = { version = "0.4.4", features = ["trace"] }
 rust_xlsxwriter = {version = "0.49.0", features = ["chrono"]}
 axum-login = { version = "0.6.0", features = ["sqlx", "postgres"] }
 bcrypt = "0.15.0"
