@@ -19,7 +19,7 @@ thiserror = "1.0.44"
 tokio = { version = "1.30.0", features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
-walkdir = "2.3.3"
+walkdir = "2.4.0"
 image = "0.24.7"
 rand = "0.8.5"
 async_zip = { version = "0.0.15", features = ["tokio", "tokio-fs", "deflate"] }
