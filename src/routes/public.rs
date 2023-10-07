@@ -59,3 +59,5 @@ get_x!(get_sw, "public/sw.js");
 get_x!(get_offline, "public/offline.html");
 get_x!(get_512, "public/512x512.png");
 get_x!(get_256, "public/256x256.png");
+get_x!(get_people_csv_example, "public/people_example.csv");
+get_x!(get_events_csv_example, "public/events_example.csv");

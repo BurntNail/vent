@@ -1,80 +1,85 @@
 {% include "partials/header.liquid" %}
 
 {% if auth.permissions["import_csv"] %}
-  <div class="row">
-    <div class="col">
-      <div class="card">
-        <div class="card-body">
- 		<div class="alert alert-info">
-                This expects a CSV in the same format as the following example: <br>
-                <i>Friday 08 September 2023,L6th Mixed Tennis,08:35,BDJ,Tennis Courts</i> <br>
-                
-        </div>
-        
-          <form
-            method="post"
-            enctype="multipart/form-data"
-            action="/import_events_from_csv">
-            <div class="mb-3">
-              <label for="events" class="form-label">Add Events CSV:</label>
-              <input
-                type="file"
-                name="events"
-                id="events"
-                class="form-control"
-                accept="text/csv"
-                required
-                >
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        This expects a CSV in the same format as the following example: <br>
+                        <i>Friday 08 September 2023,L6th Mixed Tennis,08:35,BDJ,Tennis Courts</i> <br>
+                        <br>
+                        <a href="/events_example.csv" target="_blank">See example</a>
 
-            </div>
-            <button
-              type="submit"
-              class="btn btn-primary"
-              >Import Events CSV.</button>
-          </form>
-        </div>
-      </div>
-    </div>
-    <div class="col">
-      <div class="card">
-        <div class="card-body">
-        <div class="alert alert-info">
-        	This expects a CSV with the following columns:
-        	<br><i>
-        		first_name, surname, form, is_prefect</i> <b> (either <i>true</i> or <i>false</i>) </b> <i>,username 
-        	</i>
-        </div>
-        
-          <form
-            method="post"
-            enctype="multipart/form-data"
-            action="/import_people_from_csv">
-            <div class="mb-3">
-              <label for="people" class="form-label">Add People CSV:</label>
-              <input
-                type="file"
-                name="people"
-                id="people"
-                class="form-control"
-                accept="text/csv"
-                required>
+                    </div>
 
+                    <form
+                            method="post"
+                            enctype="multipart/form-data"
+                            action="/import_events_from_csv">
+                        <div class="mb-3">
+                            <label for="events" class="form-label">Add Events CSV:</label>
+                            <input
+                                    type="file"
+                                    name="events"
+                                    id="events"
+                                    class="form-control"
+                                    accept="text/csv"
+                                    required
+                            >
+
+                        </div>
+                        <button
+                                type="submit"
+                                class="btn btn-primary"
+                        >Import Events CSV.
+                        </button>
+                    </form>
+                </div>
             </div>
-            <button type="submit" class="btn btn-primary">Import People CSV.</button>
-          </form>
         </div>
-      </div>
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        This expects a CSV with the following columns:
+                        <br><i>
+                            first_name, surname, form, is_prefect</i> <b> (either <i>true</i> or <i>false</i>) </b> <i>,username
+                        </i> <br>
+                        <br>
+                        <a href="/people_example.csv" target="_blank">See example</a>
+                    </div>
+
+                    <form
+                            method="post"
+                            enctype="multipart/form-data"
+                            action="/import_people_from_csv">
+                        <div class="mb-3">
+                            <label for="people" class="form-label">Add People CSV:</label>
+                            <input
+                                    type="file"
+                                    name="people"
+                                    id="people"
+                                    class="form-control"
+                                    accept="text/csv"
+                                    required>
+
+                        </div>
+                        <button type="submit" class="btn btn-primary">Import People CSV.</button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 {% endif %}
 <br>
 {% if auth.permissions["export_csv"] %}
-  <div class="row text-center">
-    <div class="col">
-      <a href="/csv_events" class="btn btn-primary">Get Events as CSV.</a>
+    <div class="row text-center">
+        <div class="col">
+            <a href="/csv_events" class="btn btn-primary">Get Events as CSV.</a>
+        </div>
+        <div class="col">
+            <a href="/csv_people" class="btn btn-primary">Get People as CSV.</a>
+        </div>
     </div>
-    <div class="col">
-      <a href="/csv_people" class="btn btn-primary">Get People as CSV.</a>
-    </div>
-  </div>
 {% endif %}

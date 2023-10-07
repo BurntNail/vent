@@ -29,9 +29,13 @@ use crate::{
             export_events_to_csv, export_people_to_csv, get_import_export_csv,
             post_import_events_from_csv, post_import_people_from_csv,
         },
-        public::{get_256, get_512, get_log, get_manifest, get_offline, get_sw},
+        public::{
+            get_256, get_512, get_events_csv_example, get_log, get_manifest, get_offline,
+            get_people_csv_example, get_sw,
+        },
+        rewards::{get_rewards, post_add_reward},
         spreadsheets::get_spreadsheet,
-        update_event_and_person::{delete_image, post_unverify_person, post_verify_person}, rewards::{get_rewards, post_add_reward},
+        update_event_and_person::{delete_image, post_unverify_person, post_verify_person},
     },
     state::KnotState,
 };
@@ -195,12 +199,14 @@ FROM people WHERE id = $1
             "/update_event/:id",
             get(get_update_event).post(post_update_event),
         )
-        .route("/favicon.ico", get(get_favicon).head(get_favicon))
-        .route("/manifest.json", get(get_manifest).head(get_manifest))
-        .route("/sw.js", get(get_sw).head(get_sw))
-        .route("/offline.html", get(get_offline).head(get_offline))
-        .route("/512x512.png", get(get_512).head(get_512))
-        .route("/256x256.png", get(get_256).head(get_256))
+        .route("/favicon.ico", get(get_favicon))
+        .route("/manifest.json", get(get_manifest))
+        .route("/sw.js", get(get_sw))
+        .route("/offline.html", get(get_offline))
+        .route("/512x512.png", get(get_512))
+        .route("/256x256.png", get(get_256))
+        .route("/people_example.csv", get(get_people_csv_example))
+        .route("/events_example.csv", get(get_events_csv_example))
         .route("/show_all", get(get_remove_stuff))
         .route("/ical", get(get_calendar_feed))
         .route("/spreadsheet", get(get_spreadsheet))
