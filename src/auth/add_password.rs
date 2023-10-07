@@ -47,8 +47,9 @@ pub async fn get_add_password(
     {
         return Ok(Redirect::to("/login_failure/no_numbers").into_response());
     }
+    let mut conn = state.get_connection().await?;
     if sqlx::query!("SELECT hashed_password FROM people WHERE id = $1", id)
-        .fetch_one(&mut state.get_connection().await?)
+        .fetch_one(&mut conn)
         .await?
         .hashed_password
         .is_some()

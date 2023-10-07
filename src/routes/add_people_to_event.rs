@@ -65,7 +65,7 @@ pub async fn post_add_prefect_to_event(
 }
 
 ///`POST` method that adds a participant
-#[instrument(level = "debug", skip(state))]
+#[instrument(level = "debug", skip(state, auth))]
 pub async fn post_add_participant_to_event(
     auth: Auth,
     State(state): State<KnotState>,

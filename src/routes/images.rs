@@ -18,7 +18,7 @@ use walkdir::WalkDir;
 
 use super::public::serve_static_file;
 
-#[instrument(level = "debug", skip(state))]
+#[instrument(level = "debug", skip(state, auth))]
 pub async fn post_add_photo(
     auth: Auth,
     Path(event_id): Path<i32>,
