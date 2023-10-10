@@ -474,3 +474,21 @@ pub async fn post_unverify_person(
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
+
+#[derive(Deserialize)]
+pub struct VerifyEveryone {
+    event_id: i32,
+}
+
+pub async fn post_verify_everyone(
+    State(state): State<KnotState>,
+    Form(VerifyEveryone { event_id }): Form<VerifyEveryone>,
+) -> Result<impl IntoResponse, KnotError> {
+    sqlx::query!(
+        "UPDATE participant_events SET is_verified = true WHERE event_id = $1",
+        event_id
+    )
+    .execute(&mut state.get_connection().await?)
+    .await?;
+    Ok(Redirect::to(&format!("/update_event/{event_id}")))
+}

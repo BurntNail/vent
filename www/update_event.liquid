@@ -282,6 +282,14 @@
 
         <h3>Participants</h3>
         {% if existing_participants.size > 0 %}
+
+          {% if auth.permissions["verify_events"] %}
+            <form action="/verify_all" method="POST">
+              <input type="hidden" name="event_id" value="{{event.id}}">
+              <button class="btn btn-danger" type="submit">Verify All!</button>
+            </form>
+          {% endif %}
+
           <table class="table">
             <thread>
               <tr>
