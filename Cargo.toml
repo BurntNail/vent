@@ -14,7 +14,7 @@ icalendar = { version = "0.15", features = ["chrono-tz"] }
 dotenvy = "0.15"
 liquid = "0.26"
 serde = "1.0"
-sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "postgres", "macros", "chrono", "json", "offline"] } # Need to stay on 0.6.3 because that breaks axum-login for some reason?
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "macros", "chrono", "json", "offline"] } # Need to stay on 0.6.3 because that breaks axum-login for some reason?
 thiserror = "1.0"
 tokio = { version = "1.30", features = ["full"] }
 tracing = "0.1"
