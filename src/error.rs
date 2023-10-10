@@ -67,21 +67,29 @@ pub enum KnotError {
 }
 
 #[allow(clippy::needless_pass_by_value)]
-pub fn get_error_page(
-    error_code: StatusCode,
-    content: KnotError,
-) -> (StatusCode, Html<String>) {
-    error!(?content, ?error_code, "Dealing with Error page: {content:#?}");
+pub fn get_error_page(error_code: StatusCode, content: KnotError) -> (StatusCode, Html<String>) {
+    error!(
+        ?content,
+        ?error_code,
+        "Dealing with Error page: {content:#?}"
+    );
 
-    (error_code, Html(format!(include_str!("../www/server_error.html"), error=content, code=error_code)))
+    (
+        error_code,
+        Html(format!(
+            include_str!("../www/server_error.html"),
+            error = content,
+            code = error_code
+        )),
+    )
 }
 
 impl IntoResponse for KnotError {
     fn into_response(self) -> axum::response::Response {
-   		let code = match &self {
-   			_ => StatusCode::INTERNAL_SERVER_ERROR
-   		};
-    
+        let code = match &self {
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+
         get_error_page(code, self).into_response()
     }
 }
