@@ -1,9 +1,4 @@
-use crate::{
-    auth::{get_auth_object, Auth},
-    error::KnotError,
-    liquid_utils::compile,
-    state::KnotState,
-};
+use crate::{auth::Auth, error::KnotError, liquid_utils::compile, state::KnotState};
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},

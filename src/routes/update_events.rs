@@ -1,6 +1,6 @@
 use super::FormEvent;
 use crate::{
-    auth::{get_auth_object, Auth, PermissionsRole},
+    auth::{Auth, PermissionsRole},
     error::KnotError,
     liquid_utils::compile,
     routes::{DbEvent, DbPerson},
