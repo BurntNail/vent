@@ -1,6 +1,6 @@
 use super::FormEvent;
 use crate::{
-    auth::{get_auth_object, Auth, PermissionsRole},
+    auth::{Auth, PermissionsRole},
     error::KnotError,
     liquid_utils::compile,
     routes::{DbEvent, DbPerson},
@@ -472,5 +472,23 @@ pub async fn post_unverify_person(
 ) -> Result<impl IntoResponse, KnotError> {
     sqlx::query!("UPDATE participant_events SET is_verified = false WHERE event_id = $1 AND participant_id = $2", event_id, person_id).execute(&mut state.get_connection().await?).await?;
 
+    Ok(Redirect::to(&format!("/update_event/{event_id}")))
+}
+
+#[derive(Deserialize)]
+pub struct VerifyEveryone {
+    event_id: i32,
+}
+
+pub async fn post_verify_everyone(
+    State(state): State<KnotState>,
+    Form(VerifyEveryone { event_id }): Form<VerifyEveryone>,
+) -> Result<impl IntoResponse, KnotError> {
+    sqlx::query!(
+        "UPDATE participant_events SET is_verified = true WHERE event_id = $1",
+        event_id
+    )
+    .execute(&mut state.get_connection().await?)
+    .await?;
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }

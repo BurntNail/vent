@@ -3,7 +3,7 @@ pub mod add_people_to_event;
 pub mod add_person;
 pub mod calendar;
 pub mod edit_person;
-pub mod edit_user;
+pub mod edit_self;
 pub mod eoy_migration;
 pub mod images;
 pub mod import_export;
@@ -12,7 +12,7 @@ pub mod public;
 pub mod rewards;
 pub mod show_all;
 pub mod spreadsheets;
-pub mod update_event_and_person;
+pub mod update_events;
 
 use crate::auth::PermissionsRole;
 use chrono::NaiveDateTime;

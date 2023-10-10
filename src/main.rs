@@ -23,7 +23,7 @@ use crate::{
     liquid_utils::partials::reload_partials,
     routes::{
         edit_person::{get_edit_person, post_edit_person, post_reset_password},
-        edit_user::{get_edit_user, post_edit_user},
+        edit_self::{get_edit_user, post_edit_user},
         eoy_migration::{get_eoy_migration, post_eoy_migration},
         images::{get_all_images, post_add_photo, serve_image},
         import_export::{
@@ -36,7 +36,7 @@ use crate::{
         },
         rewards::{get_rewards, post_add_reward},
         spreadsheets::get_spreadsheet,
-        update_event_and_person::{delete_image, post_unverify_person, post_verify_person},
+        update_events::{delete_image, post_unverify_person, post_verify_person},
     },
     state::KnotState,
 };
@@ -55,7 +55,7 @@ use routes::{
     index::get_index,
     public::get_favicon,
     show_all::{get_remove_stuff, post_remove_event, post_remove_person},
-    update_event_and_person::{
+    update_events::{
         get_remove_participant_from_event, get_remove_prefect_from_event, get_update_event,
         post_update_event,
     },
@@ -166,6 +166,7 @@ FROM people WHERE id = $1
         .route("/remove_img/:id", get(delete_image))
         .route("/verify_participant", post(post_verify_person))
         .route("/unverify_participant", post(post_unverify_person))
+        .route("/verify_all", post(post_verify_everyone))
         .route_layer(RequireAuth::login_with_role(PermissionsRole::Prefect..)) //prefect ^
         .route("/add_image/:event_id", post(post_add_photo))
         .route("/add_participant", post(post_add_participant_to_event))
