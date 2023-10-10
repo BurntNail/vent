@@ -16,7 +16,7 @@ liquid = "0.26"
 serde = "1.0"
 sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "postgres", "macros", "chrono", "json", "offline"] } # Need to stay on 0.6.3 because that breaks axum-login for some reason?
 thiserror = "1.0"
-tokio = { version = "1.30", features = ["full"] }
+tokio = { version = "1.33", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 walkdir = "2.4"
