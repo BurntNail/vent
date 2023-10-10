@@ -70,14 +70,18 @@ pub enum KnotError {
 pub fn get_error_page(
     error_code: StatusCode,
     content: KnotError,
-) -> (StatusCode, Html<&'static str>) {
-    error!(?content, "Dealing with Error page: {content:#?}");
+) -> (StatusCode, Html<String>) {
+    error!(?content, ?error_code, "Dealing with Error page: {content:#?}");
 
-    (error_code, Html(include_str!("../www/server_error.html")))
+    (error_code, Html(format!(include_str!("../www/server_error.html"), error=content, code=error_code)))
 }
 
 impl IntoResponse for KnotError {
     fn into_response(self) -> axum::response::Response {
-        get_error_page(StatusCode::INTERNAL_SERVER_ERROR, self).into_response()
+   		let code = match &self {
+   			_ => StatusCode::INTERNAL_SERVER_ERROR
+   		};
+    
+        get_error_page(code, self).into_response()
     }
 }
