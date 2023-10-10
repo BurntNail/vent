@@ -22,6 +22,10 @@ use crate::{
     },
     liquid_utils::partials::reload_partials,
     routes::{
+        add_event::{get_add_event_form, post_add_event_form},
+        add_people_to_event::{post_add_participant_to_event, post_add_prefect_to_event},
+        add_person::{get_add_person, post_add_person},
+        calendar::get_calendar_feed,
         edit_person::{get_edit_person, post_edit_person, post_reset_password},
         edit_self::{get_edit_user, post_edit_user},
         eoy_migration::{get_eoy_migration, post_eoy_migration},
@@ -30,14 +34,18 @@ use crate::{
             export_events_to_csv, export_people_to_csv, get_import_export_csv,
             post_import_events_from_csv, post_import_people_from_csv,
         },
+        index::get_index,
         public::{
-            get_256, get_512, get_events_csv_example, get_log, get_manifest, get_offline,
-            get_people_csv_example, get_sw,
+            get_256, get_512, get_events_csv_example, get_favicon, get_log, get_manifest,
+            get_offline, get_people_csv_example, get_sw,
         },
         rewards::{get_rewards, post_add_reward},
+        show_all::{get_remove_stuff, post_remove_event, post_remove_person},
         spreadsheets::get_spreadsheet,
         update_events::{
-            delete_image, post_unverify_person, post_verify_everyone, post_verify_person,
+            delete_image, get_remove_participant_from_event, get_remove_prefect_from_event,
+            get_update_event, post_unverify_person, post_update_event, post_verify_everyone,
+            post_verify_person,
         },
     },
     state::KnotState,
@@ -49,19 +57,6 @@ use axum::{
 };
 use axum_login::{axum_sessions::SessionLayer, AuthLayer};
 use liquid_utils::partials::PARTIALS;
-use routes::{
-    add_event::{get_add_event_form, post_add_event_form},
-    add_people_to_event::{post_add_participant_to_event, post_add_prefect_to_event},
-    add_person::{get_add_person, post_add_person},
-    calendar::get_calendar_feed,
-    index::get_index,
-    public::get_favicon,
-    show_all::{get_remove_stuff, post_remove_event, post_remove_person},
-    update_events::{
-        get_remove_participant_from_event, get_remove_prefect_from_event, get_update_event,
-        post_update_event,
-    },
-};
 use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr, time::Duration};
 use tokio::signal;
