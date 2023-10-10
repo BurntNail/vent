@@ -36,11 +36,12 @@ You need to have a `.env` file with the following variables set:
 
 ##### Optional
 
-| Name                | Use                                                          | Example Contents                                                                                                                                                                           | Default    |
-|---------------------|--------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
-| `RUST_LOG`          | Logging                                                      | `ERROR`, `WARN`, `INFO`, `DEBUG`, or `TRACE`. For more examples, see [the docs](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax). | No logging |
-| `HONEYCOMB_API_KEY` | This is the [Honeycomb](https://honeycomb.io) destination    | `abcdefghijklmopqrstuvwxyz`                                                                                                                                                                | N/A        |
-| `SENTRY_DSN`        | This is the [Sentry](https://sentry.io/welcome/) destination | `https://abc.ingest.sentry.io/123`                                                                                                                                                         | N/A        |
+| Name                | Use                                                          | Example Contents                                                                                                                                                                           | Default               |
+|---------------------|--------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|
+| `RUST_LOG`          | Logging                                                      | `ERROR`, `WARN`, `INFO`, `DEBUG`, or `TRACE`. For more examples, see [the docs](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax). | No logging            |
+| `CONFIG_LOCATION`   | The file path to your condiguration file for below.          | `./cfg.ron`                                                                                                                                                                                | `./config/local.toml` |
+| `HONEYCOMB_API_KEY` | This is the [Honeycomb](https://honeycomb.io) destination    | `abcdefghijklmopqrstuvwxyz`                                                                                                                                                                | N/A                   |
+| `SENTRY_DSN`        | This is the [Sentry](https://sentry.io/welcome/) destination | `https://abc.ingest.sentry.io/123`                                                                                                                                                         | N/A                   |
 
 ### Configuration
 
