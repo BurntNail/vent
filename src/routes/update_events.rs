@@ -2,7 +2,7 @@ use super::FormEvent;
 use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
     error::KnotError,
-    liquid_utils::compile,
+    liquid_utils::compile_with_newtitle,
     routes::{DbEvent, DbPerson},
     state::KnotState,
 };
@@ -290,12 +290,12 @@ WHERE event_id = $1
         },
     );
 
-    compile(
+    compile_with_newtitle(
         "www/update_event.liquid",
         liquid::object!({"event": 
             liquid::object!({
                 "id": id,
-                "event_name": event_name,
+                "event_name": event_name.clone(),
                 "date": date.to_string(),
                 "location": location,
                 "teacher": teacher,
@@ -309,6 +309,7 @@ WHERE event_id = $1
         "imgs": photos,
         "auth": get_auth_object(auth), "already_in": already_in }),
         &state.settings.brand.instance_name,
+        Some(event_name),
     )
     .await
 }

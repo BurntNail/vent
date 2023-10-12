@@ -9,7 +9,7 @@ use serde::Deserialize;
 use crate::{
     auth::{get_auth_object, Auth},
     error::KnotError,
-    liquid_utils::compile,
+    liquid_utils::compile_with_newtitle,
     state::KnotState,
 };
 
@@ -30,13 +30,14 @@ pub async fn get_eoy_migration(
 
     debug!("Compiling");
 
-    compile(
+    compile_with_newtitle(
         "www/eoy_migration.liquid",
         liquid::object!({
             "auth": get_auth_object(auth),
             "forms": forms
         }),
         &state.settings.brand.instance_name,
+        Some("Migrating Forms".into()),
     )
     .await
 }

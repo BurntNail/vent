@@ -1,7 +1,7 @@
 use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
     error::KnotError,
-    liquid_utils::{compile, EnvFormatter},
+    liquid_utils::{compile_with_newtitle, EnvFormatter},
     routes::{add_person::NoIDPerson, rewards::Reward, DbPerson},
     state::KnotState,
 };
@@ -107,7 +107,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1
 
     debug!("Compiling");
 
-    compile("www/edit_person.liquid", liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "rewards": rewards,  "auth": get_auth_object(auth) }), &state.settings.brand.instance_name).await
+    compile_with_newtitle("www/edit_person.liquid", liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "rewards": rewards,  "auth": get_auth_object(auth) }), &state.settings.brand.instance_name, Some(format!("Edit {} {}", person.first_name, person.surname))).await
 }
 
 #[instrument(level = "debug", skip(state, first_name, surname))]
