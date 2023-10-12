@@ -20,11 +20,7 @@ pub static DOMAIN: Lazy<(bool, String)> = Lazy::new(|| {
 });
 
 #[instrument(level = "debug", skip(globals))]
-pub async fn compile(
-    path: impl AsRef<Path> + Debug,
-    mut globals: Object,
-    project_name: &str,
-) -> Result<Html<String>, KnotError> {
+pub async fn compile_with_newtitle (path: impl AsRef<Path> + Debug, mut globals: Object, project_name: &str, title_additional_info: Option<String>) -> Result<Html<String>, KnotError> {
     let (liquid, partial_compiler) = async move {
         debug!("Reading in file + partials");
         (
@@ -38,11 +34,17 @@ pub async fn compile(
 
     debug!("Inserting globals");
 
+    let title = match title_additional_info {
+    	None => project_name.to_string(),
+    	Some(x) => x.to_string()
+    };
+
     globals.insert("cft_sitekey".into(), Value::scalar(CFT_SITEKEY.as_str()));
     globals.insert(
         "siteinfo".into(),
         Value::Object(liquid::object!({
             "instance_name": project_name,
+            "html_title": title,
             "domain_exists": DOMAIN.0,
             "domain": DOMAIN.1.as_str()
         })),
@@ -60,6 +62,15 @@ pub async fn compile(
     .await?;
 
     Ok(html?).map(Html)
+}
+
+#[instrument(level = "debug", skip(globals))]
+pub async fn compile(
+    path: impl AsRef<Path> + Debug,
+    globals: Object,
+    project_name: &str,
+) -> Result<Html<String>, KnotError> {
+	compile_with_newtitle(path, globals, project_name, None).await
 }
 
 pub trait EnvFormatter {
