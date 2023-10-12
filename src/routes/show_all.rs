@@ -108,7 +108,7 @@ ORDER BY e.date DESC
         "www/show_all.liquid",
         liquid::object!({ "people": new_people, "events": events, "auth": get_auth_object(auth) }),
         &state.settings.brand.instance_name,
-        Some("All People/Events".into())
+        Some("All People/Events".into()),
     )
     .await
 }

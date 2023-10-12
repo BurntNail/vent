@@ -25,7 +25,7 @@ pub async fn get_import_export_csv(
         "www/csv.liquid",
         liquid::object!({ "auth": get_auth_object(auth) }),
         &state.settings.brand.instance_name,
-        Some("Import/Export".to_string())
+        Some("Import/Export".to_string()),
     )
     .await
 }

@@ -28,7 +28,7 @@ pub async fn get_add_event_form(
         "www/add_event.liquid",
         liquid::object!({"auth": get_auth_object(auth)}),
         &state.settings.brand.instance_name,
-        Some("New House Event".to_string())
+        Some("New House Event".to_string()),
     )
     .await
 }

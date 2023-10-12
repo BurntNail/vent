@@ -24,7 +24,7 @@ pub async fn get_add_person(
         "www/add_person.liquid",
         liquid::object!({"auth": get_auth_object(auth)}),
         &state.settings.brand.instance_name,
-        Some("New Person".into())
+        Some("New Person".into()),
     )
     .await
 }

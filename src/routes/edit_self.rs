@@ -20,7 +20,7 @@ pub async fn get_edit_user(
         "../../www/edit_self.liquid",
         liquid::object!({"auth": get_auth_object(auth)}),
         &state.settings.brand.instance_name,
-        Some("Edit Profile".into())
+        Some("Edit Profile".into()),
     )
     .await
 }

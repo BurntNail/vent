@@ -37,7 +37,7 @@ pub async fn get_eoy_migration(
             "forms": forms
         }),
         &state.settings.brand.instance_name,
-        Some("Migrating Forms".into())
+        Some("Migrating Forms".into()),
     )
     .await
 }
