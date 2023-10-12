@@ -1,7 +1,7 @@
 use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
     error::KnotError,
-    liquid_utils::compile,
+    liquid_utils::compile_with_newtitle,
     routes::public::serve_static_file,
     state::KnotState,
 };
@@ -21,10 +21,11 @@ pub async fn get_import_export_csv(
     auth: Auth,
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
-    compile(
+    compile_with_newtitle(
         "www/csv.liquid",
         liquid::object!({ "auth": get_auth_object(auth) }),
         &state.settings.brand.instance_name,
+        Some("Import/Export".to_string())
     )
     .await
 }

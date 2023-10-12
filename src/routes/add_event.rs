@@ -8,7 +8,7 @@ use super::FormEvent;
 use crate::{
     auth::{get_auth_object, Auth},
     error::KnotError,
-    liquid_utils::compile,
+    liquid_utils::compile_with_newtitle,
     state::KnotState,
 };
 use axum::{
@@ -24,10 +24,11 @@ pub async fn get_add_event_form(
     auth: Auth,
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
-    compile(
+    compile_with_newtitle(
         "www/add_event.liquid",
         liquid::object!({"auth": get_auth_object(auth)}),
         &state.settings.brand.instance_name,
+        Some("New House Event".to_string())
     )
     .await
 }

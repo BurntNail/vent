@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     auth::{get_auth_object, Auth},
     error::KnotError,
-    liquid_utils::{compile, EnvFormatter},
+    liquid_utils::{compile_with_newtitle, EnvFormatter},
     state::KnotState,
 };
 
@@ -104,10 +104,11 @@ ORDER BY e.date DESC
 
     trace!("Compiling");
 
-    compile(
+    compile_with_newtitle(
         "www/show_all.liquid",
         liquid::object!({ "people": new_people, "events": events, "auth": get_auth_object(auth) }),
         &state.settings.brand.instance_name,
+        Some("All People/Events".into())
     )
     .await
 }

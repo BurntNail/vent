@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     auth::{get_auth_object, Auth},
     error::KnotError,
-    liquid_utils::compile,
+    liquid_utils::compile_with_newtitle,
     state::KnotState,
 };
 
@@ -123,10 +123,11 @@ pub async fn get_rewards(
     already_awarded.sort_by_cached_key(|x| x.form.clone());
     already_awarded.sort_by_cached_key(|x| x.awards.clone());
 
-    compile(
+    compile_with_newtitle(
         "www/rewards.liquid",
         liquid::object!({ "tba": to_be_awarded, "aa": already_awarded, "auth": get_auth_object(auth) })
-        , &state.settings.brand.instance_name
+        , &state.settings.brand.instance_name,
+        Some("Rewards".into())
     )
     .await
 }
