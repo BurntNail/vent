@@ -20,6 +20,7 @@ use crate::{
         pg_session::PostgresSessionStore,
         PermissionsRole, RequireAuth, Store,
     },
+    error::not_found_fallback,
     liquid_utils::partials::reload_partials,
     routes::{
         add_event::{get_add_event_form, post_add_event_form},
@@ -210,6 +211,7 @@ FROM people WHERE id = $1
             get(get_login_failure),
         )
         .route("/login", get(get_login).post(post_login))
+        .fallback(not_found_fallback)
         .layer(TraceLayer::new_for_http())
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think
         .layer(auth_layer)

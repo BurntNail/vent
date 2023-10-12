@@ -3,7 +3,9 @@ use axum::{
     http::StatusCode,
     response::{Html, IntoResponse},
 };
-use std::{fmt::Debug, path::PathBuf};
+use http::Uri;
+use sqlx::Error;
+use std::{fmt::Debug, io::ErrorKind, path::PathBuf};
 
 #[derive(thiserror::Error, Debug)]
 pub enum KnotError {
@@ -52,6 +54,8 @@ pub enum KnotError {
     SerdeJson(#[from] serde_json::Error),
     #[error("Random Eyre Error")]
     Eyre(#[from] eyre::Error), //thanks axum_login ;)
+    #[error("Not able page {0:?}")]
+    PageNotFound(Uri),
 
     // internal errors
     #[error("Missing File: {0:?}")]
@@ -84,9 +88,28 @@ pub fn get_error_page(error_code: StatusCode, content: KnotError) -> (StatusCode
     )
 }
 
+pub async fn not_found_fallback(uri: Uri) -> (StatusCode, Html<String>) {
+    get_error_page(StatusCode::NOT_FOUND, KnotError::PageNotFound(uri))
+}
+
 impl IntoResponse for KnotError {
     fn into_response(self) -> axum::response::Response {
         let code = match &self {
+            KnotError::Sqlx(e) => match e {
+                Error::RowNotFound => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            },
+            KnotError::ParseInt(_)
+            | KnotError::ParseBool(_)
+            | KnotError::ParseTime(_)
+            | KnotError::Headers(_)
+            | KnotError::Multipart(_)
+            | KnotError::ImageFormat(_)
+            | KnotError::NoImageExtension(_)
+            | KnotError::InvalidUTF8
+            | KnotError::MalformedCSV
+            | KnotError::MissingCFIP => StatusCode::BAD_REQUEST,
+            KnotError::PageNotFound(_) => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
