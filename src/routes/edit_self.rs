@@ -1,7 +1,7 @@
 use crate::{
     auth::{get_auth_object, Auth},
     error::KnotError,
-    liquid_utils::compile,
+    liquid_utils::compile_with_newtitle,
     state::KnotState,
 };
 use axum::{
@@ -16,10 +16,11 @@ pub async fn get_edit_user(
     auth: Auth,
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
-    compile(
+    compile_with_newtitle(
         "../../www/edit_self.liquid",
         liquid::object!({"auth": get_auth_object(auth)}),
         &state.settings.brand.instance_name,
+        Some("Edit Profile".into()),
     )
     .await
 }
