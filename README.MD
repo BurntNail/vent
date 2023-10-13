@@ -113,7 +113,7 @@ FULL_DOMAIN { #eg. mail.google.com
 ## Architecture
 
 The project consists of an [axum](https://lib.rs/axum) app, which serves [liquid](https://shopify.github.io/liquid/)
-templates.
+templates all based off data from a [postgres](https://www.postgresql.org/) database accessed via [sqlx](https://lib.rs/crates/sqlx).
 
 ## Contributing
 
