@@ -1,72 +1,203 @@
-use async_zip::error::ZipError;
+use crate::auth::cloudflare_turnstile::CommonHeaders;
 use axum::{
     http::StatusCode,
     response::{Html, IntoResponse},
 };
 use http::Uri;
-use sqlx::Error;
-use std::{fmt::Debug, io::ErrorKind, path::PathBuf};
+use image::ImageFormat;
+use snafu::Snafu;
+use std::{
+    error::Error,
+    ffi::OsString,
+    fmt::{Debug, Display, Formatter},
+    path::PathBuf,
+};
 
-#[derive(thiserror::Error, Debug)]
+#[derive(Debug)]
+pub enum IOAction {
+    ReadingFile(String),
+    OpeningFile(PathBuf),
+    CreatingFile(String),
+    WritingToFile(String),
+    ReadingMetadata,
+}
+
+#[derive(Debug)]
+pub enum ReqwestAction {
+    CloudflareTurntile,
+    ErrorForStatus(Option<StatusCode>),
+    ConvertToJson(SerdeJsonAction),
+}
+
+#[derive(Debug)]
+pub enum ConvertingWhatToString {
+    FileName(OsString),
+}
+
+#[derive(Debug)]
+pub enum SerdeJsonAction {
+    TryingToLogin,
+    CloudflareTurnstileResponse,
+}
+
+#[derive(Debug)]
+pub enum LiquidAction {
+    BuildingCompiler,
+    Parsing { text: String },
+    Rendering,
+}
+
+#[derive(Debug)]
+pub enum ThreadReason {
+    LiquidCompiler,
+}
+
+#[derive(Debug)]
+pub enum DatabaseIDMethod {
+    Id(i32),
+    Username(String),
+}
+
+#[derive(Debug)]
+pub enum SqlxAction {
+    FindingPerson(DatabaseIDMethod),
+    UpdatingPerson(DatabaseIDMethod),
+    FindingPeople,
+    AddingPerson,
+
+    FindingEvent(i32),
+    FindingAllEvents,
+    AddingEvent,
+
+    FindingParticipantOrPrefect {
+        person: DatabaseIDMethod,
+        event_id: i32,
+    },
+    AddingParticipantOrPrefect {
+        person: DatabaseIDMethod,
+        event_id: i32,
+    },
+    FindingParticipantsOrPrefectsAtEvents {
+        event_id: Option<i32>,
+    },
+
+    FindingSecret,
+    AddingSecret,
+
+    AcquiringConnection,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct MissingImageFormat(ImageFormat);
+
+impl Display for MissingImageFormat {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("No image format for {:?}", self.0))
+    }
+}
+impl From<ImageFormat> for MissingImageFormat {
+    fn from(f: ImageFormat) -> Self {
+        Self(f)
+    }
+}
+impl Error for MissingImageFormat {}
+
+#[derive(Snafu, Debug)]
+#[snafu(visibility(pub))]
 pub enum KnotError {
     //external errors
-    #[error("Database Error")]
-    Sqlx(#[from] sqlx::Error),
-    #[error("Liquid Error")]
-    Liquid(#[from] liquid::Error),
-    #[error("IO Error")]
-    IO(#[from] std::io::Error),
-    #[error("Tokio Join Error")]
-    Join(#[from] tokio::task::JoinError),
-    #[error("Error Parsing Integer")]
-    ParseInt(#[from] std::num::ParseIntError),
-    #[error("Error Parsing Bool")]
-    ParseBool(#[from] std::str::ParseBoolError),
-    #[error("Error Parsing Time")]
-    ParseTime(#[from] chrono::ParseError),
-    #[error("Error in Headers")]
-    Headers(#[from] axum::http::header::InvalidHeaderValue),
-    #[error("Multipart Error")]
-    Multipart(#[from] axum::extract::multipart::MultipartError),
-    #[error("Invalid Image")]
-    ImageFormat(#[from] image::error::ImageError),
-    #[error("Missing Image Extension: {0:?}")]
-    NoImageExtension(image::ImageFormat),
-    #[error("Error creating Zip File")]
-    Zip(#[from] ZipError),
-    #[error("Error with XLSX")]
-    Xlsx(#[from] rust_xlsxwriter::XlsxError),
-    #[error("Error with Encrypting")]
-    Bcrypt(#[from] bcrypt::BcryptError),
-    #[error("Error converting Header to string, possibly invalid UTF-8")]
-    HeaderToStr(#[from] http::header::ToStrError),
-    #[error("Error reqwest-ing")]
-    Reqwest(#[from] reqwest::Error),
-    #[error("Error parsing email address")]
-    LettreAddress(#[from] lettre::address::AddressError),
-    #[error("Error with Emails")]
-    LettreEmail(#[from] lettre::error::Error),
-    #[error("Error with SMTP")]
-    LettreSMTP(#[from] lettre::transport::smtp::Error),
-    #[error("Error with CSV Files")]
-    Csv(#[from] csv_async::Error),
-    #[error("JSON error")]
-    SerdeJson(#[from] serde_json::Error),
-    #[error("Random Eyre Error")]
-    Eyre(#[from] eyre::Error), //thanks axum_login ;)
-    #[error("Not able page {0:?}")]
-    PageNotFound(Uri),
+    #[snafu(display("Database Error: {source:?}. Cause: {action:?}"))]
+    Sqlx {
+        source: sqlx::Error,
+        action: SqlxAction,
+    },
+    #[snafu(display("Liquid Error: {source:?} caused by {attempt:?}"))]
+    Liquid {
+        source: liquid::Error,
+        attempt: LiquidAction,
+    },
+    #[snafu(display("IO Error: {source:?} doing {action:?}"))]
+    IO {
+        source: std::io::Error,
+        action: IOAction,
+    },
+    #[snafu(display("Tokio Join Error: {source:?} which was started to {title:?}"))]
+    Join {
+        source: tokio::task::JoinError,
+        title: ThreadReason,
+    },
+    #[snafu(display("Error Parsing Integer: {source:?}"))]
+    ParseInt { source: std::num::ParseIntError },
+    #[snafu(display("Error Parsing Bool: {source:?}"))]
+    ParseBool { source: std::str::ParseBoolError },
+    #[snafu(display("Error Parsing {original:?} - {source:?}"))]
+    ParseTime {
+        source: chrono::ParseError,
+        original: String,
+    },
+    #[snafu(display("Error in Headers: {source:?}"))]
+    Headers {
+        source: http::header::InvalidHeaderValue,
+    },
+    #[snafu(display("Multipart Error: {source:?}"))]
+    Multipart {
+        source: axum::extract::multipart::MultipartError,
+    },
+    #[snafu(display("Invalid Image: {source:?}"))]
+    ImageFormat { source: image::error::ImageError },
+    #[snafu(display("Missing Image Extension: {extension:?}"))]
+    NoImageExtension {
+        #[snafu(source(from(image::ImageFormat, MissingImageFormat::from)))]
+        extension: MissingImageFormat,
+    },
+    #[snafu(display("Error creating Zip File: {source:?}"))]
+    Zip { source: async_zip::error::ZipError },
+    #[snafu(display("Error with XLSX: {source:?}"))]
+    Xlsx { source: rust_xlsxwriter::XlsxError },
+    #[snafu(display("Error with Encrypting: {source:?}"), context(false))]
+    Bcrypt { source: bcrypt::BcryptError },
+    #[snafu(display("Error converting {what:?} to string"))]
+    ToStr { what: ConvertingWhatToString },
+    #[snafu(display("Error converting {header:?} to string due to {source:?}"))]
+    HeaderToStr {
+        source: http::header::ToStrError,
+        header: CommonHeaders,
+    },
+    #[snafu(display("Error reqwest-ing: {source:?} whilst trying to {action:?}"))]
+    Reqwest {
+        source: reqwest::Error,
+        action: ReqwestAction,
+    },
+    #[snafu(display("Error parsing email address: {source:?}"))]
+    LettreAddress {
+        source: lettre::address::AddressError,
+    },
+    #[snafu(display("Error with Emails: {source:?}"))]
+    LettreEmail { source: lettre::error::Error },
+    #[snafu(display("Error with SMTP: {source:?}"))]
+    LettreSMTP {
+        source: lettre::transport::smtp::Error,
+    },
+    #[snafu(display("Error with CSV Files: {source:?}"))]
+    Csv { source: csv_async::Error },
+    #[snafu(display("JSON error: {source:?} whilst trying to {action:?}"))]
+    SerdeJson {
+        source: serde_json::Error,
+        action: SerdeJsonAction,
+    },
+    #[snafu(display("Random Eyre Error: {source:?}"))]
+    Eyre { source: eyre::Error }, //thanks axum_login ;)
+    #[snafu(display("Not able page {was_looking_for:?}"))]
+    PageNotFound { was_looking_for: Uri },
 
     // internal errors
-    #[error("Missing File: {0:?}")]
-    MissingFile(String),
-    #[error("Unknown MIME Type for File: {0:?}")]
-    UnknownMIME(PathBuf),
-    #[error("Encountered Invalid UTF-8")]
-    InvalidUTF8,
-    #[error("CSV incorrect format")]
+    #[snafu(display("Missing File: {was_looking_for:?}"))]
+    MissingFile { was_looking_for: PathBuf },
+    #[snafu(display("Unknown MIME Type for File: {path:?}"))]
+    UnknownMIME { path: PathBuf },
+    #[snafu(display("CSV incorrect format"))]
     MalformedCSV,
-    #[error("Missing Cloudflare IP in headers")]
+    #[snafu(display("Missing Cloudflare IP in headers"))]
     MissingCFIP,
 }
 
@@ -89,27 +220,31 @@ pub fn get_error_page(error_code: StatusCode, content: KnotError) -> (StatusCode
 }
 
 pub async fn not_found_fallback(uri: Uri) -> (StatusCode, Html<String>) {
-    get_error_page(StatusCode::NOT_FOUND, KnotError::PageNotFound(uri))
+    get_error_page(
+        StatusCode::NOT_FOUND,
+        KnotError::PageNotFound {
+            was_looking_for: uri,
+        },
+    )
 }
 
 impl IntoResponse for KnotError {
     fn into_response(self) -> axum::response::Response {
         let code = match &self {
-            KnotError::Sqlx(e) => match e {
-                Error::RowNotFound => StatusCode::NOT_FOUND,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            },
-            KnotError::ParseInt(_)
-            | KnotError::ParseBool(_)
-            | KnotError::ParseTime(_)
-            | KnotError::Headers(_)
-            | KnotError::Multipart(_)
-            | KnotError::ImageFormat(_)
-            | KnotError::NoImageExtension(_)
-            | KnotError::InvalidUTF8
+            KnotError::Sqlx {
+                source: _,
+                action: trying_to_do,
+            } if !matches!(trying_to_do, SqlxAction::AcquiringConnection) => StatusCode::NOT_FOUND,
+            KnotError::ParseInt { .. }
+            | KnotError::ParseBool { .. }
+            | KnotError::ParseTime { .. }
+            | KnotError::Headers { .. }
+            | KnotError::Multipart { .. }
+            | KnotError::ImageFormat { .. }
+            | KnotError::NoImageExtension { .. }
             | KnotError::MalformedCSV
             | KnotError::MissingCFIP => StatusCode::BAD_REQUEST,
-            KnotError::PageNotFound(_) => StatusCode::NOT_FOUND,
+            KnotError::PageNotFound { .. } => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
 

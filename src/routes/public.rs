@@ -1,4 +1,4 @@
-use crate::error::KnotError;
+use crate::error::{IOAction, IOSnafu, KnotError, UnknownMIMESnafu};
 use axum::{
     body::StreamBody,
     http::{header, HeaderMap},
@@ -6,6 +6,7 @@ use axum::{
 };
 use new_mime_guess::from_path;
 use serde_json::{from_str, Value};
+use snafu::{OptionExt, ResultExt};
 use std::{fmt::Debug, path::PathBuf};
 use tokio::fs::{read_to_string, File};
 use tokio_util::io::ReaderStream;
@@ -20,13 +21,21 @@ pub async fn serve_static_file(
 
     trace!(?path);
 
-    let file = File::open(path.clone()).await?;
-    let file_size = file.metadata().await?.len();
+    let file = File::open(path.clone()).await.context(IOSnafu {
+        action: IOAction::OpeningFile(path.clone().into()),
+    })?;
+    let file_size = file
+        .metadata()
+        .await
+        .context(IOSnafu {
+            action: IOAction::ReadingMetadata,
+        })?
+        .len();
     let body = StreamBody::new(ReaderStream::new(file));
 
     let mime = from_path(path.clone())
         .first()
-        .ok_or(KnotError::UnknownMIME(path))?;
+        .context(UnknownMIMESnafu { path })?;
 
     trace!("Building headers");
 

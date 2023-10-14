@@ -3,12 +3,16 @@ pub mod cloudflare_turnstile;
 pub mod login;
 pub mod pg_session;
 
-use crate::{error::KnotError, routes::DbPerson};
+use crate::{
+    error::{KnotError, SqlxAction, SqlxSnafu},
+    routes::DbPerson,
+};
 use axum_login::{
     extractors::AuthContext, secrecy::SecretVec, AuthUser, PostgresStore, RequireAuthorizationLayer,
 };
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
 use sqlx::{Pool, Postgres};
 
 #[derive(
@@ -46,8 +50,13 @@ pub type Store = PostgresStore<DbPerson, PermissionsRole>;
 
 pub async fn get_secret(pool: &Pool<Postgres>) -> Result<Vec<u8>, KnotError> {
     if let Some(x) = sqlx::query!("SELECT sekrit FROM secrets")
-        .fetch_optional(&mut *pool.acquire().await?)
-        .await?
+        .fetch_optional(&mut *pool.acquire().await.context(SqlxSnafu {
+            action: SqlxAction::AcquiringConnection,
+        })?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingSecret,
+        })?
     {
         Ok(x.sekrit)
     } else {
@@ -60,8 +69,13 @@ pub async fn get_secret(pool: &Pool<Postgres>) -> Result<Vec<u8>, KnotError> {
         };
 
         sqlx::query!("INSERT INTO secrets (sekrit) VALUES ($1)", secret)
-            .execute(&mut *pool.acquire().await?)
-            .await?;
+            .execute(&mut *pool.acquire().await.context(SqlxSnafu {
+                action: SqlxAction::AcquiringConnection,
+            })?)
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::AddingSecret,
+            })?;
 
         Ok(secret)
     }

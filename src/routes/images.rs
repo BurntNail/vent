@@ -1,4 +1,8 @@
-use crate::{auth::Auth, error::KnotError, state::KnotState};
+use crate::{
+    auth::Auth,
+    error::{ConvertingWhatToString, KnotError, ToStrSnafu},
+    state::KnotState,
+};
 use async_zip::{tokio::write::ZipFileWriter, Compression, ZipEntryBuilder};
 use axum::{
     body::StreamBody,
@@ -7,6 +11,7 @@ use axum::{
     response::{IntoResponse, Redirect},
 };
 use rand::{thread_rng, Rng};
+use snafu::OptionExt;
 use std::{ffi::OsStr, path::PathBuf};
 use tokio::{
     fs::File,
@@ -106,7 +111,9 @@ pub async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoRespon
     let path = PathBuf::from(img_path.as_str());
     let ext = path
         .extension()
-        .ok_or_else(|| KnotError::MissingFile(img_path.clone()))?
+        .ok_or_else(|| KnotError::MissingFile {
+            was_looking_for: path,
+        })?
         .to_str()
         .ok_or(KnotError::InvalidUTF8)?;
 
@@ -169,10 +176,15 @@ WHERE event_id = $1"#,
             let mut files = vec![];
 
             for de in WalkDir::new("uploads").into_iter().filter_map(Result::ok) {
-                if let Ok(file_name) = de.file_name().to_str().ok_or(KnotError::InvalidUTF8) {
-                    if de.path().extension().map_or(false, |e| e == zip_ext) {
-                        files.push(file_name.to_string());
+                match de.file_name().to_str().context(ToStrSnafu {
+                    what: ConvertingWhatToString::FileName(de.file_name().to_os_string()),
+                }) {
+                    Ok(file_name) => {
+                        if de.path().extension().map_or(false, |e| e == zip_ext) {
+                            files.push(file_name.to_string());
+                        }
                     }
+                    Err(e) => warn!("{e:?}"),
                 }
             }
 

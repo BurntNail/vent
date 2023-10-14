@@ -3,7 +3,7 @@ use crate::{
         cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP},
         get_auth_object, Auth,
     },
-    error::KnotError,
+    error::{DatabaseIDMethod, KnotError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile,
     routes::DbPerson,
     state::KnotState,
@@ -16,6 +16,7 @@ use axum::{
 use bcrypt::verify;
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
 
 #[derive(Deserialize)]
 pub struct LoginDetails {
@@ -104,7 +105,7 @@ WHERE LOWER(username) = LOWER($1)
         username
     )
     .fetch_optional(&mut state.get_connection().await?)
-    .await?;
+    .await.context(SqlxSnafu {action: SqlxAction::FindingPerson(DatabaseIDMethod::Username(username))})?;
 
     let Some(db_user) = db_user else {
         return Ok(Redirect::to("/login_failure/user_not_found"));
@@ -113,7 +114,9 @@ WHERE LOWER(username) = LOWER($1)
     Ok(match &db_user.hashed_password {
         //some of the code below looks weird as otherwise borrow not living long enough
         Some(pw) => Redirect::to(if verify(unhashed_password, pw)? {
-            auth.login(&db_user).await?;
+            auth.login(&db_user).await.context(SerdeJsonSnafu {
+                action: SerdeJsonAction::TryingToLogin,
+            })?;
             "/"
         } else {
             error!("USER FAILED TO LOGIN!!!");

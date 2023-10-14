@@ -5,9 +5,14 @@ use axum::{
 use once_cell::sync::Lazy;
 use reqwest::Client;
 use serde::Deserialize;
-use std::{collections::HashMap, env::var};
+use snafu::ResultExt;
+use std::{
+    collections::HashMap,
+    env::var,
+    fmt::{Display, Formatter},
+};
 
-use crate::error::KnotError;
+use crate::error::{HeaderToStrSnafu, KnotError, ReqwestAction, ReqwestSnafu, SerdeJsonAction};
 
 static CFT_SECRETKEY: Lazy<String> =
     Lazy::new(|| var("CFT_SECRETKEY").expect("missing environment variable `CFT_SECRETKEY`"));
@@ -65,6 +70,23 @@ struct TurnstileResponse {
     pub cdata: Option<String>,
 }
 
+#[derive(Debug)]
+pub enum CommonHeaders {
+    CloudflareSiteSecret,
+    CloudflareTurnstileResponse,
+    RemoteIP,
+}
+
+impl Display for CommonHeaders {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CommonHeaders::CloudflareSiteSecret => write!(f, "secret"),
+            CommonHeaders::CloudflareTurnstileResponse => write!(f, "response"),
+            CommonHeaders::RemoteIP => write!(f, "remoteip"),
+        }
+    }
+}
+
 #[instrument(level = "debug")]
 ///returns whether or not it worked
 pub async fn verify_turnstile(
@@ -76,9 +98,20 @@ pub async fn verify_turnstile(
     }
 
     let mut body = HashMap::new();
-    body.insert("secret", CFT_SECRETKEY.as_str());
-    body.insert("response", &cf_turnstile_response);
-    body.insert("remoteip", remote_ip.to_str()?);
+    body.insert(
+        CommonHeaders::CloudflareSiteSecret.to_string(),
+        CFT_SECRETKEY.as_str(),
+    );
+    body.insert(
+        CommonHeaders::CloudflareTurnstileResponse.to_string(),
+        &cf_turnstile_response,
+    );
+    body.insert(
+        CommonHeaders::RemoteIP.to_string(),
+        remote_ip.to_str().context(HeaderToStrSnafu {
+            header: CommonHeaders::RemoteIP,
+        })?,
+    );
 
     debug!(?remote_ip, "Checking for CFT Response");
 
@@ -86,10 +119,19 @@ pub async fn verify_turnstile(
         .post("https://challenges.cloudflare.com/turnstile/v0/siteverify")
         .form(&body)
         .send()
-        .await?
-        .error_for_status()?
+        .await
+        .context(ReqwestSnafu {
+            action: ReqwestAction::CloudflareTurntile,
+        })?
+        .error_for_status()
+        .with_context(|e| ReqwestSnafu {
+            action: ReqwestAction::ErrorForStatus(e.status()),
+        })?
         .json::<TurnstileResponse>()
-        .await?;
+        .await
+        .context(ReqwestSnafu {
+            action: ReqwestAction::ConvertToJson(SerdeJsonAction::CloudflareTurnstileResponse),
+        })?;
 
     debug!(?post_response.hostname, ?post_response.cdata, ?post_response.action, ?post_response.challenge_ts, "Got CFT response");
 

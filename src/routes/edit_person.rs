@@ -1,6 +1,6 @@
 use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
-    error::KnotError,
+    error::{DatabaseIDMethod, KnotError, SqlxAction, SqlxSnafu},
     liquid_utils::{compile_with_newtitle, EnvFormatter},
     routes::{add_person::NoIDPerson, rewards::Reward, DbPerson},
     state::KnotState,
@@ -11,6 +11,7 @@ use axum::{
     Form,
 };
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
 
 #[instrument(level = "debug", skip(auth, state))]
 pub async fn get_edit_person(
@@ -41,7 +42,7 @@ FROM people WHERE id = $1
         id
     )
     .fetch_one(&mut state.get_connection().await?)
-    .await?;
+    .await.context(SqlxSnafu { action: SqlxAction::FindingPerson(DatabaseIDMethod::Id(id)) })?;
     let person = SmolPerson {
         id: person.id,
         permissions: person.permissions,
@@ -72,7 +73,10 @@ ON pe.event_id = e.id AND pe.prefect_id = $1
         person.id
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingPerson(DatabaseIDMethod::Id(person.id)),
+    })?
     .into_iter()
     .map(|r| Event {
         name: r.event_name,

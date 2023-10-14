@@ -1,9 +1,14 @@
 //! Module that publishes an iCalendar file in a GET/HEAD method
 
-use crate::{error::KnotError, routes::DbEvent, state::KnotState};
+use crate::{
+    error::{IOAction, IOSnafu, KnotError, SqlxAction, SqlxSnafu},
+    routes::DbEvent,
+    state::KnotState,
+};
 use axum::{extract::State, response::IntoResponse};
 use chrono::Duration;
 use icalendar::{Calendar, Component, Event, EventLike};
+use snafu::ResultExt;
 use std::collections::HashMap;
 use tokio::{fs::File, io::AsyncWriteExt};
 use tracing::Instrument;
@@ -22,7 +27,10 @@ pub async fn get_calendar_feed(
     SELECT id, first_name, surname FROM people p WHERE p.permissions != 'participant'"#
         )
         .fetch_all(&mut state.get_connection().await?)
-        .await?
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingPeople,
+        })?
         .into_iter()
         .map(|x| (x.id, format!("{} {}", x.first_name, x.surname)))
         .collect::<HashMap<_, _>>();
@@ -31,7 +39,10 @@ pub async fn get_calendar_feed(
     SELECT event_id, prefect_id FROM prefect_events"#
         )
         .fetch_all(&mut state.get_connection().await?)
-        .await?;
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingParticipantsOrPrefectsAtEvents { event_id: None },
+        })?;
 
         for rec in relations {
             if let Some(name) = prefects.get(&rec.event_id).cloned() {
@@ -58,7 +69,10 @@ pub async fn get_calendar_feed(
         zip_file: _,
     } in sqlx::query_as!(DbEvent, r#"SELECT * FROM events"#)
         .fetch_all(&mut state.get_connection().await?)
-        .await?
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingAllEvents,
+        })?
     {
         let other_info = other_info.unwrap_or_default();
         let prefects = prefect_events
@@ -86,10 +100,15 @@ Prefects Attending: {prefects}"#
     calendar.name("Kingsley House Events");
 
     let calr: Result<_, KnotError> = async {
-        let mut local_file = File::create("calendar.ics").await?;
+        let mut local_file = File::create("calendar.ics").await.context(IOSnafu {
+            action: IOAction::CreatingFile("calendar.ics".into()),
+        })?;
         local_file
             .write_all(calendar.done().to_string().as_bytes())
-            .await?;
+            .await
+            .context(IOSnafu {
+                action: IOAction::WritingToFile("calendar.ics".into()),
+            })?;
         Ok(())
     }
     .instrument(debug_span!("writing_calendar_to_file"))
