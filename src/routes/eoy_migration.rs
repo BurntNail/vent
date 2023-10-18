@@ -5,10 +5,11 @@ use axum::{
 };
 use itertools::Itertools;
 use serde::Deserialize;
+use snafu::ResultExt;
 
 use crate::{
     auth::{get_auth_object, Auth},
-    error::KnotError,
+    error::{KnotError, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
     state::KnotState,
 };
@@ -22,7 +23,10 @@ pub async fn get_eoy_migration(
 
     let forms: Vec<String> = sqlx::query!(r#"SELECT form FROM people"#)
         .fetch_all(&mut state.get_connection().await?)
-        .await?
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingPeople,
+        })?
         .into_iter()
         .map(|r| r.form)
         .unique()
@@ -60,11 +64,14 @@ UPDATE public.people
 SET form = $2
 WHERE form = $1
 "#,
-        old_name,
-        new_name
+        &old_name,
+        &new_name
     )
     .execute(&mut state.get_connection().await?)
-    .await?;
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::UpdatingForms { old_name, new_name },
+    })?;
 
     Ok(Redirect::to("/eoy_migration"))
 }

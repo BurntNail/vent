@@ -9,7 +9,7 @@ use snafu::ResultExt;
 use std::{
     collections::HashMap,
     env::var,
-    fmt::{Display, Formatter},
+    fmt::{Debug, Display, Formatter},
 };
 
 use crate::error::{HeaderToStrSnafu, KnotError, ReqwestAction, ReqwestSnafu, SerdeJsonAction};
@@ -75,6 +75,7 @@ pub enum CommonHeaders {
     CloudflareSiteSecret,
     CloudflareTurnstileResponse,
     RemoteIP,
+    ContentType,
 }
 
 impl Display for CommonHeaders {
@@ -83,6 +84,7 @@ impl Display for CommonHeaders {
             CommonHeaders::CloudflareSiteSecret => write!(f, "secret"),
             CommonHeaders::CloudflareTurnstileResponse => write!(f, "response"),
             CommonHeaders::RemoteIP => write!(f, "remoteip"),
+            CommonHeaders::ContentType => Display::fmt(&http::header::CONTENT_TYPE, f),
         }
     }
 }

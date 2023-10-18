@@ -1,6 +1,10 @@
 use crate::{
     auth::Auth,
-    error::{ConvertingWhatToString, KnotError, ToStrSnafu},
+    error::{
+        ConvertingWhatToString, IOAction, IOSnafu, ImageAction, ImageSnafu, KnotError,
+        MissingExtensionSnafu, NoImageExtensionSnafu, SqlxAction, SqlxSnafu, ToStrSnafu,
+    },
+    routes::public::serve_static_file,
     state::KnotState,
 };
 use async_zip::{tokio::write::ZipFileWriter, Compression, ZipEntryBuilder};
@@ -10,8 +14,8 @@ use axum::{
     http::header,
     response::{IntoResponse, Redirect},
 };
-use rand::{thread_rng, Rng};
-use snafu::OptionExt;
+use rand::{random, thread_rng, Rng};
+use snafu::{OptionExt, ResultExt};
 use std::{ffi::OsStr, path::PathBuf};
 use tokio::{
     fs::File,
@@ -20,8 +24,6 @@ use tokio::{
 use tokio_util::io::ReaderStream;
 use tracing::Instrument;
 use walkdir::WalkDir;
-
-use super::public::serve_static_file;
 
 #[instrument(level = "debug", skip(state, auth))]
 pub async fn post_add_photo(
@@ -39,7 +41,10 @@ WHERE id = $1"#,
         event_id
     )
     .execute(&mut state.get_connection().await?)
-    .await?;
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::UpdatingEvent(event_id),
+    })?;
 
     let user_id = auth.current_user.unwrap().id;
 
@@ -50,25 +55,30 @@ WHERE id = $1"#,
 
             debug!(data_len = %data.len(), "Getting format/ext");
 
-            let format = image::guess_format(&data)?;
+            let format = image::guess_format(&data).context(ImageSnafu {
+                action: ImageAction::GuessingFormat,
+            })?;
             let ext = format
                 .extensions_str()
                 .first()
-                .ok_or(KnotError::NoImageExtension(format))?;
+                .context(NoImageExtensionSnafu { extension: format })?;
 
             debug!("Finding file name");
 
             let file_name = loop {
-                let key = format!("uploads/{:x}.{ext}", thread_rng().gen::<u128>());
+                let key = format!("uploads/{:x}.{ext}", random::<u128>());
                 if sqlx::query!(
                     r#"
     SELECT * FROM photos
     WHERE path = $1
             "#,
-                    key
+                    &key
                 )
                 .fetch_optional(&mut state.get_connection().await?)
-                .await?
+                .await
+                .with_context(|_| SqlxSnafu {
+                    action: SqlxAction::FindingPhotos { path: key.clone() },
+                })?
                 .is_none()
                 {
                     break key;
@@ -88,12 +98,19 @@ VALUES($1, $2, $3)"#,
                 user_id,
             )
             .execute(&mut state.get_connection().await?)
-            .await?;
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::AddingPhotos,
+            })?;
 
             debug!("Writing to file");
 
-            let mut file = File::create(file_name).await?;
-            file.write_all(&data).await?;
+            let mut file = File::create(&file_name).await.context(IOSnafu {
+                action: IOAction::CreatingFile(file_name),
+            })?;
+            file.write_all(&data).await.context(IOSnafu {
+                action: IOAction::WritingToFile,
+            })?;
             Ok(())
         }
         .instrument(debug_span!("adding_photo"))
@@ -109,19 +126,21 @@ pub async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoRespon
     debug!("Getting path/ext");
 
     let path = PathBuf::from(img_path.as_str());
-    let ext = path
-        .extension()
-        .ok_or_else(|| KnotError::MissingFile {
-            was_looking_for: path,
-        })?
-        .to_str()
-        .ok_or(KnotError::InvalidUTF8)?;
+    let cloned = path.clone();
+    let ext = cloned.extension().context(MissingExtensionSnafu {
+        was_looking_for: path.clone(),
+    })?;
+    let ext = ext.to_str().context(ToStrSnafu {
+        what: ConvertingWhatToString::PathBuffer(path),
+    })?;
 
     debug!("Getting body");
 
-    let body = StreamBody::new(ReaderStream::new(
-        File::open(format!("uploads/{img_path}")).await?,
-    ));
+    let path = format!("uploads/{img_path}");
+    let file = File::open(&path).await.context(IOSnafu {
+        action: IOAction::OpeningFile(PathBuf::from(path)),
+    })?;
+    let body = StreamBody::new(ReaderStream::new(file));
 
     let headers = [
         (header::CONTENT_TYPE, format!("image/{ext}")),
@@ -150,7 +169,10 @@ WHERE id = $1"#,
         event_id
     )
     .fetch_one(&mut state.get_connection().await?)
-    .await?
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingEvent(event_id),
+    })?
     .zip_file
     {
         debug!(?file_name, %event_id, "Found existing zip file");

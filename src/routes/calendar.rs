@@ -107,7 +107,7 @@ Prefects Attending: {prefects}"#
             .write_all(calendar.done().to_string().as_bytes())
             .await
             .context(IOSnafu {
-                action: IOAction::WritingToFile("calendar.ics".into()),
+                action: IOAction::WritingToFile,
             })?;
         Ok(())
     }

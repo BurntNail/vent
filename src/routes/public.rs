@@ -1,9 +1,13 @@
-use crate::error::{IOAction, IOSnafu, KnotError, UnknownMIMESnafu};
+use crate::{
+    auth::cloudflare_turnstile::CommonHeaders,
+    error::{HeadersSnafu, IOAction, IOSnafu, KnotError, UnknownMIMESnafu},
+};
 use axum::{
     body::StreamBody,
     http::{header, HeaderMap},
     response::{IntoResponse, Json},
 };
+use http::HeaderValue;
 use new_mime_guess::from_path;
 use serde_json::{from_str, Value};
 use snafu::{OptionExt, ResultExt};
@@ -40,7 +44,12 @@ pub async fn serve_static_file(
     trace!("Building headers");
 
     let mut headers = HeaderMap::new();
-    headers.insert(header::CONTENT_TYPE, mime.essence_str().try_into()?);
+    headers.insert(
+        header::CONTENT_TYPE,
+        HeaderValue::try_from(mime.essence_str()).context(HeadersSnafu {
+            which_header: CommonHeaders::ContentType,
+        })?,
+    );
     headers.insert(header::CONTENT_LENGTH, file_size.into());
 
     trace!("Serving");

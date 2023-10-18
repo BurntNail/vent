@@ -1,6 +1,6 @@
 use crate::{
     auth::{get_auth_object, Auth},
-    error::KnotError,
+    error::{DatabaseIDMethod, KnotError, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
     state::KnotState,
 };
@@ -11,6 +11,7 @@ use axum::{
 };
 use bcrypt::{hash, DEFAULT_COST};
 use serde::Deserialize;
+use snafu::ResultExt;
 
 pub async fn get_edit_user(
     auth: Auth,
@@ -65,7 +66,10 @@ WHERE id=$4;
         current_id
     )
     .execute(&mut state.get_connection().await?)
-    .await?;
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::UpdatingPerson(DatabaseIDMethod::Id(current_id)),
+    })?;
 
     Ok(Redirect::to("/"))
 }

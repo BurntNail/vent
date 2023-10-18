@@ -14,11 +14,16 @@ use std::{
 };
 
 #[derive(Debug)]
+pub enum ImageAction {
+    GuessingFormat,
+}
+
+#[derive(Debug)]
 pub enum IOAction {
     ReadingFile(String),
     OpeningFile(PathBuf),
     CreatingFile(String),
-    WritingToFile(String),
+    WritingToFile,
     ReadingMetadata,
 }
 
@@ -32,6 +37,8 @@ pub enum ReqwestAction {
 #[derive(Debug)]
 pub enum ConvertingWhatToString {
     FileName(OsString),
+    PathBuffer(PathBuf),
+    Header(CommonHeaders),
 }
 
 #[derive(Debug)]
@@ -60,12 +67,18 @@ pub enum DatabaseIDMethod {
 
 #[derive(Debug)]
 pub enum SqlxAction {
+    //TODO: possible refactor to 2 enums - action (eg. find, update), objects involved (eg. event, person)
     FindingPerson(DatabaseIDMethod),
     UpdatingPerson(DatabaseIDMethod),
     FindingPeople,
+    UpdatingForms {
+        old_name: String,
+        new_name: String,
+    },
     AddingPerson,
 
     FindingEvent(i32),
+    UpdatingEvent(i32),
     FindingAllEvents,
     AddingEvent,
 
@@ -80,6 +93,14 @@ pub enum SqlxAction {
     FindingParticipantsOrPrefectsAtEvents {
         event_id: Option<i32>,
     },
+    FindingEventsOnPeople {
+        person: DatabaseIDMethod,
+    },
+
+    FindingPhotos {
+        path: String,
+    },
+    AddingPhotos,
 
     FindingSecret,
     AddingSecret,
@@ -88,16 +109,11 @@ pub enum SqlxAction {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct MissingImageFormat(ImageFormat);
+pub struct MissingImageFormat;
 
 impl Display for MissingImageFormat {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("No image format for {:?}", self.0))
-    }
-}
-impl From<ImageFormat> for MissingImageFormat {
-    fn from(f: ImageFormat) -> Self {
-        Self(f)
+        f.write_fmt(format_args!("No image format"))
     }
 }
 impl Error for MissingImageFormat {}
@@ -138,18 +154,19 @@ pub enum KnotError {
     #[snafu(display("Error in Headers: {source:?}"))]
     Headers {
         source: http::header::InvalidHeaderValue,
+        which_header: CommonHeaders,
     },
-    #[snafu(display("Multipart Error: {source:?}"))]
+    #[snafu(display("Multipart Error: {source:?}"), context(false))]
     Multipart {
         source: axum::extract::multipart::MultipartError,
     },
     #[snafu(display("Invalid Image: {source:?}"))]
-    ImageFormat { source: image::error::ImageError },
-    #[snafu(display("Missing Image Extension: {extension:?}"))]
-    NoImageExtension {
-        #[snafu(source(from(image::ImageFormat, MissingImageFormat::from)))]
-        extension: MissingImageFormat,
+    Image {
+        source: image::error::ImageError,
+        action: ImageAction,
     },
+    #[snafu(display("Missing Image Extension: {extension:?}"))]
+    NoImageExtension { extension: ImageFormat },
     #[snafu(display("Error creating Zip File: {source:?}"))]
     Zip { source: async_zip::error::ZipError },
     #[snafu(display("Error with XLSX: {source:?}"))]
@@ -191,8 +208,8 @@ pub enum KnotError {
     PageNotFound { was_looking_for: Uri },
 
     // internal errors
-    #[snafu(display("Missing File: {was_looking_for:?}"))]
-    MissingFile { was_looking_for: PathBuf },
+    #[snafu(display("Missing Extension on: {was_looking_for:?}"))]
+    MissingExtension { was_looking_for: PathBuf },
     #[snafu(display("Unknown MIME Type for File: {path:?}"))]
     UnknownMIME { path: PathBuf },
     #[snafu(display("CSV incorrect format"))]
@@ -240,7 +257,7 @@ impl IntoResponse for KnotError {
             | KnotError::ParseTime { .. }
             | KnotError::Headers { .. }
             | KnotError::Multipart { .. }
-            | KnotError::ImageFormat { .. }
+            | KnotError::Image { .. }
             | KnotError::NoImageExtension { .. }
             | KnotError::MalformedCSV
             | KnotError::MissingCFIP => StatusCode::BAD_REQUEST,
