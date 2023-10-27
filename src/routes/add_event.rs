@@ -21,6 +21,7 @@ use snafu::ResultExt;
 
 ///`GET` method for the `add_event` form - just compiles and returns the liquid `www/add_event.liquid`
 #[instrument(level = "debug", skip(auth))]
+#[axum::debug_handler]
 pub async fn get_add_event_form(
     auth: Auth,
     State(state): State<KnotState>,
@@ -36,6 +37,7 @@ pub async fn get_add_event_form(
 
 ///`POST` method to add an event from a form to the database. Redirects back to the [`get_add_event_form`]
 #[instrument(level = "debug", skip(state, date, location, teacher, info))]
+#[axum::debug_handler]
 pub async fn post_add_event_form(
     State(state): State<KnotState>,
     Form(FormEvent {

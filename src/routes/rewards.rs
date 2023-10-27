@@ -23,6 +23,7 @@ pub struct Reward {
     pub id: i32,
 }
 
+#[axum::debug_handler]
 pub async fn get_rewards(
     auth: Auth,
     State(state): State<KnotState>,

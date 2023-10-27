@@ -13,6 +13,7 @@ use bcrypt::{hash, DEFAULT_COST};
 use serde::Deserialize;
 use snafu::ResultExt;
 
+#[axum::debug_handler]
 pub async fn get_edit_user(
     auth: Auth,
     State(state): State<KnotState>,
@@ -37,6 +38,7 @@ pub struct LoginDetails {
     level = "debug",
     skip(auth, state, first_name, surname, unhashed_password)
 )]
+#[axum::debug_handler]
 pub async fn post_edit_user(
     auth: Auth,
     State(state): State<KnotState>,

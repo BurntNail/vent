@@ -22,6 +22,7 @@ pub struct AddPerson {
 
 ///`POST` method that adds a prefect to an event
 #[instrument(level = "debug", skip(state))]
+#[axum::debug_handler]
 pub async fn post_add_prefect_to_event(
     State(state): State<KnotState>,
     Form(AddPerson {
@@ -76,6 +77,7 @@ pub async fn post_add_prefect_to_event(
 
 ///`POST` method that adds a participant
 #[instrument(level = "debug", skip(state, auth))]
+#[axum::debug_handler]
 pub async fn post_add_participant_to_event(
     auth: Auth,
     State(state): State<KnotState>,

@@ -40,6 +40,7 @@ pub struct NoIDPerson {
 }
 
 #[instrument(level = "info", skip(state, first_name, surname))]
+#[axum::debug_handler]
 pub async fn post_add_person(
     State(state): State<KnotState>,
     Form(NoIDPerson {

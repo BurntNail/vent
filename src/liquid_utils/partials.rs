@@ -44,6 +44,7 @@ impl PartialSource for Partials {
 pub static PARTIALS: Lazy<RwLock<Partials>> = Lazy::new(|| RwLock::new(Partials::default()));
 
 #[instrument(level = "debug")]
+#[axum::debug_handler]
 pub async fn reload_partials() -> impl IntoResponse {
     debug!("Reloading Partials");
     PARTIALS.write().await.reload().await;

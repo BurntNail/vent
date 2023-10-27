@@ -26,6 +26,7 @@ pub struct LoginDetails {
     pub cf_turnstile_response: String,
 }
 
+#[axum::debug_handler]
 pub async fn get_login(
     auth: Auth,
     State(state): State<KnotState>,
@@ -66,6 +67,7 @@ impl FailureReason {
     }
 }
 
+#[axum::debug_handler]
 pub async fn get_login_failure(
     auth: Auth,
     Path(was_password_related): Path<FailureReason>,
@@ -81,6 +83,7 @@ pub async fn get_login_failure(
     Ok((was_password_related.status_code(), html).into_response())
 }
 
+#[axum::debug_handler]
 pub async fn post_login(
     mut auth: Auth,
     State(state): State<KnotState>,
@@ -130,6 +133,7 @@ WHERE LOWER(username) = LOWER($1)
     })
 }
 
+#[axum::debug_handler]
 pub async fn post_logout(mut auth: Auth) -> Result<impl IntoResponse, KnotError> {
     auth.logout().await;
     Ok(Redirect::to("/"))

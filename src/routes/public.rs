@@ -60,6 +60,7 @@ pub async fn serve_static_file(
     Ok((headers, body))
 }
 
+#[axum::debug_handler]
 pub async fn get_log() -> Result<Json<Vec<Value>>, KnotError> {
     let contents = read_to_string("./precipice-log.json")
         .await
@@ -78,6 +79,7 @@ pub async fn get_log() -> Result<Json<Vec<Value>>, KnotError> {
 
 macro_rules! get_x {
     ($func_name:ident, $path:expr) => {
+        #[axum::debug_handler]
         pub async fn $func_name() -> Result<impl IntoResponse, KnotError> {
             serve_static_file($path).await
         }

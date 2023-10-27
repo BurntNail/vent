@@ -21,6 +21,7 @@ use std::collections::HashMap;
 use tokio::fs::File;
 use tracing::Instrument;
 
+#[axum::debug_handler]
 pub async fn get_import_export_csv(
     auth: Auth,
     State(state): State<KnotState>,
@@ -35,6 +36,7 @@ pub async fn get_import_export_csv(
 }
 
 #[instrument(level = "debug", skip(multipart, state))]
+#[axum::debug_handler]
 pub async fn post_import_people_from_csv(
     State(state): State<KnotState>,
     mut multipart: Multipart,
@@ -152,6 +154,7 @@ pub async fn post_import_people_from_csv(
     Ok(Redirect::to("/"))
 }
 
+#[axum::debug_handler]
 pub async fn post_import_events_from_csv(
     State(state): State<KnotState>,
     mut multipart: Multipart,
@@ -219,6 +222,7 @@ VALUES ($1, $2, $3, $4)"#,
     Ok(Redirect::to("/"))
 }
 
+#[axum::debug_handler]
 pub async fn export_events_to_csv(
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
@@ -271,6 +275,7 @@ pub async fn export_events_to_csv(
 
     serve_static_file("public/events.csv").await
 }
+#[axum::debug_handler]
 pub async fn export_people_to_csv(
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {

@@ -10,7 +10,7 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 
 use crate::{
     cfg::Settings,
-    error::{KnotError, SqlxAction, SqlxSnafu},
+    error::{KnotError, LettreAction, LettreEmailSnafu, SqlxAction, SqlxSnafu},
 };
 
 #[derive(Debug)]
@@ -143,7 +143,10 @@ To set one, go to {}/add_password/{}?code={}.
 
 Have a nice day!"#,
                 to_fullname, project_name, project_domain, to_id, unique_id
-            ))?;
+            ))
+            .context(LettreEmailSnafu {
+                trying_to: LettreAction::BuildMessage,
+            })?;
 
         info!(%to_fullname, %to_id, numbers=%unique_id, "Sending email.");
 

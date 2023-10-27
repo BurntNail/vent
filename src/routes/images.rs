@@ -27,6 +27,7 @@ use tracing::Instrument;
 use walkdir::WalkDir;
 
 #[instrument(level = "debug", skip(state, auth))]
+#[axum::debug_handler]
 pub async fn post_add_photo(
     auth: Auth,
     Path(event_id): Path<i32>,
@@ -123,6 +124,7 @@ VALUES($1, $2, $3)"#,
 }
 
 #[instrument(level = "debug")]
+#[axum::debug_handler]
 pub async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoResponse, KnotError> {
     debug!("Getting path/ext");
 
@@ -157,6 +159,7 @@ pub async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoRespon
 }
 
 #[instrument(level = "debug", skip(state))]
+#[axum::debug_handler]
 pub async fn get_all_images(
     Path(event_id): Path<i32>,
     State(state): State<KnotState>,

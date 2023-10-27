@@ -1,7 +1,7 @@
 use super::FormEvent;
 use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
-    error::KnotError,
+    error::{IOAction, IOSnafu, KnotError, ParseTimeSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
     routes::{DbEvent, DbPerson},
     state::KnotState,
@@ -13,11 +13,13 @@ use axum::{
 use axum_extra::extract::Form;
 use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
 use std::collections::HashMap;
 use tokio::fs::remove_file;
 
 #[allow(clippy::too_many_lines)]
 #[instrument(level = "debug", skip(state, auth))]
+#[axum::debug_handler]
 pub async fn get_update_event(
     auth: Auth,
     Path(event_id): Path<i32>,
@@ -40,7 +42,10 @@ SELECT * FROM events WHERE id = $1
         event_id
     )
     .fetch_one(&mut state.get_connection().await?)
-    .await?;
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingEvent(event_id),
+    })?;
     let date = naive_date.to_string();
 
     #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -76,8 +81,12 @@ INNER JOIN prefect_events pe ON pe.event_id = $1 AND pe.prefect_id = p.id
         event_id
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?
-    {
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingParticipantsOrPrefectsAtEvents {
+            event_id: Some(event_id),
+        },
+    })? {
         existing_prefects
             .entry(person.form.clone())
             .or_insert(RelFormGroup {
@@ -116,8 +125,12 @@ INNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.i
         event_id
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?
-    {
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingParticipantsOrPrefectsAtEvents {
+            event_id: Some(event_id),
+        },
+    })? {
         existing_participants
             .entry(person.form.clone())
             .or_insert(RelFormGroup {
@@ -148,7 +161,7 @@ WHERE p.permissions != 'participant'
 "#
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?
+    .await.context(SqlxSnafu { action: SqlxAction::FindingPeople })?
     .into_iter()
     .filter(|p| {
         !existing_prefects
@@ -184,7 +197,7 @@ FROM people p
 "#
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?
+    .await.context(SqlxSnafu { action: SqlxAction::FindingPeople })?
     .into_iter()
     .filter(|p| {
         !existing_participants
@@ -228,15 +241,20 @@ WHERE event_id = $1
         event_id
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?
-    {
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingPhotos(event_id.into()),
+    })? {
         let added_by = if let Some(added_by) = raw.added_by {
             let nf = sqlx::query!(
                 "SELECT first_name, surname, form FROM people WHERE id = $1",
                 added_by
             )
             .fetch_one(&mut state.get_connection().await?)
-            .await?;
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::FindingPerson(added_by.into()),
+            })?;
             vec![format!("{} {}", nf.first_name, nf.surname), nf.form]
         } else {
             vec![]
@@ -313,6 +331,7 @@ WHERE event_id = $1
     )
     .await
 }
+#[axum::debug_handler]
 pub async fn post_update_event(
     Path(event_id): Path<i32>,
     State(state): State<KnotState>,
@@ -324,7 +343,9 @@ pub async fn post_update_event(
         info,
     }): Form<FormEvent>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M")?;
+    let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M").context(ParseTimeSnafu {
+        original: date.clone(),
+    })?;
 
     sqlx::query!(
         r#"
@@ -340,7 +361,10 @@ WHERE id=$1
         info
     )
     .execute(&mut state.get_connection().await?)
-    .await?;
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::UpdatingEvent(event_id),
+    })?;
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
@@ -350,6 +374,7 @@ pub struct Removal {
     relation_id: i32,
 }
 
+#[axum::debug_handler]
 pub async fn get_remove_prefect_from_event(
     State(state): State<KnotState>,
     Form(Removal { relation_id }): Form<Removal>,
@@ -362,11 +387,15 @@ RETURNING event_id
         relation_id
     )
     .fetch_one(&mut state.get_connection().await?)
-    .await?
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::RemovingPrefectOrPrefectFromEventByRI { relation_id },
+    })?
     .event_id;
 
     Ok(Redirect::to(&format!("/update_event/{id}")))
 }
+#[axum::debug_handler]
 pub async fn get_remove_participant_from_event(
     auth: Auth,
     State(state): State<KnotState>,
@@ -381,7 +410,10 @@ pub async fn get_remove_participant_from_event(
         relation_id
     )
     .fetch_one(&mut state.get_connection().await?)
-    .await?;
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingParticipantOrPrefectByRI { relation_id },
+    })?;
 
     if current_user.permissions < PermissionsRole::Prefect
         && current_user.id != event_details.participant_id
@@ -395,7 +427,10 @@ pub async fn get_remove_participant_from_event(
             relation_id
         )
         .execute(&mut state.get_connection().await?)
-        .await?;
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::RemovingPrefectOrPrefectFromEventByRI { relation_id },
+        })?;
     }
     Ok(Redirect::to(&format!(
         "/update_event/{}",
@@ -403,6 +438,7 @@ pub async fn get_remove_participant_from_event(
     )))
 }
 
+#[axum::debug_handler]
 pub async fn delete_image(
     Path(img_id): Path<i32>,
     State(state): State<KnotState>,
@@ -415,7 +451,10 @@ RETURNING path, event_id"#,
         img_id
     )
     .fetch_one(&mut state.get_connection().await?)
-    .await?;
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::RemovingPhoto(img_id),
+    })?;
 
     if let Some(existing_zip_file) = sqlx::query!(
         r#"
@@ -425,7 +464,10 @@ WHERE id = $1"#,
         event.event_id
     )
     .fetch_one(&mut state.get_connection().await?)
-    .await?
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingEvent(event.event_id),
+    })?
     .zip_file
     {
         sqlx::query!(
@@ -436,12 +478,19 @@ WHERE id = $1"#,
             event.event_id
         )
         .execute(&mut state.get_connection().await?)
-        .await?;
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::UpdatingEvent(event.event_id),
+        })?;
 
-        remove_file(existing_zip_file).await?;
+        remove_file(&existing_zip_file).await.context(IOSnafu {
+            action: IOAction::DeletingFile(existing_zip_file.into()),
+        })?;
     }
 
-    remove_file(event.path).await?;
+    remove_file(&event.path).await.context(IOSnafu {
+        action: IOAction::DeletingFile(event.path.into()),
+    })?;
 
     Ok(Redirect::to(&format!("/update_event/{}", event.event_id)))
 }
@@ -452,6 +501,7 @@ pub struct VerifyPerson {
     person_id: i32,
 }
 
+#[axum::debug_handler]
 pub async fn post_verify_person(
     State(state): State<KnotState>,
     Form(VerifyPerson {
@@ -459,11 +509,12 @@ pub async fn post_verify_person(
         person_id,
     }): Form<VerifyPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
-    sqlx::query!("UPDATE participant_events SET is_verified = true WHERE event_id = $1 AND participant_id = $2", event_id, person_id).execute(&mut state.get_connection().await?).await?;
+    sqlx::query!("UPDATE participant_events SET is_verified = true WHERE event_id = $1 AND participant_id = $2", event_id, person_id).execute(&mut state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::UpdatingParticipantOrPrefect {person: person_id.into(), event_id} })?;
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
 
+#[axum::debug_handler]
 pub async fn post_unverify_person(
     State(state): State<KnotState>,
     Form(VerifyPerson {
@@ -471,7 +522,7 @@ pub async fn post_unverify_person(
         person_id,
     }): Form<VerifyPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
-    sqlx::query!("UPDATE participant_events SET is_verified = false WHERE event_id = $1 AND participant_id = $2", event_id, person_id).execute(&mut state.get_connection().await?).await?;
+    sqlx::query!("UPDATE participant_events SET is_verified = false WHERE event_id = $1 AND participant_id = $2", event_id, person_id).execute(&mut state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::UpdatingParticipantOrPrefect {person: person_id.into(), event_id} })?;
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
@@ -481,6 +532,7 @@ pub struct VerifyEveryone {
     event_id: i32,
 }
 
+#[axum::debug_handler]
 pub async fn post_verify_everyone(
     State(state): State<KnotState>,
     Form(VerifyEveryone { event_id }): Form<VerifyEveryone>,
@@ -490,6 +542,9 @@ pub async fn post_verify_everyone(
         event_id
     )
     .execute(&mut state.get_connection().await?)
-    .await?;
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::MassVerifying { event_id },
+    })?;
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }

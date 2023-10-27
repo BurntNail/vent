@@ -18,6 +18,7 @@ use serde::Deserialize;
 use snafu::ResultExt;
 
 //tried to use an Option<Path<_>>, but didn't work
+#[axum::debug_handler]
 pub async fn get_blank_add_password(
     auth: Auth,
     State(state): State<KnotState>,
@@ -38,6 +39,7 @@ pub struct Link {
     code: i32,
 }
 
+#[axum::debug_handler]
 pub async fn get_add_password(
     auth: Auth,
     State(state): State<KnotState>,
@@ -101,6 +103,7 @@ pub struct AddPasswordForm {
     pub cf_turnstile_response: String,
 }
 
+#[axum::debug_handler]
 pub async fn post_add_password(
     mut auth: Auth,
     State(state): State<KnotState>,

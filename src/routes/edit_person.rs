@@ -15,6 +15,7 @@ use crate::{
 };
 
 #[instrument(level = "debug", skip(auth, state))]
+#[axum::debug_handler]
 pub async fn get_edit_person(
     auth: Auth,
     Path(id): Path<i32>,
@@ -121,6 +122,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1
 }
 
 #[instrument(level = "debug", skip(state, first_name, surname))]
+#[axum::debug_handler]
 pub async fn post_edit_person(
     Path(id): Path<i32>,
     State(state): State<KnotState>,
@@ -161,6 +163,7 @@ pub struct PasswordReset {
 }
 
 #[instrument(level = "debug", skip(auth, state))]
+#[axum::debug_handler]
 pub async fn post_reset_password(
     mut auth: Auth,
     State(state): State<KnotState>,

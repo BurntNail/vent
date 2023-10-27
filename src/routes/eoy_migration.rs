@@ -15,6 +15,7 @@ use crate::{
 };
 
 #[instrument(level = "debug", skip(auth, state))]
+#[axum::debug_handler]
 pub async fn get_eoy_migration(
     auth: Auth,
     State(state): State<KnotState>,
@@ -53,6 +54,7 @@ pub struct FormNameChange {
 }
 
 #[instrument(level = "debug", skip(state))]
+#[axum::debug_handler]
 pub async fn post_eoy_migration(
     State(state): State<KnotState>,
     Form(FormNameChange { old_name, new_name }): Form<FormNameChange>,

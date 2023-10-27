@@ -5,10 +5,11 @@ use axum::{
 use axum_extra::extract::Form;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
 
 use crate::{
     auth::{get_auth_object, Auth},
-    error::KnotError,
+    error::{KnotError, SqlxAction, SqlxSnafu},
     liquid_utils::{compile_with_newtitle, EnvFormatter},
     state::KnotState,
 };
@@ -46,7 +47,8 @@ impl<'a> From<(SmolDbEvent, &'a str)> for SmolFormattedDbEvent {
 }
 
 #[instrument(level = "debug", skip(auth, state))]
-pub async fn get_remove_stuff(
+#[axum::debug_handler]
+pub async fn get_show_all(
     auth: Auth,
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
@@ -68,13 +70,16 @@ FROM people p
         "#
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?;
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingPeople,
+    })?;
     people.sort_by_key(|x| x.surname.clone());
     people.sort_by_key(|x| x.form.clone());
 
     let mut new_people = vec![];
     for person in people {
-        let pts = sqlx::query!("SELECT participant_id FROM participant_events WHERE participant_id = $1 AND is_verified = true", person.id).fetch_all(&mut state.get_connection().await?).await?.len();
+        let pts = sqlx::query!("SELECT COUNT(participant_id) FROM participant_events WHERE participant_id = $1 AND is_verified = true", person.id).fetch_one(&mut state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(person.id.into())) })?.count.unwrap_or(0) as usize;
         new_people.push(SmolPerson {
             first_name: person.first_name,
             surname: person.surname,
@@ -95,7 +100,10 @@ ORDER BY e.date DESC
         "#
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingAllEvents,
+    })?
     .into_iter()
     .map(|event| {
         SmolFormattedDbEvent::from((event, state.settings.niche.date_time_format.as_str()))
@@ -124,6 +132,7 @@ pub struct RemoveEvent {
 }
 
 #[instrument(level = "info", skip(state))]
+#[axum::debug_handler]
 pub async fn post_remove_person(
     State(state): State<KnotState>,
     Form(RemovePerson { person_id }): Form<RemovePerson>,
@@ -138,13 +147,17 @@ WHERE id=$1
             person_id
         )
         .execute(&mut state.get_connection().await?)
-        .await?;
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::RemovingPerson(person_id.into()),
+        })?;
     }
 
     Ok(Redirect::to("/show_all"))
 }
 
 #[instrument(level = "info", skip(state))]
+#[axum::debug_handler]
 pub async fn post_remove_event(
     State(state): State<KnotState>,
     Form(RemoveEvent { event_id }): Form<RemoveEvent>,
@@ -159,7 +172,10 @@ pub async fn post_remove_event(
             event_id
         )
         .execute(&mut state.get_connection().await?)
-        .await?;
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::RemovingEvent(event_id),
+        })?;
     }
 
     Ok(Redirect::to("/show_all"))

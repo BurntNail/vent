@@ -12,6 +12,7 @@ use crate::{
 
 #[allow(clippy::too_many_lines)]
 #[instrument(level = "debug", skip(auth, state))]
+#[axum::debug_handler]
 pub async fn get_index(
     auth: Auth,
     State(state): State<KnotState>,

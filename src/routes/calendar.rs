@@ -16,6 +16,7 @@ use tracing::Instrument;
 use super::public::serve_static_file;
 
 #[instrument(level = "debug", skip(state))]
+#[axum::debug_handler]
 pub async fn get_calendar_feed(
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {

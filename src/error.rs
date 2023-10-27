@@ -14,6 +14,11 @@ use std::{
 };
 
 #[derive(Debug)]
+pub enum LettreAction {
+    BuildMessage,
+}
+
+#[derive(Debug)]
 pub enum WhatToParse {
     PartOfAPerson(PersonField),
 }
@@ -93,7 +98,7 @@ pub enum IOAction {
     ReadingFile(FileIdentifier),
     OpeningFile(FileIdentifier),
     CreatingFile(FileIdentifier),
-    ClosingFile(FileIdentifier),
+    DeletingFile(FileIdentifier),
     ReadingAndOpening(FileIdentifier),
     WritingToFile,
     FlushingFile,
@@ -111,7 +116,7 @@ pub enum ReqwestAction {
 pub enum ConvertingWhatToString {
     FileName(OsString),
     PathBuffer(PathBuf),
-    Header(CommonHeaders),
+    // Header(CommonHeaders),
 }
 
 #[derive(Debug)]
@@ -132,6 +137,7 @@ pub enum LiquidAction {
 pub enum ThreadReason {
     LiquidCompiler,
     FindingExistingFilesWithWalkDir,
+    BuildSpreadsheet,
 }
 
 #[derive(Debug)]
@@ -167,13 +173,19 @@ pub enum SqlxAction {
         new_name: String,
     },
     AddingPerson,
+    RemovingPerson(DatabaseIDMethod),
 
     FindingEvent(i32),
     UpdatingEvent(i32),
     FindingAllEvents,
+    RemovingEvent(i32),
     AddingEvent,
 
     FindingParticipantOrPrefect {
+        person: DatabaseIDMethod,
+        event_id: i32,
+    },
+    UpdatingParticipantOrPrefect {
         person: DatabaseIDMethod,
         event_id: i32,
     },
@@ -187,8 +199,19 @@ pub enum SqlxAction {
     FindingEventsOnPeople {
         person: DatabaseIDMethod,
     },
+    MassVerifying {
+        event_id: i32,
+    },
+
+    RemovingPrefectOrPrefectFromEventByRI {
+        relation_id: i32,
+    },
+    FindingParticipantOrPrefectByRI {
+        relation_id: i32,
+    },
 
     FindingPhotos(DatabaseIDMethod),
+    RemovingPhoto(i32),
     AddingPhotos,
 
     FindingSecret,
@@ -268,7 +291,7 @@ pub enum KnotError {
     NoImageExtension { extension: ImageFormat },
     #[snafu(display("Error creating Zip File: {source:?}"), context(false))]
     Zip { source: async_zip::error::ZipError },
-    #[snafu(display("Error with XLSX: {source:?}"))]
+    #[snafu(display("Error with XLSX: {source:?}"), context(false))]
     Xlsx { source: rust_xlsxwriter::XlsxError },
     #[snafu(display("Error with Encrypting: {source:?}"), context(false))]
     Bcrypt { source: bcrypt::BcryptError },
@@ -284,13 +307,16 @@ pub enum KnotError {
         source: reqwest::Error,
         action: ReqwestAction,
     },
-    #[snafu(display("Error parsing email address: {source:?}"))]
+    #[snafu(display("Error parsing email address: {source:?}"), context(false))]
     LettreAddress {
         source: lettre::address::AddressError,
     },
     #[snafu(display("Error with Emails: {source:?}"))]
-    LettreEmail { source: lettre::error::Error },
-    #[snafu(display("Error with SMTP: {source:?}"))]
+    LettreEmail {
+        source: lettre::error::Error,
+        trying_to: LettreAction,
+    },
+    #[snafu(display("Error with SMTP: {source:?}"), context(false))]
     LettreSMTP {
         source: lettre::transport::smtp::Error,
     },
@@ -337,6 +363,7 @@ pub fn get_error_page(error_code: StatusCode, content: KnotError) -> (StatusCode
     )
 }
 
+#[axum::debug_handler]
 pub async fn not_found_fallback(uri: Uri) -> (StatusCode, Html<String>) {
     get_error_page(
         StatusCode::NOT_FOUND,
@@ -360,7 +387,7 @@ impl IntoResponse for KnotError {
             | KnotError::Multipart { .. }
             | KnotError::Image { .. }
             | KnotError::NoImageExtension { .. }
-            | KnotError::MalformedCSV
+            | KnotError::MalformedCSV { .. }
             | KnotError::MissingCFIP => StatusCode::BAD_REQUEST,
             KnotError::PageNotFound { .. } => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
