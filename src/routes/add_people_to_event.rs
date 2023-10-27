@@ -2,7 +2,7 @@
 
 use crate::{
     auth::{Auth, PermissionsRole},
-    error::KnotError,
+    error::{KnotError, SqlxAction, SqlxSnafu},
     state::KnotState,
 };
 use axum::{
@@ -12,6 +12,7 @@ use axum::{
 use axum_extra::extract::Form;
 use chrono::Utc;
 use serde::Deserialize;
+use snafu::ResultExt;
 
 #[derive(Deserialize)]
 pub struct AddPerson {
@@ -21,6 +22,7 @@ pub struct AddPerson {
 
 ///`POST` method that adds a prefect to an event
 #[instrument(level = "debug", skip(state))]
+#[axum::debug_handler]
 pub async fn post_add_prefect_to_event(
     State(state): State<KnotState>,
     Form(AddPerson {
@@ -38,9 +40,12 @@ pub async fn post_add_prefect_to_event(
             event_id
         )
         .fetch_optional(&mut state.get_connection().await?)
-        .await?
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingPerson(prefect_id.into()),
+        })?
         .is_none()
-        //if we can't find anything assoiated with this prefect and this event
+        //if we can't find anything associated with this prefect and this event
         {
             debug!(%prefect_id, %event_id, "Adding prefect to event");
 
@@ -55,7 +60,13 @@ pub async fn post_add_prefect_to_event(
                 event_id
             )
             .execute(&mut state.get_connection().await?)
-            .await?;
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::AddingParticipantOrPrefect {
+                    person: prefect_id.into(),
+                    event_id,
+                },
+            })?;
         } else {
             warn!(%prefect_id, %event_id, "Prefect already in event");
         }
@@ -66,6 +77,7 @@ pub async fn post_add_prefect_to_event(
 
 ///`POST` method that adds a participant
 #[instrument(level = "debug", skip(state, auth))]
+#[axum::debug_handler]
 pub async fn post_add_participant_to_event(
     auth: Auth,
     State(state): State<KnotState>,
@@ -80,7 +92,10 @@ pub async fn post_add_participant_to_event(
 
     let event_date = sqlx::query!("SELECT date FROM events WHERE id = $1", event_id)
         .fetch_one(&mut state.get_connection().await?)
-        .await?
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingEvent(event_id),
+        })?
         .date;
 
     if event_date < (Utc::now() + chrono::Duration::hours(1)).naive_local()
@@ -100,7 +115,13 @@ pub async fn post_add_participant_to_event(
             event_id
         )
         .fetch_optional(&mut state.get_connection().await?)
-        .await?
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingParticipantOrPrefect {
+                person: participant_id.into(),
+                event_id,
+            },
+        })?
         .is_none()
         //if we can't find anything assoiated with this participant and this event
         {
@@ -123,7 +144,13 @@ pub async fn post_add_participant_to_event(
                 event_id
             )
             .execute(&mut state.get_connection().await?)
-            .await?;
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::AddingParticipantOrPrefect {
+                    person: participant_id.into(),
+                    event_id,
+                },
+            })?;
         } else {
             warn!(%participant_id, %event_id, "Participant already in event.");
         }

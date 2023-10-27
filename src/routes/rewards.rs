@@ -6,10 +6,11 @@ use axum::{
 };
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
 
 use crate::{
     auth::{get_auth_object, Auth},
-    error::KnotError,
+    error::{KnotError, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
     state::KnotState,
 };
@@ -22,6 +23,7 @@ pub struct Reward {
     pub id: i32,
 }
 
+#[axum::debug_handler]
 pub async fn get_rewards(
     auth: Auth,
     State(state): State<KnotState>,
@@ -39,7 +41,10 @@ pub async fn get_rewards(
 
     let general_awards = sqlx::query_as!(Reward, "SELECT * FROM rewards")
         .fetch_all(&mut state.get_connection().await?)
-        .await?;
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::GettingRewards,
+        })?;
     let general_awards_by_id: HashMap<_, _> = general_awards
         .clone()
         .into_iter()
@@ -51,8 +56,8 @@ pub async fn get_rewards(
     for record in sqlx::query!(r#"
     SELECT first_name, surname, form, id, was_first_entry, (select count(*) from participant_events pe where pe.participant_id = id and pe.is_verified = true) as no_events
     FROM people
-    "#).fetch_all(&mut state.get_connection().await?).await? {
-        let already_got_award_ids = sqlx::query!("SELECT reward_id FROM rewards_received WHERE person_id = $1", record.id).fetch_all(&mut state.get_connection().await?).await?.into_iter().map(|x| x.reward_id).collect_vec();
+    "#).fetch_all(&mut state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::FindingPeople })? {
+        let already_got_award_ids = sqlx::query!("SELECT reward_id FROM rewards_received WHERE person_id = $1", record.id).fetch_all(&mut state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(record.id.into())) })?.into_iter().map(|x| x.reward_id).collect_vec();
 
         if already_got_award_ids.len() == general_awards.len() {
             continue;
@@ -93,7 +98,10 @@ pub async fn get_rewards(
 
     for record in sqlx::query!("SELECT * FROM rewards_received")
         .fetch_all(&mut state.get_connection().await?)
-        .await?
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::GettingRewardsReceived(None),
+        })?
     {
         already_awarded_hm
             .entry(record.person_id)
@@ -108,7 +116,10 @@ pub async fn get_rewards(
             person_id
         )
         .fetch_one(&mut state.get_connection().await?)
-        .await?;
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingPerson(person_id.into()),
+        })?;
         already_awarded.push(Person {
             first_name: record.first_name,
             surname: record.surname,
@@ -152,7 +163,10 @@ pub async fn post_add_reward(
         person_id
     )
     .execute(&mut state.get_connection().await?)
-    .await?;
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::AddingReward,
+    })?;
 
     Ok(Redirect::to("/add_reward"))
 }

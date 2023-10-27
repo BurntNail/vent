@@ -3,7 +3,7 @@ use crate::{
         cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP},
         get_auth_object, Auth,
     },
-    error::KnotError,
+    error::{KnotError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile,
     routes::DbPerson,
     state::KnotState,
@@ -16,6 +16,7 @@ use axum::{
 use bcrypt::verify;
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
 
 #[derive(Deserialize)]
 pub struct LoginDetails {
@@ -25,6 +26,7 @@ pub struct LoginDetails {
     pub cf_turnstile_response: String,
 }
 
+#[axum::debug_handler]
 pub async fn get_login(
     auth: Auth,
     State(state): State<KnotState>,
@@ -65,6 +67,7 @@ impl FailureReason {
     }
 }
 
+#[axum::debug_handler]
 pub async fn get_login_failure(
     auth: Auth,
     Path(was_password_related): Path<FailureReason>,
@@ -80,6 +83,7 @@ pub async fn get_login_failure(
     Ok((was_password_related.status_code(), html).into_response())
 }
 
+#[axum::debug_handler]
 pub async fn post_login(
     mut auth: Auth,
     State(state): State<KnotState>,
@@ -104,7 +108,7 @@ WHERE LOWER(username) = LOWER($1)
         username
     )
     .fetch_optional(&mut state.get_connection().await?)
-    .await?;
+    .await.context(SqlxSnafu {action: SqlxAction::FindingPerson(username.into())})?;
 
     let Some(db_user) = db_user else {
         return Ok(Redirect::to("/login_failure/user_not_found"));
@@ -113,7 +117,9 @@ WHERE LOWER(username) = LOWER($1)
     Ok(match &db_user.hashed_password {
         //some of the code below looks weird as otherwise borrow not living long enough
         Some(pw) => Redirect::to(if verify(unhashed_password, pw)? {
-            auth.login(&db_user).await?;
+            auth.login(&db_user).await.context(SerdeJsonSnafu {
+                action: SerdeJsonAction::TryingToLogin,
+            })?;
             "/"
         } else {
             error!("USER FAILED TO LOGIN!!!");
@@ -127,6 +133,7 @@ WHERE LOWER(username) = LOWER($1)
     })
 }
 
+#[axum::debug_handler]
 pub async fn post_logout(mut auth: Auth) -> Result<impl IntoResponse, KnotError> {
     auth.logout().await;
     Ok(Redirect::to("/"))

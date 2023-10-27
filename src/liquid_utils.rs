@@ -1,11 +1,14 @@
-use crate::{error::KnotError, liquid_utils::partials::PARTIALS};
+use crate::{
+    error::{IOAction, IOSnafu, JoinSnafu, KnotError, LiquidAction, LiquidSnafu, ThreadReason},
+    liquid_utils::partials::PARTIALS,
+};
 use axum::response::Html;
 use chrono::NaiveDateTime;
 use liquid::{model::Value, Object, ParserBuilder};
 use once_cell::sync::Lazy;
+use snafu::ResultExt;
 use std::{env::var, fmt::Debug, path::Path};
 use tokio::fs::read_to_string;
-use tracing::Instrument;
 
 pub mod partials;
 
@@ -26,16 +29,13 @@ pub async fn compile_with_newtitle(
     project_name: &str,
     title_additional_info: Option<String>,
 ) -> Result<Html<String>, KnotError> {
-    let (liquid, partial_compiler) = async move {
-        debug!("Reading in file + partials");
-        (
-            read_to_string(path).await,
-            PARTIALS.read().await.to_compiler(),
-        )
-    }
-    .instrument(debug_span!("compile_preparations"))
-    .await;
-    let liquid = liquid?;
+    debug!("Reading in file + partials");
+
+    let path_displayed = format!("{path:?}");
+    let liquid = read_to_string(path).await.context(IOSnafu {
+        action: IOAction::ReadingFile(path_displayed.into()),
+    })?;
+    let partial_compiler = PARTIALS.read().await.to_compiler();
 
     debug!("Inserting globals");
 
@@ -55,18 +55,30 @@ pub async fn compile_with_newtitle(
         })),
     );
 
-    let html = tokio::task::spawn_blocking(move || {
+    let html: Result<String, KnotError> = tokio::task::spawn_blocking(move || {
         debug!("Compiling");
-        ParserBuilder::with_stdlib()
+        let res = ParserBuilder::with_stdlib()
             .partials(partial_compiler)
-            .build()?
-            .parse(&liquid)?
+            .build()
+            .context(LiquidSnafu {
+                attempt: LiquidAction::BuildingCompiler,
+            })?
+            .parse(&liquid)
+            .with_context(|_e| LiquidSnafu {
+                attempt: LiquidAction::Parsing { text: liquid },
+            })?
             .render(&globals)
+            .context(LiquidSnafu {
+                attempt: LiquidAction::Rendering,
+            })?;
+        Ok(res)
     })
-    .instrument(debug_span!("acc_compilation"))
-    .await?;
+    .await
+    .context(JoinSnafu {
+        title: ThreadReason::LiquidCompiler,
+    })?;
 
-    Ok(html?).map(Html)
+    Ok(Html(html?))
 }
 
 #[instrument(level = "debug", skip(globals))]

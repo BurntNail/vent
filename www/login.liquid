@@ -3,43 +3,44 @@
 <h1>Login</h1>
 
 <div class="card">
-  <div class="card-body">
- <div class="alert alert-info">
-                If you haven't set a password yet, then ignore the password field and click login. You should then shortly receive an email with a code and a link which you can use to add a password. 
-                <br>If you've forgotten your password, contact <i>Maguire-J-19</i> (Jack Maguire).
+    <div class="card-body">
+        <div class="alert alert-info">
+            If you haven't set a password yet, then ignore the password field and click login. You should then shortly
+            receive an email with a code and a link which you can use to add a password.
+            <br>If you've forgotten your password, contact <i>Maguire-J-19</i> (Jack Maguire).
         </div>
-  
-    <form action="/login" method="POST">
-      <div class="input-group mb-3">
-        <span class="input-group-text" id="username_label">Username</span>
-        <input
-          type="text"
-          class="form-control"
-          placeholder="X-Y-19"
-          aria-label="Username"
-          aria-describedby="username_label"
-          name="username"
-          required>
-      </div>
 
-      <div class="input-group mb-3">
-        <span class="input-group-text" id="unhashed_password">Password</span>
-        <input
-          type="password"
-          class="form-control"
-          placeholder="Password"
-          aria-label="Password"
-          aria-describedby="unhashed_password"
-          name="unhashed_password">
-      </div>
+        <form action="/login" method="POST">
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="username_label">Username</span>
+                <input
+                        type="text"
+                        class="form-control"
+                        placeholder="X-Y-19"
+                        aria-label="Username"
+                        aria-describedby="username_label"
+                        name="username"
+                        required>
+            </div>
 
-      <div class="mb-3">
-        <div class="cf-turnstile" data-sitekey="{{cft_sitekey}}"></div>
-      </div>
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="unhashed_password">Password</span>
+                <input
+                        type="password"
+                        class="form-control"
+                        placeholder="Password"
+                        aria-label="Password"
+                        aria-describedby="unhashed_password"
+                        name="unhashed_password">
+            </div>
 
-      <button type="submit" class="btn btn-primary">Submit!</button>
-    </form>
-  </div>
+            <div class="mb-3">
+                <div class="cf-turnstile" data-sitekey="{{ cft_sitekey }}"></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Submit!</button>
+        </form>
+    </div>
 </div>
 
 {% include "partials/footer.liquid" %}
