@@ -1,18 +1,21 @@
-use crate::{
-    auth::{get_auth_object, Auth, PermissionsRole},
-    error::KnotError,
-    liquid_utils::{compile_with_newtitle, EnvFormatter},
-    routes::{add_person::NoIDPerson, rewards::Reward, DbPerson},
-    state::KnotState,
-};
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Redirect},
     Form,
 };
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
+
+use crate::{
+    auth::{get_auth_object, Auth, PermissionsRole},
+    error::{KnotError, SqlxAction, SqlxSnafu},
+    liquid_utils::{compile_with_newtitle, EnvFormatter},
+    routes::{add_person::NoIDPerson, rewards::Reward, DbPerson},
+    state::KnotState,
+};
 
 #[instrument(level = "debug", skip(auth, state))]
+#[axum::debug_handler]
 pub async fn get_edit_person(
     auth: Auth,
     Path(id): Path<i32>,
@@ -40,8 +43,8 @@ FROM people WHERE id = $1
         "#,
         id
     )
-    .fetch_one(&mut state.get_connection().await?)
-    .await?;
+        .fetch_one(&mut state.get_connection().await?)
+        .await.context(SqlxSnafu { action: SqlxAction::FindingPerson(id.into()) })?;
     let person = SmolPerson {
         id: person.id,
         permissions: person.permissions,
@@ -72,7 +75,10 @@ ON pe.event_id = e.id AND pe.prefect_id = $1
         person.id
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingPerson(person.id.into()),
+    })?
     .into_iter()
     .map(|r| Event {
         name: r.event_name,
@@ -93,7 +99,12 @@ ON pe.event_id = e.id AND pe.participant_id = $1
         person.id
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingEventsOnPeople {
+            person: person.id.into(),
+        },
+    })?
     .into_iter()
     .map(|r| Event {
         name: r.event_name,
@@ -103,7 +114,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1
     })
     .collect::<Vec<_>>();
 
-    let rewards = sqlx::query_as!(Reward, "select name, first_entry_pts, second_entry_pts, id FROM rewards_received rr inner join rewards r on r.id = rr.reward_id and rr.person_id = $1", person.id).fetch_all(&mut state.get_connection().await?).await?;
+    let rewards = sqlx::query_as!(Reward, "select name, first_entry_pts, second_entry_pts, id FROM rewards_received rr inner join rewards r on r.id = rr.reward_id and rr.person_id = $1", person.id).fetch_all(&mut state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::FindingPerson(person.id.into()) })?;
 
     debug!("Compiling");
 
@@ -111,6 +122,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1
 }
 
 #[instrument(level = "debug", skip(state, first_name, surname))]
+#[axum::debug_handler]
 pub async fn post_edit_person(
     Path(id): Path<i32>,
     State(state): State<KnotState>,
@@ -137,7 +149,10 @@ WHERE id=$1
         permissions as _
     )
     .execute(&mut state.get_connection().await?)
-    .await?;
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::UpdatingPerson(id.into()),
+    })?;
 
     Ok(Redirect::to(&format!("/edit_person/{id}")))
 }
@@ -148,6 +163,7 @@ pub struct PasswordReset {
 }
 
 #[instrument(level = "debug", skip(auth, state))]
+#[axum::debug_handler]
 pub async fn post_reset_password(
     mut auth: Auth,
     State(state): State<KnotState>,

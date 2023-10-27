@@ -1,9 +1,10 @@
 use axum::{extract::State, response::IntoResponse};
 use serde::Serialize;
+use snafu::ResultExt;
 
 use crate::{
     auth::{get_auth_object, Auth},
-    error::KnotError,
+    error::{KnotError, SqlxAction, SqlxSnafu},
     liquid_utils::{compile, EnvFormatter},
     routes::DbEvent,
     state::KnotState,
@@ -11,6 +12,7 @@ use crate::{
 
 #[allow(clippy::too_many_lines)]
 #[instrument(level = "debug", skip(auth, state))]
+#[axum::debug_handler]
 pub async fn get_index(
     auth: Auth,
     State(state): State<KnotState>,
@@ -82,8 +84,10 @@ LIMIT 15
         "#
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?
-    {
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingAllEvents,
+    })? {
         let event = HTMLEvent::from((event, state.settings.niche.date_time_format.as_str()));
 
         let event_id = event.id;
@@ -98,7 +102,12 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
             event_id
         )
         .fetch_all(&mut state.get_connection().await?)
-        .await?
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingParticipantsOrPrefectsAtEvents {
+                event_id: Some(event_id),
+            },
+        })?
         .len();
 
         let participants = sqlx::query_as!(
@@ -112,12 +121,20 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
             event_id
         )
         .fetch_all(&mut state.get_connection().await?)
-        .await?
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingParticipantsOrPrefectsAtEvents {
+                event_id: Some(event_id),
+            },
+        })?
         .len();
 
         let photos = sqlx::query!("SELECT FROM photos WHERE event_id = $1", event_id)
             .fetch_all(&mut state.get_connection().await?)
-            .await?
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::FindingPhotos(event_id.into()),
+            })?
             .len();
 
         events_to_happen.push(WholeEvent {
@@ -139,8 +156,10 @@ LIMIT 10
         "#
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?
-    {
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingAllEvents,
+    })? {
         let event = HTMLEvent::from((event, state.settings.niche.date_time_format.as_str()));
 
         let event_id = event.id;
@@ -155,7 +174,12 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
             event_id
         )
         .fetch_all(&mut state.get_connection().await?)
-        .await?
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingParticipantsOrPrefectsAtEvents {
+                event_id: Some(event_id),
+            },
+        })?
         .len();
 
         let participants = sqlx::query_as!(
@@ -169,12 +193,15 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
                 event_id
             )
             .fetch_all(&mut state.get_connection().await?)
-            .await?
+            .await.context(SqlxSnafu { action: SqlxAction::FindingParticipantsOrPrefectsAtEvents {event_id: Some(event_id)} })?
             .len();
 
         let photos = sqlx::query!("SELECT FROM photos WHERE event_id = $1", event_id)
             .fetch_all(&mut state.get_connection().await?)
-            .await?
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::FindingPhotos(event_id.into()),
+            })?
             .len();
 
         happened_events.push(WholeEvent {

@@ -1,11 +1,16 @@
 use super::public::serve_static_file;
-use crate::{error::KnotError, state::KnotState};
+use crate::{
+    error::{JoinSnafu, KnotError, SqlxAction, SqlxSnafu, ThreadReason},
+    state::KnotState,
+};
 use axum::{extract::State, response::IntoResponse};
 use rust_xlsxwriter::{Color, Format, FormatAlign, Workbook};
+use snafu::ResultExt;
 use std::collections::HashMap;
 use tokio::task;
 
 #[instrument(level = "debug", skip(state))]
+#[axum::debug_handler]
 pub async fn get_spreadsheet(
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
@@ -15,7 +20,10 @@ pub async fn get_spreadsheet(
 SELECT id, first_name, surname, form  FROM people"#
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?;
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingPeople,
+    })?;
     people.sort_by_key(|x| x.surname.clone());
     people.sort_by_key(|x| x.form.clone());
 
@@ -26,7 +34,10 @@ SELECT id, first_name, surname, form  FROM people"#
 SELECT * FROM events"#
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?;
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingAllEvents,
+    })?;
     events.sort_by_key(|r| r.date);
     events.reverse();
 
@@ -37,7 +48,10 @@ SELECT * FROM events"#
         "SELECT participant_id, event_id FROM participant_events WHERE is_verified = true"
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingAllEvents,
+    })?
     .into_iter()
     .for_each(|x| {
         participant_relationships
@@ -114,7 +128,10 @@ SELECT * FROM events"#
 
         Ok(())
     })
-    .await??;
+    .await
+    .context(JoinSnafu {
+        title: ThreadReason::BuildSpreadsheet,
+    })??;
 
     debug!("Serving spreadsheet");
 
