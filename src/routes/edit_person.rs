@@ -8,7 +8,7 @@ use snafu::ResultExt;
 
 use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
-    error::{DatabaseIDMethod, KnotError, SqlxAction, SqlxSnafu},
+    error::{KnotError, SqlxAction, SqlxSnafu},
     liquid_utils::{compile_with_newtitle, EnvFormatter},
     routes::{add_person::NoIDPerson, rewards::Reward, DbPerson},
     state::KnotState,
@@ -43,7 +43,7 @@ FROM people WHERE id = $1
         id
     )
         .fetch_one(&mut state.get_connection().await?)
-        .await.context(SqlxSnafu { action: SqlxAction::FindingPerson(DatabaseIDMethod::Id(id)) })?;
+        .await.context(SqlxSnafu { action: SqlxAction::FindingPerson(id.into()) })?;
     let person = SmolPerson {
         id: person.id,
         permissions: person.permissions,
@@ -76,7 +76,7 @@ ON pe.event_id = e.id AND pe.prefect_id = $1
     .fetch_all(&mut state.get_connection().await?)
     .await
     .context(SqlxSnafu {
-        action: SqlxAction::FindingPerson(DatabaseIDMethod::Id(person.id)),
+        action: SqlxAction::FindingPerson(person.id.into()),
     })?
     .into_iter()
     .map(|r| Event {
@@ -101,7 +101,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingEventsOnPeople {
-            person: DatabaseIDMethod::Id(person.id),
+            person: person.id.into(),
         },
     })?
     .into_iter()
@@ -113,7 +113,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1
     })
     .collect::<Vec<_>>();
 
-    let rewards = sqlx::query_as!(Reward, "select name, first_entry_pts, second_entry_pts, id FROM rewards_received rr inner join rewards r on r.id = rr.reward_id and rr.person_id = $1", person.id).fetch_all(&mut state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::FindingPerson(DatabaseIDMethod::Id(person.id)) })?;
+    let rewards = sqlx::query_as!(Reward, "select name, first_entry_pts, second_entry_pts, id FROM rewards_received rr inner join rewards r on r.id = rr.reward_id and rr.person_id = $1", person.id).fetch_all(&mut state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::FindingPerson(person.id.into()) })?;
 
     debug!("Compiling");
 
@@ -149,7 +149,7 @@ WHERE id=$1
     .execute(&mut state.get_connection().await?)
     .await
     .context(SqlxSnafu {
-        action: SqlxAction::UpdatingPerson(DatabaseIDMethod::Id(id)),
+        action: SqlxAction::UpdatingPerson(id.into()),
     })?;
 
     Ok(Redirect::to(&format!("/edit_person/{id}")))

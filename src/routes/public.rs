@@ -1,6 +1,9 @@
 use crate::{
     auth::cloudflare_turnstile::CommonHeaders,
-    error::{HeadersSnafu, IOAction, IOSnafu, KnotError, UnknownMIMESnafu},
+    error::{
+        FileIdentifier, HeadersSnafu, IOAction, IOSnafu, KnotError, SerdeJsonAction,
+        SerdeJsonSnafu, UnknownMIMESnafu,
+    },
 };
 use axum::{
     body::StreamBody,
@@ -58,8 +61,18 @@ pub async fn serve_static_file(
 }
 
 pub async fn get_log() -> Result<Json<Vec<Value>>, KnotError> {
-    let contents = read_to_string("./precipice-log.json").await?;
-    let items = contents.lines().map(from_str).collect::<Result<_, _>>()?;
+    let contents = read_to_string("./precipice-log.json")
+        .await
+        .context(IOSnafu {
+            action: IOAction::ReadingAndOpening(FileIdentifier::Const("./precipice-log.json")),
+        })?;
+    let items = contents
+        .lines()
+        .map(from_str)
+        .collect::<Result<_, _>>()
+        .context(SerdeJsonSnafu {
+            action: SerdeJsonAction::ParsingLogFile,
+        })?;
     Ok(Json(items))
 }
 

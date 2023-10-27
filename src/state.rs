@@ -10,7 +10,7 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 
 use crate::{
     cfg::Settings,
-    error::{DatabaseIDMethod, KnotError, SqlxAction, SqlxSnafu},
+    error::{KnotError, SqlxAction, SqlxSnafu},
 };
 
 #[derive(Debug)]
@@ -54,7 +54,7 @@ impl KnotState {
                 .fetch_all(&mut self.get_connection().await?)
                 .await
                 .context(SqlxSnafu {
-                    action: SqlxAction::FindingPerson(DatabaseIDMethod::Id(user_id)),
+                    action: SqlxAction::FindingPerson(user_id.into()),
                 })?
                 .into_iter()
                 .map(|x| x.password_link_id.unwrap()) //we check for null above so fine
@@ -78,7 +78,7 @@ impl KnotState {
         .execute(&mut self.get_connection().await?)
         .await
         .context(SqlxSnafu {
-            action: SqlxAction::UpdatingPerson(DatabaseIDMethod::Id(id)),
+            action: SqlxAction::UpdatingPerson(id.into()),
         })?;
 
         let person = sqlx::query!(
@@ -88,7 +88,7 @@ impl KnotState {
         .fetch_one(&mut self.get_connection().await?)
         .await
         .context(SqlxSnafu {
-            action: SqlxAction::FindingPerson(DatabaseIDMethod::Id(id)),
+            action: SqlxAction::FindingPerson(id.into()),
         })?;
 
         self.mail_sender

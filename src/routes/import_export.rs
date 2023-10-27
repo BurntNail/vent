@@ -1,6 +1,9 @@
 use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
-    error::KnotError,
+    error::{
+        EventField, IOAction, IOSnafu, KnotError, MalformedCSVSnafu, ParseBoolSnafu,
+        ParseTimeSnafu, PersonField, SqlxAction, SqlxSnafu, TryingToGetFromCSV, WhatToParse,
+    },
     liquid_utils::compile_with_newtitle,
     routes::public::serve_static_file,
     state::KnotState,
@@ -13,6 +16,7 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use csv_async::{AsyncReaderBuilder, AsyncWriterBuilder};
 use futures::stream::StreamExt;
 use serde::Deserialize;
+use snafu::{OptionExt, ResultExt};
 use std::collections::HashMap;
 use tokio::fs::File;
 use tracing::Instrument;
@@ -48,45 +52,46 @@ pub async fn post_import_people_from_csv(
         .create_reader(text.as_bytes())
         .into_records();
 
-    let res: Result<_, KnotError> = async {
-        let existing_forms: HashMap<String, i32> = sqlx::query!("SELECT id, form FROM people")
+    let existing_forms: HashMap<String, i32> = sqlx::query!("SELECT id, form FROM people")
+        .fetch_all(&mut state.get_connection().await?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingPeople,
+        })?
+        .into_iter()
+        .map(|r| (r.form, r.id))
+        .collect();
+    let existing_first_names: HashMap<String, i32> =
+        sqlx::query!("SELECT id, first_name FROM people")
             .fetch_all(&mut state.get_connection().await?)
-            .await?
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::FindingPeople,
+            })?
             .into_iter()
-            .map(|r| (r.form, r.id))
+            .map(|r| (r.first_name, r.id))
             .collect();
-        let existing_first_names: HashMap<String, i32> =
-            sqlx::query!("SELECT id, surname FROM people")
-                .fetch_all(&mut state.get_connection().await?)
-                .await?
-                .into_iter()
-                .map(|r| (r.surname, r.id))
-                .collect();
-        let existing_surnames: HashMap<String, i32> =
-            sqlx::query!("SELECT id, first_name FROM people")
-                .fetch_all(&mut state.get_connection().await?)
-                .await?
-                .into_iter()
-                .map(|r| (r.first_name, r.id))
-                .collect();
-
-        Ok((existing_forms, existing_first_names, existing_surnames))
-    }
-    .instrument(debug_span!("Getting existing content"))
-    .await;
-    let (existing_forms, existing_first_names, existing_surnames) = res?;
+    let existing_surnames: HashMap<String, i32> = sqlx::query!("SELECT id, surname FROM people")
+        .fetch_all(&mut state.get_connection().await?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingPeople,
+        })?
+        .into_iter()
+        .map(|r| (r.surname, r.id))
+        .collect();
 
     //possibility of baby data races here, but not too important
 
     while let Some(record) = csv_reader.next().await.transpose()? {
         let res: Result<_, KnotError> = async {
             debug!("Getting details from record");
-            let first_name = record.get(0).ok_or(KnotError::MalformedCSV)?;
-            let surname = record.get(1).ok_or(KnotError::MalformedCSV)?;
-            let form = record.get(2).ok_or(KnotError::MalformedCSV)?;
-            let is_prefect: bool = record.get(3).ok_or(KnotError::MalformedCSV)?.parse()?;
-            let username = record.get(4).ok_or(KnotError::MalformedCSV)?;
-            let was_first_entry: bool = record.get(5).ok_or(KnotError::MalformedCSV)?.parse()?;
+            let first_name = record.get(0).context(MalformedCSVSnafu { was_trying_to_get: PersonField::FirstName })?;
+            let surname = record.get(1).context(MalformedCSVSnafu { was_trying_to_get: PersonField::Surname })?;
+            let form = record.get(2).context(MalformedCSVSnafu { was_trying_to_get: PersonField::Form })?;
+            let is_prefect: bool = record.get(3).context(MalformedCSVSnafu { was_trying_to_get: PersonField::IsPrefect })?.parse().context(ParseBoolSnafu { trying_to_parse: WhatToParse::PartOfAPerson(PersonField::IsPrefect) })?;
+            let username = record.get(4).context(MalformedCSVSnafu { was_trying_to_get: PersonField::Username })?;
+            let was_first_entry: bool = record.get(5).context(MalformedCSVSnafu { was_trying_to_get: PersonField::WasFirstEntry })?.parse().context(ParseBoolSnafu { trying_to_parse: WhatToParse::PartOfAPerson(PersonField::WasFirstEntry) })?;
 
             debug!("Checking if needs to be updated rather than created");
 
@@ -119,7 +124,7 @@ pub async fn post_import_people_from_csv(
                     needs_to_update
                 )
                 .execute(&mut state.get_connection().await?)
-                .await?;
+                .await.context(SqlxSnafu { action: SqlxAction::UpdatingPerson(username.to_string().into()) })?;
             } else {
                 debug!("Creating");
                 sqlx::query!(
@@ -135,7 +140,7 @@ pub async fn post_import_people_from_csv(
                     was_first_entry
                 )
                 .execute(&mut state.get_connection().await?)
-                .await?;
+                .await.context(SqlxSnafu { action: SqlxAction::AddingPerson })?;
             }
             Ok(())
         }
@@ -165,14 +170,32 @@ pub async fn post_import_events_from_csv(
         .into_records();
 
     while let Some(record) = csv_reader.next().await.transpose()? {
-        let location = record.get(4).ok_or(KnotError::MalformedCSV)?;
-        let teacher = record.get(3).ok_or(KnotError::MalformedCSV)?;
-        let date = NaiveDate::parse_from_str(
-            record.get(0).ok_or(KnotError::MalformedCSV)?,
-            "%A %d %B %Y",
-        )?;
-        let name = record.get(1).ok_or(KnotError::MalformedCSV)?;
-        let time = NaiveTime::parse_from_str(record.get(2).ok_or(KnotError::MalformedCSV)?, "%R")?;
+        let location = record.get(4).context(MalformedCSVSnafu {
+            was_trying_to_get: TryingToGetFromCSV::Event(EventField::Location),
+        })?;
+        let teacher = record.get(3).context(MalformedCSVSnafu {
+            was_trying_to_get: TryingToGetFromCSV::Event(EventField::Teacher),
+        })?;
+        let date = {
+            let str = record.get(0).context(MalformedCSVSnafu {
+                was_trying_to_get: TryingToGetFromCSV::Event(EventField::Date),
+            })?;
+            NaiveDate::parse_from_str(str, "%A %d %B %Y").context(ParseTimeSnafu {
+                original: str.to_string(),
+            })?
+        };
+        let name = record.get(1).context(MalformedCSVSnafu {
+            was_trying_to_get: TryingToGetFromCSV::Event(EventField::Name),
+        })?;
+        let time = {
+            let str = record.get(2).context(MalformedCSVSnafu {
+                was_trying_to_get: TryingToGetFromCSV::Event(EventField::Time),
+            })?;
+
+            NaiveTime::parse_from_str(str, "%R").context(ParseTimeSnafu {
+                original: str.to_string(),
+            })?
+        };
         let date_time = NaiveDateTime::new(date, time);
 
         debug!(?name, ?date, ?location, "Creating new event");
@@ -187,7 +210,10 @@ VALUES ($1, $2, $3, $4)"#,
             teacher
         )
         .execute(&mut state.get_connection().await?)
-        .await?;
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::AddingEvent,
+        })?;
     }
 
     Ok(Redirect::to("/"))
@@ -196,7 +222,11 @@ VALUES ($1, $2, $3, $4)"#,
 pub async fn export_events_to_csv(
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut asw = AsyncWriterBuilder::new().create_writer(File::create("public/events.csv").await?);
+    let mut asw = AsyncWriterBuilder::new().create_writer(
+        File::create("public/events.csv").await.context(IOSnafu {
+            action: IOAction::CreatingFile("public/events.csv".into()),
+        })?,
+    );
     asw.write_record(&["name", "date_time", "location", "teacher", "other_info"])
         .await?;
 
@@ -220,8 +250,10 @@ pub async fn export_events_to_csv(
         r#"SELECT event_name, date, location, teacher, other_info FROM events"#
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?
-    {
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingAllEvents,
+    })? {
         asw.write_record(&[
             event_name,
             date.format("%Y-%m-%dT%H:%M").to_string(),
@@ -232,7 +264,9 @@ pub async fn export_events_to_csv(
         .await?;
     }
 
-    asw.flush().await?; //flush here to ensure we get the errors
+    asw.flush().await.context(IOSnafu {
+        action: IOAction::FlushingFile,
+    })?; //flush here to ensure we get the errors
     drop(asw);
 
     serve_static_file("public/events.csv").await
@@ -240,7 +274,11 @@ pub async fn export_events_to_csv(
 pub async fn export_people_to_csv(
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let mut asw = AsyncWriterBuilder::new().create_writer(File::create("public/people.csv").await?);
+    let mut asw = AsyncWriterBuilder::new().create_writer(
+        File::create("public/people.csv").await.context(IOSnafu {
+            action: IOAction::CreatingFile("public/people.csv".into()),
+        })?,
+    );
     asw.write_record(&[
         "first_name",
         "surname",
@@ -273,7 +311,7 @@ pub async fn export_people_to_csv(
         r#"SELECT first_name, surname, form, permissions as "permissions: _", username, was_first_entry FROM people"#
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?
+    .await.context(SqlxSnafu { action: SqlxAction::FindingPeople })?
     {
         asw.write_record(&[
             first_name,
@@ -286,7 +324,9 @@ pub async fn export_people_to_csv(
         .await?;
     }
 
-    asw.flush().await?; //flush here to ensure we get the errors
+    asw.flush().await.context(IOSnafu {
+        action: IOAction::FlushingFile,
+    })?; //flush here to ensure we get the errors
     drop(asw);
 
     serve_static_file("public/people.csv").await

@@ -3,7 +3,7 @@ use crate::{
         cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP},
         get_auth_object, Auth,
     },
-    error::{DatabaseIDMethod, KnotError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu},
+    error::{KnotError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile,
     routes::DbPerson,
     state::KnotState,
@@ -48,7 +48,7 @@ pub async fn get_add_password(
         .fetch_one(&mut state.get_connection().await?)
         .await
         .context(SqlxSnafu {
-            action: SqlxAction::FindingPerson(DatabaseIDMethod::Id(id)),
+            action: SqlxAction::FindingPerson(id.into()),
         })?
         .password_link_id
         .is_none()
@@ -59,7 +59,7 @@ pub async fn get_add_password(
         .fetch_one(&mut state.get_connection().await?)
         .await
         .context(SqlxSnafu {
-            action: SqlxAction::FindingPerson(DatabaseIDMethod::Id(id)),
+            action: SqlxAction::FindingPerson(id.into()),
         })?
         .hashed_password
         .is_some()
@@ -76,7 +76,7 @@ WHERE id = $1"#,
         id
     )
     .fetch_one(&mut state.get_connection().await?)
-    .await.context(SqlxSnafu { action: SqlxAction::FindingPerson(DatabaseIDMethod::Id(id)) })?;
+    .await.context(SqlxSnafu { action: SqlxAction::FindingPerson(id.into()) })?;
 
     Ok(compile(
         "www/add_password.liquid",
@@ -120,7 +120,7 @@ pub async fn post_add_password(
         .fetch_one(&mut state.get_connection().await?)
         .await
         .context(SqlxSnafu {
-            action: SqlxAction::FindingPerson(DatabaseIDMethod::Id(id)),
+            action: SqlxAction::FindingPerson(id.into()),
         })?
         .hashed_password
         .is_some()
@@ -132,7 +132,7 @@ pub async fn post_add_password(
         .fetch_one(&mut state.get_connection().await?)
         .await
         .context(SqlxSnafu {
-            action: SqlxAction::FindingPerson(DatabaseIDMethod::Id(id)),
+            action: SqlxAction::FindingPerson(id.into()),
         })?
         .password_link_id;
     let Some(expected) = expected else {
@@ -157,7 +157,7 @@ RETURNING id, first_name, surname, username, form, hashed_password, permissions 
         id
     )
     .fetch_one(&mut state.get_connection().await?)
-    .await.context(SqlxSnafu { action: SqlxAction::UpdatingPerson(DatabaseIDMethod::Id(id)) })?;
+    .await.context(SqlxSnafu { action: SqlxAction::UpdatingPerson(id.into()) })?;
 
     auth.login(&person).await.context(SerdeJsonSnafu {
         action: SerdeJsonAction::TryingToLogin,

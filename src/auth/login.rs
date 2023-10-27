@@ -3,7 +3,7 @@ use crate::{
         cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP},
         get_auth_object, Auth,
     },
-    error::{DatabaseIDMethod, KnotError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu},
+    error::{KnotError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile,
     routes::DbPerson,
     state::KnotState,
@@ -105,7 +105,7 @@ WHERE LOWER(username) = LOWER($1)
         username
     )
     .fetch_optional(&mut state.get_connection().await?)
-    .await.context(SqlxSnafu {action: SqlxAction::FindingPerson(DatabaseIDMethod::Username(username))})?;
+    .await.context(SqlxSnafu {action: SqlxAction::FindingPerson(username.into())})?;
 
     let Some(db_user) = db_user else {
         return Ok(Redirect::to("/login_failure/user_not_found"));

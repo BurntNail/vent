@@ -2,7 +2,7 @@
 
 use crate::{
     auth::{Auth, PermissionsRole},
-    error::{DatabaseIDMethod, KnotError, SqlxAction, SqlxSnafu},
+    error::{KnotError, SqlxAction, SqlxSnafu},
     state::KnotState,
 };
 use axum::{
@@ -41,7 +41,7 @@ pub async fn post_add_prefect_to_event(
         .fetch_optional(&mut state.get_connection().await?)
         .await
         .context(SqlxSnafu {
-            action: SqlxAction::FindingPerson(DatabaseIDMethod::Id(prefect_id)),
+            action: SqlxAction::FindingPerson(prefect_id.into()),
         })?
         .is_none()
         //if we can't find anything associated with this prefect and this event
@@ -62,7 +62,7 @@ pub async fn post_add_prefect_to_event(
             .await
             .context(SqlxSnafu {
                 action: SqlxAction::AddingParticipantOrPrefect {
-                    person: DatabaseIDMethod::Id(prefect_id),
+                    person: prefect_id.into(),
                     event_id,
                 },
             })?;
@@ -116,7 +116,7 @@ pub async fn post_add_participant_to_event(
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingParticipantOrPrefect {
-                person: DatabaseIDMethod::Id(participant_id),
+                person: participant_id.into(),
                 event_id,
             },
         })?
@@ -145,7 +145,7 @@ pub async fn post_add_participant_to_event(
             .await
             .context(SqlxSnafu {
                 action: SqlxAction::AddingParticipantOrPrefect {
-                    person: DatabaseIDMethod::Id(participant_id),
+                    person: participant_id.into(),
                     event_id,
                 },
             })?;

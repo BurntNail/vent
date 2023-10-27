@@ -1,6 +1,6 @@
 use crate::{
     auth::{get_auth_object, Auth},
-    error::{DatabaseIDMethod, KnotError, SqlxAction, SqlxSnafu},
+    error::{KnotError, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
     state::KnotState,
 };
@@ -68,7 +68,7 @@ WHERE id=$4;
     .execute(&mut state.get_connection().await?)
     .await
     .context(SqlxSnafu {
-        action: SqlxAction::UpdatingPerson(DatabaseIDMethod::Id(current_id)),
+        action: SqlxAction::UpdatingPerson(current_id.into()),
     })?;
 
     Ok(Redirect::to("/"))

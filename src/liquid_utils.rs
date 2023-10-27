@@ -33,7 +33,7 @@ pub async fn compile_with_newtitle(
 
     let path_displayed = format!("{path:?}");
     let liquid = read_to_string(path).await.context(IOSnafu {
-        action: IOAction::ReadingFile(path_displayed),
+        action: IOAction::ReadingFile(path_displayed.into()),
     })?;
     let partial_compiler = PARTIALS.read().await.to_compiler();
 

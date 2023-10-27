@@ -1,8 +1,9 @@
 use crate::{
     auth::Auth,
     error::{
-        ConvertingWhatToString, IOAction, IOSnafu, ImageAction, ImageSnafu, KnotError,
-        MissingExtensionSnafu, NoImageExtensionSnafu, SqlxAction, SqlxSnafu, ToStrSnafu,
+        ConvertingWhatToString, DatabaseIDMethod, IOAction, IOSnafu, ImageAction, ImageSnafu,
+        JoinSnafu, KnotError, MissingExtensionSnafu, NoImageExtensionSnafu, SqlxAction, SqlxSnafu,
+        ThreadReason, ToStrSnafu,
     },
     routes::public::serve_static_file,
     state::KnotState,
@@ -77,7 +78,7 @@ WHERE id = $1"#,
                 .fetch_optional(&mut state.get_connection().await?)
                 .await
                 .with_context(|_| SqlxSnafu {
-                    action: SqlxAction::FindingPhotos { path: key.clone() },
+                    action: SqlxAction::FindingPhotos(DatabaseIDMethod::Path(key.clone().into())),
                 })?
                 .is_none()
                 {
@@ -106,7 +107,7 @@ VALUES($1, $2, $3)"#,
             debug!("Writing to file");
 
             let mut file = File::create(&file_name).await.context(IOSnafu {
-                action: IOAction::CreatingFile(file_name),
+                action: IOAction::CreatingFile(file_name.into()),
             })?;
             file.write_all(&data).await.context(IOSnafu {
                 action: IOAction::WritingToFile,
@@ -138,7 +139,7 @@ pub async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoRespon
 
     let path = format!("uploads/{img_path}");
     let file = File::open(&path).await.context(IOSnafu {
-        action: IOAction::OpeningFile(PathBuf::from(path)),
+        action: IOAction::OpeningFile(path.into()),
     })?;
     let body = StreamBody::new(ReaderStream::new(file));
 
@@ -187,7 +188,10 @@ WHERE event_id = $1"#,
         event_id
     )
     .fetch_all(&mut state.get_connection().await?)
-    .await?
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingPhotos(event_id.into()),
+    })?
     .into_iter()
     .map(|x| x.path);
 
@@ -213,7 +217,11 @@ WHERE event_id = $1"#,
             files
         }
 
-        let existing = tokio::task::spawn_blocking(get_existing).await?;
+        let existing = tokio::task::spawn_blocking(get_existing)
+            .await
+            .context(JoinSnafu {
+                title: ThreadReason::FindingExistingFilesWithWalkDir,
+            })?;
 
         let mut rng = thread_rng();
         format!(
@@ -230,44 +238,43 @@ WHERE event_id = $1"#,
 
     debug!("Creating FS stuff");
 
-    let mut file = File::create(&file_name).await?;
+    let mut file = File::create(&file_name).await.context(IOSnafu {
+        action: IOAction::CreatingFile(file_name.clone().into()),
+    })?;
     let mut writer = ZipFileWriter::with_tokio(&mut file);
 
     let mut data = vec![];
     let mut buf = [0; 1024];
 
     for file_path in files_to_find {
-        let res: Result<_, KnotError> = async {
-            debug!(?file_path, "Opening file");
-            let mut file = File::open(&file_path).await?;
+        debug!(?file_path, "Opening file");
+        let mut file = File::open(&file_path).await.context(IOSnafu {
+            action: IOAction::OpeningFile(file_name.clone().into()),
+        })?;
 
-            debug!("Reading file");
+        debug!("Reading file");
 
-            loop {
-                match file.read(&mut buf).await? {
-                    0 => break,
-                    n => {
-                        trace!(%n, "Got bytes");
-                        data.extend(&buf[0..n]);
-                    }
+        loop {
+            match file.read(&mut buf).await.context(IOSnafu {
+                action: IOAction::ReadingFile(file_name.clone().into()),
+            })? {
+                0 => break,
+                n => {
+                    trace!(%n, "Got bytes");
+                    data.extend(&buf[0..n]);
                 }
             }
-
-            debug!("Writing to zip file");
-
-            writer
-                .write_entry_whole(
-                    ZipEntryBuilder::new(file_path.into(), Compression::Deflate),
-                    &data,
-                )
-                .await?;
-            data.clear();
-
-            Ok(())
         }
-        .instrument(debug_span!("reading_file"))
-        .await;
-        res?;
+
+        debug!("Writing to zip file");
+
+        writer
+            .write_entry_whole(
+                ZipEntryBuilder::new(file_path.into(), Compression::Deflate),
+                &data,
+            )
+            .await?;
+        data.clear();
     }
 
     debug!("Closing file");
@@ -286,7 +293,10 @@ WHERE id = $2"#,
         event_id
     )
     .execute(&mut state.get_connection().await?)
-    .await?;
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::UpdatingEvent(event_id),
+    })?;
 
     debug!("Serving");
 

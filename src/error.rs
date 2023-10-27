@@ -14,16 +14,89 @@ use std::{
 };
 
 #[derive(Debug)]
+pub enum WhatToParse {
+    PartOfAPerson(PersonField),
+}
+
+impl From<PersonField> for WhatToParse {
+    fn from(value: PersonField) -> Self {
+        Self::PartOfAPerson(value)
+    }
+}
+
+#[derive(Debug)]
+pub enum PersonField {
+    FirstName,
+    Surname,
+    Form,
+    IsPrefect,
+    Username,
+    WasFirstEntry,
+}
+
+#[derive(Debug)]
+pub enum EventField {
+    Location,
+    Teacher,
+    Date,
+    Name,
+    Time,
+}
+
+#[derive(Debug)]
+pub enum TryingToGetFromCSV {
+    Person(PersonField),
+    Event(EventField),
+}
+
+impl From<PersonField> for TryingToGetFromCSV {
+    fn from(value: PersonField) -> Self {
+        Self::Person(value)
+    }
+}
+impl From<EventField> for TryingToGetFromCSV {
+    fn from(value: EventField) -> Self {
+        Self::Event(value)
+    }
+}
+
+#[derive(Debug)]
 pub enum ImageAction {
     GuessingFormat,
 }
 
 #[derive(Debug)]
+pub enum FileIdentifier {
+    Const(&'static str),
+    Runtime(String),
+    PB(PathBuf),
+}
+
+impl From<&'static str> for FileIdentifier {
+    fn from(value: &'static str) -> Self {
+        Self::Const(value)
+    }
+}
+impl From<String> for FileIdentifier {
+    fn from(value: String) -> Self {
+        Self::Runtime(value)
+    }
+}
+impl From<PathBuf> for FileIdentifier {
+    fn from(value: PathBuf) -> Self {
+        Self::PB(value)
+    }
+}
+
+#[derive(Debug)]
 pub enum IOAction {
-    ReadingFile(String),
-    OpeningFile(PathBuf),
-    CreatingFile(String),
+    ReadingFile(FileIdentifier),
+    OpeningFile(FileIdentifier),
+    CreatingFile(FileIdentifier),
+    ClosingFile(FileIdentifier),
+    ReadingAndOpening(FileIdentifier),
     WritingToFile,
+    FlushingFile,
     ReadingMetadata,
 }
 
@@ -45,6 +118,7 @@ pub enum ConvertingWhatToString {
 pub enum SerdeJsonAction {
     TryingToLogin,
     CloudflareTurnstileResponse,
+    ParsingLogFile,
 }
 
 #[derive(Debug)]
@@ -57,12 +131,29 @@ pub enum LiquidAction {
 #[derive(Debug)]
 pub enum ThreadReason {
     LiquidCompiler,
+    FindingExistingFilesWithWalkDir,
 }
 
 #[derive(Debug)]
 pub enum DatabaseIDMethod {
     Id(i32),
     Username(String),
+    Path(FileIdentifier),
+}
+impl From<i32> for DatabaseIDMethod {
+    fn from(value: i32) -> Self {
+        Self::Id(value)
+    }
+}
+impl From<FileIdentifier> for DatabaseIDMethod {
+    fn from(value: FileIdentifier) -> Self {
+        Self::Path(value)
+    }
+}
+impl From<String> for DatabaseIDMethod {
+    fn from(value: String) -> Self {
+        Self::Username(value)
+    }
 }
 
 #[derive(Debug)]
@@ -97,15 +188,17 @@ pub enum SqlxAction {
         person: DatabaseIDMethod,
     },
 
-    FindingPhotos {
-        path: String,
-    },
+    FindingPhotos(DatabaseIDMethod),
     AddingPhotos,
 
     FindingSecret,
     AddingSecret,
 
     AcquiringConnection,
+
+    GettingRewards,
+    GettingRewardsReceived(Option<DatabaseIDMethod>),
+    AddingReward,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -142,10 +235,16 @@ pub enum KnotError {
         source: tokio::task::JoinError,
         title: ThreadReason,
     },
-    #[snafu(display("Error Parsing Integer: {source:?}"))]
-    ParseInt { source: std::num::ParseIntError },
-    #[snafu(display("Error Parsing Bool: {source:?}"))]
-    ParseBool { source: std::str::ParseBoolError },
+    #[snafu(display("Error Parsing Integer: {source:?} trying to get a {what_to_convert_to:?}"))]
+    ParseInt {
+        source: std::num::ParseIntError,
+        what_to_convert_to: WhatToParse,
+    },
+    #[snafu(display("Error Parsing Bool: {source:?} trying to convert for {trying_to_parse:?}"))]
+    ParseBool {
+        source: std::str::ParseBoolError,
+        trying_to_parse: WhatToParse,
+    },
     #[snafu(display("Error Parsing {original:?} - {source:?}"))]
     ParseTime {
         source: chrono::ParseError,
@@ -167,7 +266,7 @@ pub enum KnotError {
     },
     #[snafu(display("Missing Image Extension: {extension:?}"))]
     NoImageExtension { extension: ImageFormat },
-    #[snafu(display("Error creating Zip File: {source:?}"))]
+    #[snafu(display("Error creating Zip File: {source:?}"), context(false))]
     Zip { source: async_zip::error::ZipError },
     #[snafu(display("Error with XLSX: {source:?}"))]
     Xlsx { source: rust_xlsxwriter::XlsxError },
@@ -195,7 +294,7 @@ pub enum KnotError {
     LettreSMTP {
         source: lettre::transport::smtp::Error,
     },
-    #[snafu(display("Error with CSV Files: {source:?}"))]
+    #[snafu(display("Error with CSV Files: {source:?}"), context(false))]
     Csv { source: csv_async::Error },
     #[snafu(display("JSON error: {source:?} whilst trying to {action:?}"))]
     SerdeJson {
@@ -212,8 +311,10 @@ pub enum KnotError {
     MissingExtension { was_looking_for: PathBuf },
     #[snafu(display("Unknown MIME Type for File: {path:?}"))]
     UnknownMIME { path: PathBuf },
-    #[snafu(display("CSV incorrect format"))]
-    MalformedCSV,
+    #[snafu(display("CSV incorrect format - trying to get {was_trying_to_get:?}"))]
+    MalformedCSV {
+        was_trying_to_get: TryingToGetFromCSV,
+    },
     #[snafu(display("Missing Cloudflare IP in headers"))]
     MissingCFIP,
 }
