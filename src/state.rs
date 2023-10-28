@@ -4,10 +4,14 @@ use lettre::{
     Tokio1Executor,
 };
 use rand::{thread_rng, Rng};
+use snafu::ResultExt;
 use sqlx::{pool::PoolConnection, Pool, Postgres};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 
-use crate::{cfg::Settings, error::KnotError};
+use crate::{
+    cfg::Settings,
+    error::{KnotError, LettreAction, LettreEmailSnafu, SqlxAction, SqlxSnafu},
+};
 
 #[derive(Debug)]
 pub struct EmailToSend {
@@ -38,15 +42,20 @@ impl KnotState {
         }
     }
 
-    pub async fn get_connection(&self) -> Result<PoolConnection<Postgres>, sqlx::Error> {
-        self.postgres.acquire().await
+    pub async fn get_connection(&self) -> Result<PoolConnection<Postgres>, KnotError> {
+        self.postgres.acquire().await.context(SqlxSnafu {
+            action: SqlxAction::AcquiringConnection,
+        })
     }
 
     pub async fn reset_password(&self, user_id: i32) -> Result<(), KnotError> {
         let current_ids =
             sqlx::query!(r#"SELECT password_link_id FROM people WHERE password_link_id <> NULL"#)
                 .fetch_all(&mut self.get_connection().await?)
-                .await?
+                .await
+                .context(SqlxSnafu {
+                    action: SqlxAction::FindingPerson(user_id.into()),
+                })?
                 .into_iter()
                 .map(|x| x.password_link_id.unwrap()) //we check for null above so fine
                 .collect_vec();
@@ -67,14 +76,20 @@ impl KnotState {
             user_id
         )
         .execute(&mut self.get_connection().await?)
-        .await?;
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::UpdatingPerson(id.into()),
+        })?;
 
         let person = sqlx::query!(
             "SELECT username, first_name, surname FROM people WHERE id = $1",
             user_id
         )
         .fetch_one(&mut self.get_connection().await?)
-        .await?;
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingPerson(id.into()),
+        })?;
 
         self.mail_sender
             .send(EmailToSend {
@@ -128,7 +143,10 @@ To set one, go to {}/add_password/{}?code={}.
 
 Have a nice day!"#,
                 to_fullname, project_name, project_domain, to_id, unique_id
-            ))?;
+            ))
+            .context(LettreEmailSnafu {
+                trying_to: LettreAction::BuildMessage,
+            })?;
 
         info!(%to_fullname, %to_id, numbers=%unique_id, "Sending email.");
 

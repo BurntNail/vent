@@ -10,8 +10,8 @@
     <form method="POST">
 
       <div class="input-group mb-3">
-        <span class="input-group-text" id="name">Event Name:
-        </span>
+        <label class="input-group-text" for="name">Event Name:
+        </label>
         <input
           type="text"
           name="name"
@@ -24,8 +24,8 @@
           {% endunless %}>
       </div>
       <div class="input-group mb-3">
-        <span class="input-group-text" id="date">Start Time:
-        </span>
+        <label class="input-group-text" for="date">Start Time:
+        </label>
         <input
           type="datetime-local"
           id="date"
@@ -38,8 +38,8 @@
           {% endunless %}>
       </div>
       <div class="input-group mb-3">
-        <span class="input-group-text" id="location">Location:
-        </span>
+        <label class="input-group-text" for="location">Location:
+        </label>
         <input
           type="text"
           id="location"
@@ -52,8 +52,8 @@
           {% endunless %}>
       </div>
       <div class="input-group mb-3">
-        <span class="input-group-text" id="teacher">Teacher:
-        </span>
+        <label class="input-group-text" for="teacher">Teacher:
+        </label>
         <input
           type="text"
           id="teacher"
@@ -66,10 +66,10 @@
           {% endunless %}>
       </div>
       <div class="input-group mb-3">
-        <span class="input-group-text" id="info">Other Information:
-        </span>
+        <label class="input-group-text" for="info">Other Information:
+        </label>
         <input
-          type="textarea"
+          type="text"
           id="info"
           name="info"
           class="form-control"
@@ -142,7 +142,7 @@
           <h3 class="card-title">Potential</h3>
           {% if auth.permissions["edit_prefects_on_events"] %}
 
-            <h5>Prefects</h3>
+            <h5>Prefects</h5>
             <form method="POST" action="/add_prefect">
               <div class="accordion" id="pot_pres">
                 {% for form in prefects %}
@@ -194,7 +194,7 @@
           {% if auth.permissions["edit_participants_on_events"] %}
 
 
-            <h5>Participants</h3>
+            <h5>Participants</h5>
 
             <form method="POST" action="/add_participant">
               <div class="accordion" id="pot_part">
@@ -251,7 +251,7 @@
       <div class="card-body">
         <h3 class="card-title">Current</h3>
 
-        <h3>Prefects</h3>
+        <h5>Prefects</h5>
         {% if existing_prefects.size > 0 %}
           <ul class="list-group list-group-flush">
             {% for form in existing_prefects %}
@@ -291,7 +291,7 @@
           {% endif %}
 
           <table class="table">
-            <thread>
+            <thead>
               <tr>
                 <th scope="col">Name</th>
                 {% if auth.permissions["edit_participants_on_events"] %}
@@ -303,7 +303,7 @@
                   <th scope="col">Attended</th>
                 {% endif %}
               </tr>
-            </thread>
+            </thead>
             <tbody>
 
             {% for form in existing_participants %}
@@ -312,7 +312,7 @@
               </tr>
               {% for person in form.people %}
               <tr>
-                <td>{{ person.first_name }} {{ person.surname }}</th>
+                <td>{{ person.first_name }} {{ person.surname }}</td>
                 {% if auth.permissions["edit_participants_on_events"] %}
                   <td>
                     <form action="/remove_participant_from_event" method="POST">
@@ -499,7 +499,7 @@
 
 
     {% else %}
-      <p class="warning">You must login to view images.</p>
+      <p class="warning">You must log in to view images.</p>
     {% endif %}
 
   </div>

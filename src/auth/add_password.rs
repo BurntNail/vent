@@ -3,7 +3,7 @@ use crate::{
         cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP},
         get_auth_object, Auth,
     },
-    error::KnotError,
+    error::{KnotError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile,
     routes::DbPerson,
     state::KnotState,
@@ -15,8 +15,10 @@ use axum::{
 };
 use bcrypt::{hash, DEFAULT_COST};
 use serde::Deserialize;
+use snafu::ResultExt;
 
 //tried to use an Option<Path<_>>, but didn't work
+#[axum::debug_handler]
 pub async fn get_blank_add_password(
     auth: Auth,
     State(state): State<KnotState>,
@@ -37,6 +39,7 @@ pub struct Link {
     code: i32,
 }
 
+#[axum::debug_handler]
 pub async fn get_add_password(
     auth: Auth,
     State(state): State<KnotState>,
@@ -45,7 +48,10 @@ pub async fn get_add_password(
 ) -> Result<impl IntoResponse, KnotError> {
     if sqlx::query!("SELECT password_link_id FROM people WHERE id = $1", id)
         .fetch_one(&mut state.get_connection().await?)
-        .await?
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingPerson(id.into()),
+        })?
         .password_link_id
         .is_none()
     {
@@ -53,7 +59,10 @@ pub async fn get_add_password(
     }
     if sqlx::query!("SELECT hashed_password FROM people WHERE id = $1", id)
         .fetch_one(&mut state.get_connection().await?)
-        .await?
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingPerson(id.into()),
+        })?
         .hashed_password
         .is_some()
     {
@@ -69,7 +78,7 @@ WHERE id = $1"#,
         id
     )
     .fetch_one(&mut state.get_connection().await?)
-    .await?;
+    .await.context(SqlxSnafu { action: SqlxAction::FindingPerson(id.into()) })?;
 
     Ok(compile(
         "www/add_password.liquid",
@@ -94,6 +103,7 @@ pub struct AddPasswordForm {
     pub cf_turnstile_response: String,
 }
 
+#[axum::debug_handler]
 pub async fn post_add_password(
     mut auth: Auth,
     State(state): State<KnotState>,
@@ -111,7 +121,10 @@ pub async fn post_add_password(
 
     if sqlx::query!("SELECT hashed_password FROM people WHERE id = $1", id)
         .fetch_one(&mut state.get_connection().await?)
-        .await?
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingPerson(id.into()),
+        })?
         .hashed_password
         .is_some()
     {
@@ -120,7 +133,10 @@ pub async fn post_add_password(
 
     let expected = sqlx::query!("SELECT password_link_id FROM people WHERE id = $1", id)
         .fetch_one(&mut state.get_connection().await?)
-        .await?
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingPerson(id.into()),
+        })?
         .password_link_id;
     let Some(expected) = expected else {
         return Ok(Redirect::to("/login_failure/no_numbers"));
@@ -144,9 +160,11 @@ RETURNING id, first_name, surname, username, form, hashed_password, permissions 
         id
     )
     .fetch_one(&mut state.get_connection().await?)
-    .await?;
+    .await.context(SqlxSnafu { action: SqlxAction::UpdatingPerson(id.into()) })?;
 
-    auth.login(&person).await?;
+    auth.login(&person).await.context(SerdeJsonSnafu {
+        action: SerdeJsonAction::TryingToLogin,
+    })?;
 
     Ok(Redirect::to("/"))
 }

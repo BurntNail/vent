@@ -20,6 +20,7 @@ use crate::{
         pg_session::PostgresSessionStore,
         PermissionsRole, RequireAuth, Store,
     },
+    error::not_found_fallback,
     liquid_utils::partials::reload_partials,
     routes::{
         add_event::{get_add_event_form, post_add_event_form},
@@ -40,7 +41,7 @@ use crate::{
             get_offline, get_people_csv_example, get_sw,
         },
         rewards::{get_rewards, post_add_reward},
-        show_all::{get_remove_stuff, post_remove_event, post_remove_person},
+        show_all::{get_show_all, post_remove_event, post_remove_person},
         spreadsheets::get_spreadsheet,
         update_events::{
             delete_image, get_remove_participant_from_event, get_remove_prefect_from_event,
@@ -202,7 +203,7 @@ FROM people WHERE id = $1
         .route("/256x256.png", get(get_256))
         .route("/people_example.csv", get(get_people_csv_example))
         .route("/events_example.csv", get(get_events_csv_example))
-        .route("/show_all", get(get_remove_stuff))
+        .route("/show_all", get(get_show_all))
         .route("/ical", get(get_calendar_feed))
         .route("/spreadsheet", get(get_spreadsheet))
         .route(
@@ -210,6 +211,7 @@ FROM people WHERE id = $1
             get(get_login_failure),
         )
         .route("/login", get(get_login).post(post_login))
+        .fallback(not_found_fallback)
         .layer(TraceLayer::new_for_http())
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think
         .layer(auth_layer)

@@ -3,40 +3,40 @@
 <h2>Form Migrations</h2>
 
 <table class="table">
-  <thead>
+    <thead>
     <tr>
-      <th scope="col">Current Name</th>
-      <th scope="col">New name</th>
-      <th scope="col">Change</th>
+        <th scope="col">Current Name</th>
+        <th scope="col">New name</th>
+        <th scope="col">Change</th>
     </tr>
-  </thead>
-  <tbody>
+    </thead>
+    <tbody>
     {% for form in forms %}
-      <form method="post">
-        <tr>
-          <th scope="row">
-            <label for="change_{{form}}">
-              <a href="/show_all#{{form}}">{{ form }}</a>
-            </label>
-          </th>
-          <td>
-            <input
-              type="hidden"
-              name="old_name"
-              value="{{form}}">
-            <input
-              type="text"
-              name="new_name"
-              class="form-control"
-              id="change_{{form}}">
-          </td>
-          <td>
-            <button type="submit" class="btn btn-primary">Change!</button>
-          </td>
-        </tr>
-      </form>
+        <form method="post">
+            <tr>
+                <th scope="row">
+                    <label for="change_{{ form }}">
+                        <a href="/show_all#{{ form }}">{{ form }}</a>
+                    </label>
+                </th>
+                <td>
+                    <input
+                            type="hidden"
+                            name="old_name"
+                            value="{{ form }}">
+                    <input
+                            type="text"
+                            name="new_name"
+                            class="form-control"
+                            id="change_{{ form }}">
+                </td>
+                <td>
+                    <button type="submit" class="btn btn-primary">Change!</button>
+                </td>
+            </tr>
+        </form>
     {% endfor %}
-  </tbody>
+    </tbody>
 </table>
 
 {% include "partials/footer.liquid" %}

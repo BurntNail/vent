@@ -2,7 +2,7 @@
 
 use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
-    error::KnotError,
+    error::{KnotError, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
     state::KnotState,
 };
@@ -12,6 +12,7 @@ use axum::{
     Form,
 };
 use serde::Deserialize;
+use snafu::ResultExt;
 
 ///`GET` function to display the add person form
 #[instrument(level = "debug", skip(auth))]
@@ -39,6 +40,7 @@ pub struct NoIDPerson {
 }
 
 #[instrument(level = "info", skip(state, first_name, surname))]
+#[axum::debug_handler]
 pub async fn post_add_person(
     State(state): State<KnotState>,
     Form(NoIDPerson {
@@ -63,7 +65,10 @@ VALUES($1, $2, $3, $4, $5);
         form,
     )
     .execute(&mut state.get_connection().await?)
-    .await?;
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::AddingPerson,
+    })?;
 
     Ok(Redirect::to("/add_person"))
 }
