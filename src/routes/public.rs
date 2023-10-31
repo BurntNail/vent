@@ -70,6 +70,7 @@ pub async fn get_log() -> Result<Json<Vec<Value>>, KnotError> {
     let items = contents
         .lines()
         .map(from_str)
+        .rev()
         .collect::<Result<_, _>>()
         .context(SerdeJsonSnafu {
             action: SerdeJsonAction::ParsingLogFile,
