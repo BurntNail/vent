@@ -103,7 +103,7 @@ impl KnotState {
         Ok(())
     }
 
-    pub fn stop_emails(&self) {
+    pub fn send_stop_notices(&self) {
         self.stop_sender
             .send(())
             .expect("unable to send stop message");
