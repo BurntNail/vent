@@ -122,8 +122,13 @@ async fn main() {
 
     let secret = get_secret(&pool).await.expect("unable to get secret");
 
-    let session_layer = SessionLayer::new(PostgresSessionStore::new(pool.clone()), &secret)
-        .with_session_ttl(Some(Duration::from_secs(60 * 60 * 24 * 60))); // 60 days - around 2 months, and the same as MS
+    let session_layer = SessionLayer::new(
+        PostgresSessionStore::new(pool.clone())
+            .await
+            .expect("unable to make postgres session store"),
+        &secret,
+    )
+    .with_session_ttl(Some(Duration::from_secs(60 * 60 * 24 * 60))); // 60 days - around 2 months, and the same as MS
     let auth_layer = AuthLayer::new(
         Store::new(pool.clone()).with_query(
             r#"

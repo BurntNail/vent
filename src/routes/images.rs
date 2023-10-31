@@ -182,7 +182,7 @@ WHERE id = $1"#,
         debug!(?file_name, %event_id, "Found existing zip file");
         return serve_static_file(file_name).await;
     }
-    info!(%event_id, "Creating new zip file");
+    trace!(%event_id, "Creating new zip file");
 
     let files_to_find = sqlx::query!(
         r#"

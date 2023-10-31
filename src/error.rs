@@ -217,6 +217,8 @@ pub enum SqlxAction {
     FindingSecret,
     AddingSecret,
 
+    DeletingOldSessions,
+
     AcquiringConnection,
 
     GettingRewards,
