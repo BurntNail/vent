@@ -24,7 +24,7 @@ rand = "0.8"
 async_zip = { version = "0.0.15", features = ["tokio", "tokio-fs", "deflate"] }
 csv-async = { version = "1.2", features = ["tokio"] }
 tower-http = { version = "0.4", features = ["trace"] }
-rust_xlsxwriter = {version = "0.50", features = ["chrono"]}
+rust_xlsxwriter = {version = "0.53", features = ["chrono"]}
 axum-login = { version = "0.6", features = ["sqlx", "postgres"] }
 bcrypt = "0.15"
 once_cell = "1.18"
@@ -33,7 +33,7 @@ reqwest = { version = "0.11", features = ["json"] }
 async-trait = "0.1"
 http = "0.2"
 itertools = "0.11"
-lettre = { version = "0.10", features = ["tokio1", "tokio1-rustls-tls", "rustls-tls", "tracing", "builder", "smtp-transport"], default-features = false }
+lettre = { version = "0.11", features = ["tokio1", "tokio1-rustls-tls", "rustls-tls", "tracing", "builder", "smtp-transport"], default-features = false }
 futures = { version = "0.3", default-features = false }
 serde_json = "1.0"
 tower = { version = "0.4", features = ["limit"] }
