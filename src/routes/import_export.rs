@@ -219,6 +219,8 @@ VALUES ($1, $2, $3, $4)"#,
         })?;
     }
 
+    state.update_events()?;
+
     Ok(Redirect::to("/"))
 }
 

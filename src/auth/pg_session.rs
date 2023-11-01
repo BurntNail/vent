@@ -1,9 +1,7 @@
-use crate::error::{KnotError, SqlxAction, SqlxSnafu};
 use axum_login::axum_sessions::async_session::{
     serde_json::from_value, Result as ASResult, Session, SessionStore,
 };
 use serde_json::to_value;
-use snafu::ResultExt;
 use sqlx::{Pool, Postgres};
 
 #[derive(Debug, Clone)]
@@ -12,21 +10,8 @@ pub struct PostgresSessionStore {
 }
 
 impl PostgresSessionStore {
-    pub async fn new(pool: Pool<Postgres>) -> Result<Self, KnotError> {
-        //delete old sessions > 1 day
-        let rows_affected =
-            sqlx::query!("delete FROM sessions WHERE expires < (NOW() - interval '1 day')")
-                .execute(&mut pool.acquire().await.context(SqlxSnafu {
-                    action: SqlxAction::AcquiringConnection,
-                })?)
-                .await
-                .context(SqlxSnafu {
-                    action: SqlxAction::DeletingOldSessions,
-                })?
-                .rows_affected();
-        info!(%rows_affected, "Deleted old sessions");
-
-        Ok(Self { pool })
+    pub fn new(pool: Pool<Postgres>) -> Self {
+        Self { pool }
     }
 }
 

@@ -13,7 +13,8 @@ use tokio::{
     io::AsyncWriteExt,
     sync::{
         broadcast::{
-            channel as broadcast_channel, Receiver as BroadcastReceiver, Sender as BroadcastSender,
+            channel as broadcast_channel, error::TryRecvError, Receiver as BroadcastReceiver,
+            Sender as BroadcastSender,
         },
         mpsc::{unbounded_channel, UnboundedSender},
     },
@@ -48,11 +49,12 @@ pub struct KnotState {
 impl KnotState {
     pub async fn new(postgres: Pool<Postgres>) -> Self {
         let settings = Settings::new().await.expect("unable to get settings");
-        let (stop_senders_tx, stop_senders_rx1) = broadcast_channel(2);
+        let (stop_senders_tx, stop_senders_rx1) = broadcast_channel(3);
 
         let mail_sender = email_sender_thread(settings.clone(), stop_senders_rx1);
         let update_calendar_sender =
             update_calendar_thread(postgres.clone(), stop_senders_tx.subscribe());
+        clear_out_old_sessions_thread(postgres.clone(), stop_senders_tx.subscribe());
 
         Self {
             postgres,
@@ -130,13 +132,17 @@ impl KnotState {
         })
     }
 
-    pub async fn ensure_calendar_exists(&self) -> Result<(), KnotError> {
+    pub async fn ensure_calendar_exists(&self) -> Result<bool, KnotError> {
         if let Err(e) = File::open("./calendar.ics").await {
             warn!(?e, "Tried to open calendar, failed, rebuilding");
             self.update_events()?;
-        }
 
-        Ok(())
+            Ok(false)
+        } else {
+            info!("Successfully found calendar");
+
+            Ok(true)
+        }
     }
 
     pub fn send_stop_notices(&self) {
@@ -144,6 +150,43 @@ impl KnotState {
             .send(())
             .expect("unable to send stop messages");
     }
+}
+
+pub fn clear_out_old_sessions_thread(pool: Pool<Postgres>, mut stop_rx: BroadcastReceiver<()>) {
+    async fn clear_out_old(mut conn: PoolConnection<Postgres>) -> Result<(), KnotError> {
+        let rows_affected =
+            sqlx::query!("delete FROM sessions WHERE expires < (NOW() - interval '1 day')")
+                .execute(&mut conn)
+                .await
+                .context(SqlxSnafu {
+                    action: SqlxAction::DeletingOldSessions,
+                })?
+                .rows_affected();
+
+        info!(%rows_affected, "Deleted old sessions");
+
+        Ok(())
+    }
+
+    tokio::spawn(async move {
+        loop {
+            if !matches!(stop_rx.try_recv(), Err(TryRecvError::Empty)) {
+                info!("Old sessions thread stopping");
+                return;
+            }
+
+            match pool.acquire().await {
+                Ok(conn) => {
+                    if let Err(e) = clear_out_old(conn).await {
+                        error!(?e, "Error clearing out old sessions");
+                    }
+                }
+                Err(e) => error!(?e, "Error getting connection to clear out old sessions"),
+            }
+
+            tokio::time::sleep(Duration::from_secs(60 * 60 * 24)).await; //every day
+        }
+    });
 }
 
 pub fn update_calendar_thread(
@@ -241,26 +284,23 @@ Prefects Attending: {prefects}"#
 
     tokio::spawn(async move {
         loop {
-            if let Some(_) = tokio::select! {
-                _stop = stop_rx.recv() => {
-                    info!("Calendar updater thread stopping");
-                    Some(())
-                },
-                _update = update_rx.recv() => {
-                    match pool.acquire().await {
-                        Ok(conn) => if let Err(e) = update_events(conn).await {
-                            error!(?e, "Error updating calendar!!!");
-                        },
-                        Err(e) => error!(?e, "Error getting connection to update calendar")
-                    }
-
-                    None
-                }
-            } {
+            if !matches!(stop_rx.try_recv(), Err(TryRecvError::Empty)) {
+                info!("Old sessions thread stopping");
                 return;
             }
 
-            tokio::time::sleep(Duration::from_secs(60 * 10)).await;
+            if let Ok(_) = update_rx.try_recv() {
+                match pool.acquire().await {
+                    Ok(conn) => {
+                        if let Err(e) = update_events(conn).await {
+                            error!(?e, "Error updating calendar!!!");
+                        }
+                    }
+                    Err(e) => error!(?e, "Error getting connection to update calendar"),
+                }
+            }
+
+            tokio::time::sleep(Duration::from_secs(60 * 10)).await; //check every 10m
         }
     });
 

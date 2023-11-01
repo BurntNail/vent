@@ -73,5 +73,7 @@ RETURNING id
     })?
     .id;
 
+    state.update_events()?;
+
     Ok(Redirect::to(&format!("/update_event/{id}"))) //redirect to the relevant update event page for that event
 }
