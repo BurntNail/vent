@@ -156,5 +156,7 @@ pub async fn post_add_participant_to_event(
         }
     }
 
+    state.update_events()?;
+
     Ok(Redirect::to(&format!("/update_event/{event_id}"))) //then back to the update event page
 }

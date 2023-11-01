@@ -366,6 +366,8 @@ WHERE id=$1
         action: SqlxAction::UpdatingEvent(event_id),
     })?;
 
+    state.update_events()?;
+
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
 
@@ -392,6 +394,8 @@ RETURNING event_id
         action: SqlxAction::RemovingPrefectOrPrefectFromEventByRI { relation_id },
     })?
     .event_id;
+
+    state.update_events()?;
 
     Ok(Redirect::to(&format!("/update_event/{id}")))
 }

@@ -14,6 +14,11 @@ use std::{
 };
 
 #[derive(Debug)]
+pub enum ChannelReason {
+    SendUpdateCalMessage,
+}
+
+#[derive(Debug)]
 pub enum LettreAction {
     BuildMessage,
 }
@@ -333,6 +338,11 @@ pub enum KnotError {
     Eyre { source: eyre::Error }, //thanks axum_login ;)
     #[snafu(display("Not able page {was_looking_for:?}"))]
     PageNotFound { was_looking_for: Uri },
+    #[snafu(display("Unable to send message {source:?} trying to {reason:?}"))]
+    SendError {
+        source: tokio::sync::mpsc::error::SendError<()>,
+        reason: ChannelReason,
+    },
 
     // internal errors
     #[snafu(display("Missing Extension on: {was_looking_for:?}"))]
