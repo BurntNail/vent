@@ -16,7 +16,7 @@ participants were manually added to a separate spreadsheet, and photos were inco
 This project requires:
 
 - `cargo` and the other rust build tools like a valid `C++` compiler
-- `cargo-sqlx` installed via `cargo` - this is used for postgres migrations
+- [`sqlx-cli`](https://lib.rs/crates/sqlx-cli) installed via `cargo` - this is used for postgres migrations. This project currently uses version 0.6.3.
 - `devenv` or `docker compose` - this is used for the postgres server. `docker` is reccomended, and can be installed through [the docs](https://docs.docker.com/engine/install/ubuntu/).
 - `libssl-dev` - this is used for the axum server
 - `clang` - this is used for the spreadsheet export
