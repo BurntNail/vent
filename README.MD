@@ -17,7 +17,7 @@ This project requires:
 
 - `cargo` and the other rust build tools like a valid `C++` compiler
 - `cargo-sqlx` installed via `cargo` - this is used for postgres migrations
-- `devenv` or `docker compose` - this is used for the postgres server
+- `devenv` or `docker compose` - this is used for the postgres server. `docker` is reccomended, and can be installed through [the docs](https://docs.docker.com/engine/install/ubuntu/).
 - `libssl-dev` - this is used for the axum server
 - `clang` - this is used for the spreadsheet export
 
