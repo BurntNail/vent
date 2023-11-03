@@ -193,10 +193,7 @@
                 value="{{ person.id }}">
         <button
                 type="submit"
-                class="btn btn-danger"
-        {% unless person.password_is_set %}
-            disabled
-                {% endunless %}>Reset Password.
+                class="btn btn-danger">Reset Password.
         </button>
     </form>
 {% endif %}
