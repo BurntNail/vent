@@ -77,7 +77,7 @@ impl KnotState {
                 .fetch_all(&mut self.get_connection().await?)
                 .await
                 .context(SqlxSnafu {
-                    action: SqlxAction::FindingPerson(user_id.into()),
+                    action: SqlxAction::FindingPeople
                 })?
                 .into_iter()
                 .map(|x| x.password_link_id.unwrap()) //we check for null above so fine
