@@ -8,7 +8,6 @@ use axum::response::{IntoResponse, Redirect};
 use liquid::partials::{EagerCompiler, PartialSource};
 use once_cell::sync::Lazy;
 use tokio::{fs::read_to_string, sync::RwLock};
-use tracing::Instrument;
 use walkdir::{DirEntry, WalkDir};
 
 ///Struct to hold all the partials - then I can use a convenience function to easily get a [`PartialCompiler`]
@@ -82,25 +81,20 @@ async fn get_partials() -> HashMap<String, String> {
             })
         })
     {
-        let span = info_span!("adding_partial", ?partial);
-        async {
-            match read_to_string(&partial).await {
-                Ok(source) => {
-                    info!(?partial, "Loading Partial");
-                    if let Some(name) = partial.file_name().and_then(OsStr::to_str) {
-                        in_memory_source.insert(LIQUID_PARTIALS_NAME.to_string() + name, source);
+        match read_to_string(&partial).await {
+            Ok(source) => {
+                info!(?partial, "Loading Partial");
+                if let Some(name) = partial.file_name().and_then(OsStr::to_str) {
+                    in_memory_source.insert(LIQUID_PARTIALS_NAME.to_string() + name, source);
                     //add partial
-                    } else {
-                        error!("Got partial, could not transform name to UTF-8");
-                    }
-                }
-                Err(e) => {
-                    error!(?partial, ?e, "Error reading partial");
+                } else {
+                    error!("Got partial, could not transform name to UTF-8");
                 }
             }
+            Err(e) => {
+                error!(?partial, ?e, "Error reading partial");
+            }
         }
-        .instrument(span)
-        .await;
     }
 
     in_memory_source

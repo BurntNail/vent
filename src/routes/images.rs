@@ -23,7 +23,6 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
 };
 use tokio_util::io::ReaderStream;
-use tracing::Instrument;
 use walkdir::WalkDir;
 
 #[instrument(level = "debug", skip(state, auth))]
@@ -51,73 +50,67 @@ WHERE id = $1"#,
     let user_id = auth.current_user.unwrap().id;
 
     while let Some(field) = multipart.next_field().await? {
-        let res: Result<_, KnotError> = async {
-            debug!("Getting bytes");
-            let data = field.bytes().await?;
+        debug!("Getting bytes");
+        let data = field.bytes().await?;
 
-            debug!(data_len = %data.len(), "Getting format/ext");
+        debug!(data_len = %data.len(), "Getting format/ext");
 
-            let format = image::guess_format(&data).context(ImageSnafu {
-                action: ImageAction::GuessingFormat,
-            })?;
-            let ext = format
-                .extensions_str()
-                .first()
-                .context(NoImageExtensionSnafu { extension: format })?;
+        let format = image::guess_format(&data).context(ImageSnafu {
+            action: ImageAction::GuessingFormat,
+        })?;
+        let ext = format
+            .extensions_str()
+            .first()
+            .context(NoImageExtensionSnafu { extension: format })?;
 
-            debug!("Finding file name");
+        debug!("Finding file name");
 
-            let file_name = loop {
-                let key = format!("uploads/{:x}.{ext}", random::<u128>());
-                if sqlx::query!(
-                    r#"
+        let file_name = loop {
+            let key = format!("uploads/{:x}.{ext}", random::<u128>());
+            if sqlx::query!(
+                r#"
     SELECT * FROM photos
     WHERE path = $1
             "#,
-                    &key
-                )
-                .fetch_optional(&mut state.get_connection().await?)
-                .await
-                .with_context(|_| SqlxSnafu {
-                    action: SqlxAction::FindingPhotos(DatabaseIDMethod::Path(key.clone().into())),
-                })?
-                .is_none()
-                {
-                    break key;
-                }
-                trace!(file_name=?key, "Found");
-            };
+                &key
+            )
+            .fetch_optional(&mut state.get_connection().await?)
+            .await
+            .with_context(|_| SqlxSnafu {
+                action: SqlxAction::FindingPhotos(DatabaseIDMethod::Path(key.clone().into())),
+            })?
+            .is_none()
+            {
+                break key;
+            }
+            trace!(file_name=?key, "Found");
+        };
 
-            debug!(?file_name, "Adding photo to DB");
+        debug!(?file_name, "Adding photo to DB");
 
-            sqlx::query!(
-                r#"
+        sqlx::query!(
+            r#"
 INSERT INTO public.photos
 ("path", event_id, added_by)
 VALUES($1, $2, $3)"#,
-                file_name,
-                event_id,
-                user_id,
-            )
-            .execute(&mut state.get_connection().await?)
-            .await
-            .context(SqlxSnafu {
-                action: SqlxAction::AddingPhotos,
-            })?;
+            file_name,
+            event_id,
+            user_id,
+        )
+        .execute(&mut state.get_connection().await?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::AddingPhotos,
+        })?;
 
-            debug!("Writing to file");
+        debug!("Writing to file");
 
-            let mut file = File::create(&file_name).await.context(IOSnafu {
-                action: IOAction::CreatingFile(file_name.into()),
-            })?;
-            file.write_all(&data).await.context(IOSnafu {
-                action: IOAction::WritingToFile,
-            })?;
-            Ok(())
-        }
-        .instrument(debug_span!("adding_photo"))
-        .await;
-        res?;
+        let mut file = File::create(&file_name).await.context(IOSnafu {
+            action: IOAction::CreatingFile(file_name.into()),
+        })?;
+        file.write_all(&data).await.context(IOSnafu {
+            action: IOAction::WritingToFile,
+        })?;
     }
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
