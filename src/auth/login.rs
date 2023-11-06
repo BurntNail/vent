@@ -122,7 +122,7 @@ WHERE LOWER(username) = LOWER($1)
             })?;
             "/"
         } else {
-            error!("USER FAILED TO LOGIN!!!");
+            error!(username=?db_user.username, "Wrong password for trying to login");
             "/login_failure/bad_password"
         }),
         None => {
