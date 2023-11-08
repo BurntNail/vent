@@ -3,8 +3,10 @@ use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
     error::{IOAction, IOSnafu, KnotError, ParseTimeSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
-    routes::{DbEvent, DbPerson},
-    state::KnotState,
+    state::{
+        db_objects::{DbEvent, DbPerson},
+        KnotState,
+    },
 };
 use axum::{
     extract::{Path, State},

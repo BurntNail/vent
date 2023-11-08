@@ -19,7 +19,6 @@ use serde::Deserialize;
 use snafu::{OptionExt, ResultExt};
 use std::collections::HashMap;
 use tokio::fs::File;
-use tracing::Instrument;
 
 #[axum::debug_handler]
 pub async fn get_import_export_csv(
@@ -86,50 +85,76 @@ pub async fn post_import_people_from_csv(
     //possibility of baby data races here, but not too important
 
     while let Some(record) = csv_reader.next().await.transpose()? {
-        let res: Result<_, KnotError> = async {
-            debug!("Getting details from record");
-            let first_name = record.get(0).context(MalformedCSVSnafu { was_trying_to_get: PersonField::FirstName })?;
-            let surname = record.get(1).context(MalformedCSVSnafu { was_trying_to_get: PersonField::Surname })?;
-            let form = record.get(2).context(MalformedCSVSnafu { was_trying_to_get: PersonField::Form })?;
-            let is_prefect: bool = record.get(3).context(MalformedCSVSnafu { was_trying_to_get: PersonField::IsPrefect })?.parse().context(ParseBoolSnafu { trying_to_parse: WhatToParse::PartOfAPerson(PersonField::IsPrefect) })?;
-            let username = record.get(4).context(MalformedCSVSnafu { was_trying_to_get: PersonField::Username })?;
-            let was_first_entry: bool = record.get(5).context(MalformedCSVSnafu { was_trying_to_get: PersonField::WasFirstEntry })?.parse().context(ParseBoolSnafu { trying_to_parse: WhatToParse::PartOfAPerson(PersonField::WasFirstEntry) })?;
+        debug!("Getting details from record");
+        let first_name = record.get(0).context(MalformedCSVSnafu {
+            was_trying_to_get: PersonField::FirstName,
+        })?;
+        let surname = record.get(1).context(MalformedCSVSnafu {
+            was_trying_to_get: PersonField::Surname,
+        })?;
+        let form = record.get(2).context(MalformedCSVSnafu {
+            was_trying_to_get: PersonField::Form,
+        })?;
+        let is_prefect: bool = record
+            .get(3)
+            .context(MalformedCSVSnafu {
+                was_trying_to_get: PersonField::IsPrefect,
+            })?
+            .parse()
+            .context(ParseBoolSnafu {
+                trying_to_parse: WhatToParse::PartOfAPerson(PersonField::IsPrefect),
+            })?;
+        let username = record.get(4).context(MalformedCSVSnafu {
+            was_trying_to_get: PersonField::Username,
+        })?;
+        let was_first_entry: bool = record
+            .get(5)
+            .context(MalformedCSVSnafu {
+                was_trying_to_get: PersonField::WasFirstEntry,
+            })?
+            .parse()
+            .context(ParseBoolSnafu {
+                trying_to_parse: WhatToParse::PartOfAPerson(PersonField::WasFirstEntry),
+            })?;
 
-            debug!("Checking if needs to be updated rather than created");
+        debug!("Checking if needs to be updated rather than created");
 
-            let mut needs_to_update = None;
+        let mut needs_to_update = None;
 
-            if let Some(form_id) = existing_forms.get(form) {
-                if let Some(fn_id) = existing_first_names.get(first_name) {
-                    if form_id == fn_id {
-                        if let Some(sn_id) = existing_surnames.get(surname) {
-                            if sn_id == form_id {
-                                needs_to_update = Some(form_id);
-                            }
+        if let Some(form_id) = existing_forms.get(form) {
+            if let Some(fn_id) = existing_first_names.get(first_name) {
+                if form_id == fn_id {
+                    if let Some(sn_id) = existing_surnames.get(surname) {
+                        if sn_id == form_id {
+                            needs_to_update = Some(form_id);
                         }
                     }
                 }
             }
+        }
 
-            let perms = if is_prefect {
-                PermissionsRole::Prefect
-            } else {
-                PermissionsRole::Participant
-            };
+        let perms = if is_prefect {
+            PermissionsRole::Prefect
+        } else {
+            PermissionsRole::Participant
+        };
 
-            if let Some(needs_to_update) = needs_to_update {
-                debug!("Updating");
-                sqlx::query!(
-                    "UPDATE people SET permissions = $1, username = $2 WHERE id = $3",
-                    perms as _,
-                    username,
-                    needs_to_update
-                )
-                .execute(&mut state.get_connection().await?)
-                .await.context(SqlxSnafu { action: SqlxAction::UpdatingPerson(username.to_string().into()) })?;
-            } else {
-                debug!("Creating");
-                sqlx::query!(
+        if let Some(needs_to_update) = needs_to_update {
+            debug!("Updating");
+            sqlx::query!(
+                "UPDATE people SET permissions = $1, username = $2 WHERE id = $3",
+                perms as _,
+                username,
+                needs_to_update
+            )
+            .execute(&mut state.get_connection().await?)
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::UpdatingPerson(username.to_string().into()),
+            })?;
+        } else {
+            debug!("Creating");
+            sqlx::query!(
                     r#"INSERT INTO public.people
             (first_name, surname, form, hashed_password, permissions, username, password_link_id, was_first_entry)
             VALUES($1, $2, $3, NULL, $4, $5, NULL, $6);
@@ -143,12 +168,7 @@ pub async fn post_import_people_from_csv(
                 )
                 .execute(&mut state.get_connection().await?)
                 .await.context(SqlxSnafu { action: SqlxAction::AddingPerson })?;
-            }
-            Ok(())
         }
-        .instrument(debug_span!("dealing_with_import_people"))
-        .await;
-        res?;
     }
 
     Ok(Redirect::to("/"))

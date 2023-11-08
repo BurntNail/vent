@@ -5,8 +5,7 @@ use crate::{
     },
     error::{KnotError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile,
-    routes::DbPerson,
-    state::KnotState,
+    state::{db_objects::DbPerson, KnotState},
 };
 use axum::{
     extract::{Path, State},

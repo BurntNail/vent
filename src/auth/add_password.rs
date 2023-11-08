@@ -5,8 +5,7 @@ use crate::{
     },
     error::{KnotError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile,
-    routes::DbPerson,
-    state::KnotState,
+    state::{db_objects::DbPerson, mail::EmailToSend, KnotState},
 };
 use axum::{
     extract::{Path, Query, State},
@@ -14,8 +13,11 @@ use axum::{
     Form,
 };
 use bcrypt::{hash, DEFAULT_COST};
+use itertools::Itertools;
+use rand::{thread_rng, Rng};
 use serde::Deserialize;
 use snafu::ResultExt;
+use sqlx::{pool::PoolConnection, Postgres};
 
 //tried to use an Option<Path<_>>, but didn't work
 #[axum::debug_handler]
@@ -46,17 +48,21 @@ pub async fn get_add_password(
     Path(id): Path<i32>,
     Query(Link { code: link_thingie }): Query<Link>,
 ) -> Result<impl IntoResponse, KnotError> {
-    if sqlx::query!("SELECT password_link_id FROM people WHERE id = $1", id)
+    let correct_code = sqlx::query!("SELECT password_link_id FROM people WHERE id = $1", id)
         .fetch_one(&mut state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingPerson(id.into()),
         })?
-        .password_link_id
-        .is_none()
-    {
+        .password_link_id;
+
+    let Some(correct_code) = correct_code else {
         return Ok(Redirect::to("/login_failure/no_numbers").into_response());
-    }
+    };
+    if correct_code != link_thingie {
+        return Ok(Redirect::to("/login_failure/failed_numbers").into_response());
+    };
+
     if sqlx::query!("SELECT hashed_password FROM people WHERE id = $1", id)
         .fetch_one(&mut state.get_connection().await?)
         .await
@@ -167,4 +173,58 @@ RETURNING id, first_name, surname, username, form, hashed_password, permissions 
     })?;
 
     Ok(Redirect::to("/"))
+}
+
+pub async fn get_email_to_be_sent_for_reset_password(
+    mut connection: PoolConnection<Postgres>,
+    user_id: i32,
+) -> Result<EmailToSend, KnotError> {
+    let current_ids =
+        sqlx::query!(r#"SELECT password_link_id FROM people WHERE password_link_id <> NULL"#)
+            .fetch_all(&mut connection)
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::FindingPerson(user_id.into()),
+            })?
+            .into_iter()
+            .map(|x| x.password_link_id.unwrap()) //we check for null above so fine
+            .collect_vec();
+
+    let id: i32 = {
+        let mut rng = thread_rng();
+        let mut tester = rng.gen::<u16>();
+        while current_ids.contains(&(tester.into())) {
+            tester = rng.gen::<u16>();
+        }
+        tester
+    }
+    .into(); //ensure always positive
+
+    sqlx::query!(
+        "UPDATE people SET password_link_id = $1, hashed_password = NULL WHERE id = $2",
+        id,
+        user_id
+    )
+    .execute(&mut connection)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::UpdatingPerson(id.into()),
+    })?;
+
+    let person = sqlx::query!(
+        "SELECT username, first_name, surname FROM people WHERE id = $1",
+        user_id
+    )
+    .fetch_one(&mut connection)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingPerson(id.into()),
+    })?;
+
+    Ok(EmailToSend {
+        to_username: person.username,
+        to_id: user_id,
+        to_fullname: format!("{} {}", person.first_name, person.surname),
+        unique_id: id,
+    })
 }

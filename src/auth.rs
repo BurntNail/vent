@@ -5,7 +5,7 @@ pub mod pg_session;
 
 use crate::{
     error::{KnotError, SqlxAction, SqlxSnafu},
-    routes::DbPerson,
+    state::db_objects::DbPerson,
 };
 use axum_login::{
     extractors::AuthContext, secrecy::SecretVec, AuthUser, PostgresStore, RequireAuthorizationLayer,

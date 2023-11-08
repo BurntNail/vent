@@ -1,8 +1,12 @@
+use crate::error::{KnotError, SqlxAction, SqlxSnafu};
 use axum_login::axum_sessions::async_session::{
     serde_json::from_value, Result as ASResult, Session, SessionStore,
 };
 use serde_json::to_value;
-use sqlx::{Pool, Postgres};
+use snafu::ResultExt;
+use sqlx::{pool::PoolConnection, Pool, Postgres};
+use std::time::Duration;
+use tokio::sync::broadcast::{error::TryRecvError, Receiver as BroadcastReceiver};
 
 #[derive(Debug, Clone)]
 pub struct PostgresSessionStore {
@@ -96,4 +100,41 @@ impl SessionStore for PostgresSessionStore {
 
         Ok(())
     }
+}
+
+pub fn clear_out_old_sessions_thread(pool: Pool<Postgres>, mut stop_rx: BroadcastReceiver<()>) {
+    async fn clear_out_old(mut conn: PoolConnection<Postgres>) -> Result<(), KnotError> {
+        let rows_affected =
+            sqlx::query!("delete FROM sessions WHERE expires < (NOW() - interval '1 day')")
+                .execute(&mut conn)
+                .await
+                .context(SqlxSnafu {
+                    action: SqlxAction::DeletingOldSessions,
+                })?
+                .rows_affected();
+
+        info!(%rows_affected, "Deleted old sessions");
+
+        Ok(())
+    }
+
+    tokio::spawn(async move {
+        loop {
+            if !matches!(stop_rx.try_recv(), Err(TryRecvError::Empty)) {
+                info!("Old sessions thread stopping");
+                return;
+            }
+
+            match pool.acquire().await {
+                Ok(conn) => {
+                    if let Err(e) = clear_out_old(conn).await {
+                        error!(?e, "Error clearing out old sessions");
+                    }
+                }
+                Err(e) => error!(?e, "Error getting connection to clear out old sessions"),
+            }
+
+            tokio::time::sleep(Duration::from_secs(60 * 60 * 24)).await; //every day
+        }
+    });
 }
