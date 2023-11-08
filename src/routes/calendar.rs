@@ -43,23 +43,23 @@ pub fn update_calendar_thread(
             r#"
     SELECT id, first_name, surname FROM people p WHERE p.permissions != 'participant'"#
         )
-        .fetch_all(&mut conn)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::FindingPeople,
-        })?
-        .into_iter()
-        .map(|x| (x.id, format!("{} {}", x.first_name, x.surname)))
-        .collect::<HashMap<_, _>>();
+            .fetch_all(&mut conn)
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::FindingPeople,
+            })?
+            .into_iter()
+            .map(|x| (x.id, format!("{} {}", x.first_name, x.surname)))
+            .collect::<HashMap<_, _>>();
         let relations = sqlx::query!(
             r#"
     SELECT event_id, prefect_id FROM prefect_events"#
         )
-        .fetch_all(&mut conn)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::FindingParticipantsOrPrefectsAtEvents { event_id: None },
-        })?;
+            .fetch_all(&mut conn)
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::FindingParticipantsOrPrefectsAtEvents { event_id: None },
+            })?;
 
         for rec in relations {
             if let Some(name) = prefects.get(&rec.event_id).cloned() {
