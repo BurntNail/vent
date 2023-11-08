@@ -31,8 +31,8 @@ impl SessionStore for PostgresSessionStore {
             "SELECT * FROM sessions WHERE id = $1 AND (expires IS NULL OR expires > NOW())",
             id,
         )
-            .fetch_optional(&mut self.pool.acquire().await?)
-            .await?;
+        .fetch_optional(&mut self.pool.acquire().await?)
+        .await?;
 
         if let Some(json) = json {
             let fv = from_value::<Session>(json.session_json)?;
@@ -47,9 +47,9 @@ impl SessionStore for PostgresSessionStore {
             "SELECT id FROM sessions WHERE id = $1",
             session.id().to_string()
         )
-            .fetch_optional(&mut self.pool.acquire().await?)
-            .await?
-            .is_some()
+        .fetch_optional(&mut self.pool.acquire().await?)
+        .await?
+        .is_some()
         {
             sqlx::query!(
                 "UPDATE sessions SET session_json = $2, expires = $3 WHERE id = $1",
@@ -57,8 +57,8 @@ impl SessionStore for PostgresSessionStore {
                 to_value(session.clone())?,
                 session.expiry().copied().map(|x| x.naive_local())
             )
-                .execute(&mut self.pool.acquire().await?)
-                .await?;
+            .execute(&mut self.pool.acquire().await?)
+            .await?;
         } else {
             sqlx::query!(
                 "INSERT INTO sessions (id, session_json, expires) VALUES ($1, $2, $3)",
@@ -66,8 +66,8 @@ impl SessionStore for PostgresSessionStore {
                 to_value(session.clone())?,
                 session.expiry().copied().map(|x| x.naive_local())
             )
-                .execute(&mut self.pool.acquire().await?)
-                .await?;
+            .execute(&mut self.pool.acquire().await?)
+            .await?;
         }
 
         trace!(id=?session.id(), "Storing");
@@ -82,8 +82,8 @@ impl SessionStore for PostgresSessionStore {
             "DELETE FROM sessions WHERE id = $1",
             session.id().to_string()
         )
-            .execute(&mut self.pool.acquire().await?)
-            .await?;
+        .execute(&mut self.pool.acquire().await?)
+        .await?;
 
         trace!(id=?session.id(), "Destroying");
 
