@@ -6,8 +6,7 @@ use crate::{
     auth::{get_auth_object, Auth},
     error::{KnotError, SqlxAction, SqlxSnafu},
     liquid_utils::{compile, EnvFormatter},
-    routes::DbEvent,
-    state::KnotState,
+    state::{db_objects::DbEvent, KnotState},
 };
 
 #[allow(clippy::too_many_lines)]
@@ -150,7 +149,7 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
         r#"
 SELECT *
 FROM events e
-WHERE e.date < now()
+WHERE e.date < (now() - interval '12 hours')
 ORDER BY e.date DESC
 LIMIT 10
         "#

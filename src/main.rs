@@ -114,6 +114,7 @@ async fn main() {
     PARTIALS.write().await.reload().await;
 
     let db_url = std::env::var("DATABASE_URL").expect("DB URL must be set");
+
     let pool = PgPoolOptions::new()
         .max_connections(98) //100 - 2 to keep space for an emergency dbeaver instance etc (100 from here: https://www.postgresql.org/docs/current/runtime-config-connection.html)
         .connect(&db_url)
