@@ -6,8 +6,7 @@ use crate::{
     auth::{get_auth_object, Auth},
     error::{KnotError, SqlxAction, SqlxSnafu},
     liquid_utils::{compile, EnvFormatter},
-    routes::DbEvent,
-    state::KnotState,
+    state::{db_objects::DbEvent, KnotState},
 };
 
 #[allow(clippy::too_many_lines)]

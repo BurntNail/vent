@@ -2,8 +2,8 @@
 
 use crate::{
     error::{IOAction, IOSnafu, KnotError, SqlxAction, SqlxSnafu},
-    routes::{public::serve_static_file, DbEvent},
-    state::KnotState,
+    routes::public::serve_static_file,
+    state::{db_objects::DbEvent, KnotState},
 };
 use axum::{extract::State, response::IntoResponse};
 use icalendar::{Calendar, Component, Event, EventLike};

@@ -5,8 +5,7 @@ use crate::{
     },
     error::{KnotError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile,
-    routes::DbPerson,
-    state::{mail::EmailToSend, KnotState},
+    state::{db_objects::DbPerson, mail::EmailToSend, KnotState},
 };
 use axum::{
     extract::{Path, Query, State},
@@ -49,17 +48,21 @@ pub async fn get_add_password(
     Path(id): Path<i32>,
     Query(Link { code: link_thingie }): Query<Link>,
 ) -> Result<impl IntoResponse, KnotError> {
-    if sqlx::query!("SELECT password_link_id FROM people WHERE id = $1", id)
+    let correct_code = sqlx::query!("SELECT password_link_id FROM people WHERE id = $1", id)
         .fetch_one(&mut state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingPerson(id.into()),
         })?
-        .password_link_id
-        .is_none()
-    {
+        .password_link_id;
+
+    let Some(correct_code) = correct_code else {
         return Ok(Redirect::to("/login_failure/no_numbers").into_response());
-    }
+    };
+    if correct_code != link_thingie {
+        return Ok(Redirect::to("/login_failure/failed_numbers").into_response());
+    };
+
     if sqlx::query!("SELECT hashed_password FROM people WHERE id = $1", id)
         .fetch_one(&mut state.get_connection().await?)
         .await

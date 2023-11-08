@@ -83,7 +83,7 @@ Have a nice day!"#,
                 msg = msg_rx.recv() => match msg {
                     None => Some(Ok(())),
                     Some(msg) => {
-                        if let Err(e) = send_email(msg, &mailer, &mail_settings.username, &mail_settings.password, &mail_settings.smtp, &settings.brand.domain).await {
+                        if let Err(e) = send_email(msg, &mailer, &mail_settings.username, &mail_settings.username_domain, &settings.brand.instance_name, &settings.brand.domain).await {
                             error!(?e, "Error sending email");
                         }
 

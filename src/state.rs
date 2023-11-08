@@ -1,4 +1,7 @@
+pub mod db;
 pub mod mail;
+
+pub mod db_objects;
 
 use snafu::ResultExt;
 use sqlx::{pool::PoolConnection, Pool, Postgres};
@@ -18,16 +21,19 @@ use crate::{
     cfg::Settings,
     error::{ChannelReason, KnotError, SendSnafu, SqlxAction, SqlxSnafu},
     routes::calendar::update_calendar_thread,
-    state::mail::{email_sender_thread, EmailToSend},
+    state::{
+        db::KnotDatabase,
+        mail::{email_sender_thread, EmailToSend},
+    },
 };
 
 #[derive(Clone, Debug)]
 pub struct KnotState {
-    postgres: Pool<Postgres>,
     mail_sender: UnboundedSender<EmailToSend>,
     update_calendar_sender: UnboundedSender<()>,
     stop_senders: BroadcastSender<()>,
     pub settings: Settings,
+    database: KnotDatabase,
 }
 
 impl KnotState {
@@ -40,8 +46,10 @@ impl KnotState {
             update_calendar_thread(postgres.clone(), stop_senders_tx.subscribe());
         clear_out_old_sessions_thread(postgres.clone(), stop_senders_tx.subscribe());
 
+        let database = KnotDatabase::new(postgres);
+
         Self {
-            postgres,
+            database,
             mail_sender,
             update_calendar_sender,
             stop_senders: stop_senders_tx,
@@ -50,7 +58,7 @@ impl KnotState {
     }
 
     pub async fn get_connection(&self) -> Result<PoolConnection<Postgres>, KnotError> {
-        self.postgres.acquire().await.context(SqlxSnafu {
+        self.database.pool.acquire().await.context(SqlxSnafu {
             action: SqlxAction::AcquiringConnection,
         })
     }

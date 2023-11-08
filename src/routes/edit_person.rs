@@ -10,8 +10,8 @@ use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
     error::{KnotError, SqlxAction, SqlxSnafu},
     liquid_utils::{compile_with_newtitle, EnvFormatter},
-    routes::{add_person::NoIDPerson, rewards::Reward, DbPerson},
-    state::KnotState,
+    routes::{add_person::NoIDPerson, rewards::Reward},
+    state::{db_objects::DbPerson, KnotState},
 };
 
 #[instrument(level = "debug", skip(auth, state))]
