@@ -9,7 +9,7 @@ use axum::{extract::State, response::IntoResponse};
 use icalendar::{Calendar, Component, Event, EventLike};
 use snafu::ResultExt;
 use sqlx::{pool::PoolConnection, Pool, Postgres};
-use std::{collections::HashMap, time::Duration};
+use std::{time::Duration};
 use tokio::{
     fs::File,
     io::AsyncWriteExt,
@@ -37,41 +37,10 @@ pub fn update_calendar_thread(
     let (update_tx, mut update_rx) = unbounded_channel();
 
     async fn update_events(mut conn: PoolConnection<Postgres>) -> Result<(), VentError> {
-        let mut prefect_events: HashMap<i32, Vec<String>> = HashMap::new();
-
-        let prefects = sqlx::query!(
-            r#"
-    SELECT id, first_name, surname FROM people p WHERE p.permissions != 'participant'"#
-        )
-        .fetch_all(&mut conn)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::FindingPeople,
-        })?
-        .into_iter()
-        .map(|x| (x.id, format!("{} {}", x.first_name, x.surname)))
-        .collect::<HashMap<_, _>>();
-        let relations = sqlx::query!(
-            r#"
-    SELECT event_id, prefect_id FROM prefect_events"#
-        )
-        .fetch_all(&mut conn)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::FindingParticipantsOrPrefectsAtEvents { event_id: None },
-        })?;
-
-        for rec in relations {
-            if let Some(name) = prefects.get(&rec.event_id).cloned() {
-                prefect_events.entry(rec.event_id).or_default().push(name);
-            }
-        }
-
-        debug!(?prefect_events, "Worked out PEs");
-
         let mut calendar = Calendar::new();
+
         for DbEvent {
-            id,
+            id: _id,
             event_name,
             date,
             location,
@@ -86,10 +55,6 @@ pub fn update_calendar_thread(
             })?
         {
             let other_info = other_info.unwrap_or_default();
-            let prefects = prefect_events
-                .get(&id)
-                .map(|x| x.join(", "))
-                .unwrap_or_default();
 
             debug!(?event_name, ?date, "Adding event to calendar");
 
@@ -102,8 +67,7 @@ pub fn update_calendar_thread(
                     .description(&format!(
                         r#"
 Teacher: {teacher}
-Other Information: {other_info}
-Prefects Attending: {prefects}"#
+Other Information: {other_info}"#
                     ))
                     .done(),
             );

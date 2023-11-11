@@ -166,6 +166,7 @@ FROM people WHERE id = $1
         .route("/verify_participant", post(post_verify_person))
         .route("/unverify_participant", post(post_unverify_person))
         .route("/verify_all", post(post_verify_everyone))
+        .route("/spreadsheet", get(get_spreadsheet))
         .route_layer(RequireAuth::login_with_role(PermissionsRole::Prefect..)) //prefect ^
         .route("/add_image/:event_id", post(post_add_photo))
         .route("/add_participant", post(post_add_participant_to_event))
@@ -206,7 +207,6 @@ FROM people WHERE id = $1
         .route("/events_example.csv", get(get_events_csv_example))
         .route("/show_all", get(get_show_all))
         .route("/ical", get(get_calendar_feed))
-        .route("/spreadsheet", get(get_spreadsheet))
         .route(
             "/login_failure/:was_password_related",
             get(get_login_failure),
