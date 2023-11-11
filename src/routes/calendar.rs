@@ -14,7 +14,7 @@ use tokio::{
     fs::File,
     io::AsyncWriteExt,
     sync::{
-        broadcast::{error::TryRecvError, Receiver as BroadcastReceiver},
+        broadcast::Receiver as BroadcastReceiver,
         mpsc::{unbounded_channel, UnboundedSender},
     },
 };
@@ -125,23 +125,25 @@ Prefects Attending: {prefects}"#
 
     tokio::spawn(async move {
         loop {
-            if !matches!(stop_rx.try_recv(), Err(TryRecvError::Empty)) {
-                info!("Old sessions thread stopping");
+            if tokio::select! {
+                _stop = stop_rx.recv() => {
+                    info!("Mail thread stopping");
+                    true
+                },
+                _msg = update_rx.recv() => {
+                    match pool.acquire().await {
+                        Ok(conn) => {
+                            if let Err(e) = update_events(conn).await {
+                                error!(?e, "Error updating calendar!!!");
+                            }
+                        }
+                        Err(e) => error!(?e, "Error getting connection to update calendar"),
+                    }
+                    false
+                }
+            } {
                 return;
             }
-
-            if let Ok(_) = update_rx.try_recv() {
-                match pool.acquire().await {
-                    Ok(conn) => {
-                        if let Err(e) = update_events(conn).await {
-                            error!(?e, "Error updating calendar!!!");
-                        }
-                    }
-                    Err(e) => error!(?e, "Error getting connection to update calendar"),
-                }
-            }
-
-            tokio::time::sleep(Duration::from_secs(60 * 10)).await; //check every 10m
         }
     });
 

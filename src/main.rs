@@ -180,13 +180,13 @@ FROM people WHERE id = $1
         .route("/csv", get(get_import_export_csv))
         .route("/csv_people", get(export_people_to_csv))
         .route("/csv_events", get(export_events_to_csv))
-        .route_layer(RequireAuth::login()) //^ REQUIRE LOGIN ^
-        .route("/add_reward", get(get_rewards))
-        .route("/", get(get_index))
         .route(
             "/edit_person/:id",
             get(get_edit_person).post(post_edit_person),
         )
+        .route("/add_reward", get(get_rewards))
+        .route_layer(RequireAuth::login()) //^ REQUIRE LOGIN ^
+        .route("/", get(get_index))
         .route("/add_password", get(get_blank_add_password))
         .route(
             "/add_password/:user_id",

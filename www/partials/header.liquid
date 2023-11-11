@@ -55,9 +55,6 @@
               <li class="nav-item">
                 <a class="nav-link" href="/show_all">See All</a>
               </li>
-              <li class="nav-item">
-                <a class="nav-link" href="/add_reward">See Rewards</a>
-              </li>
 
               {% if auth.permissions["export_csv"] %}
               <li class="nav-item dropdown">
@@ -102,6 +99,9 @@
 
 
               {% unless auth.role == "visitor" %}
+                            <li class="nav-item">
+                              <a class="nav-link" href="/add_reward">See Rewards</a>
+                            </li>
                 <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{auth.user.first_name}} {{auth.user.surname}}</a>
                 <ul class="dropdown-menu">
                   <li>

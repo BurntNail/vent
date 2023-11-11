@@ -99,6 +99,8 @@
 
 <br>
 
+{% unless auth.role == "visitor" %}
+
 {% if auth.permissions["add_rm_self_to_event"] %}
   <div class="card">
     <div class="card-body">
@@ -376,6 +378,8 @@
 </div>
 
 <br>
+
+{% endunless %}
 
 <div class="card">
   <div class="card-body">
