@@ -3,9 +3,9 @@ use crate::{
         cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP},
         get_auth_object, Auth,
     },
-    error::{KnotError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu},
+    error::{VentError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile,
-    state::{db_objects::DbPerson, KnotState},
+    state::{db_objects::DbPerson, VentState},
 };
 use axum::{
     extract::{Path, State},
@@ -28,8 +28,8 @@ pub struct LoginDetails {
 #[axum::debug_handler]
 pub async fn get_login(
     auth: Auth,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     compile(
         "www/login.liquid",
         liquid::object!({ "auth": get_auth_object(auth) }),
@@ -70,8 +70,8 @@ impl FailureReason {
 pub async fn get_login_failure(
     auth: Auth,
     Path(was_password_related): Path<FailureReason>,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     let html = compile(
         "www/failed_auth.liquid",
         liquid::object!({ "auth": get_auth_object(auth), "was_password_related": was_password_related }),
@@ -85,14 +85,14 @@ pub async fn get_login_failure(
 #[axum::debug_handler]
 pub async fn post_login(
     mut auth: Auth,
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     remote_ip: GrabCFRemoteIP,
     Form(LoginDetails {
         username,
         unhashed_password,
         cf_turnstile_response,
     }): Form<LoginDetails>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     if !verify_turnstile(cf_turnstile_response, remote_ip).await? {
         return Ok(Redirect::to("/login_failure/failed_turnstile"));
     }
@@ -133,7 +133,7 @@ WHERE LOWER(username) = LOWER($1)
 }
 
 #[axum::debug_handler]
-pub async fn post_logout(mut auth: Auth) -> Result<impl IntoResponse, KnotError> {
+pub async fn post_logout(mut auth: Auth) -> Result<impl IntoResponse, VentError> {
     auth.logout().await;
     Ok(Redirect::to("/"))
 }

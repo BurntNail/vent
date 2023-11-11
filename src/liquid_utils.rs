@@ -1,5 +1,5 @@
 use crate::{
-    error::{IOAction, IOSnafu, JoinSnafu, KnotError, LiquidAction, LiquidSnafu, ThreadReason},
+    error::{IOAction, IOSnafu, JoinSnafu, VentError, LiquidAction, LiquidSnafu, ThreadReason},
     liquid_utils::partials::PARTIALS,
 };
 use axum::response::Html;
@@ -28,7 +28,7 @@ pub async fn compile_with_newtitle(
     mut globals: Object,
     project_name: &str,
     title_additional_info: Option<String>,
-) -> Result<Html<String>, KnotError> {
+) -> Result<Html<String>, VentError> {
     debug!("Reading in file + partials");
 
     let path_displayed = format!("{path:?}");
@@ -55,7 +55,7 @@ pub async fn compile_with_newtitle(
         })),
     );
 
-    let html: Result<String, KnotError> = tokio::task::spawn_blocking(move || {
+    let html: Result<String, VentError> = tokio::task::spawn_blocking(move || {
         debug!("Compiling");
         let res = ParserBuilder::with_stdlib()
             .partials(partial_compiler)
@@ -86,7 +86,7 @@ pub async fn compile(
     path: impl AsRef<Path> + Debug,
     globals: Object,
     project_name: &str,
-) -> Result<Html<String>, KnotError> {
+) -> Result<Html<String>, VentError> {
     compile_with_newtitle(path, globals, project_name, None).await
 }
 

@@ -49,7 +49,7 @@ use crate::{
             post_verify_person,
         },
     },
-    state::KnotState,
+    state::VentState,
 };
 use axum::{
     extract::DefaultBodyLimit,
@@ -72,7 +72,7 @@ extern crate tracing;
 extern crate async_trait;
 
 // https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs
-async fn shutdown_signal(state: KnotState) {
+async fn shutdown_signal(state: VentState) {
     let ctrl_c = async {
         signal::ctrl_c()
             .await
@@ -135,7 +135,7 @@ FROM people WHERE id = $1
         &secret,
     );
 
-    let state = KnotState::new(pool).await;
+    let state = VentState::new(pool).await;
 
     let app = Router::new()
         .route("/reload_partials", get(reload_partials))
@@ -220,10 +220,10 @@ FROM people WHERE id = $1
         .layer(ConcurrencyLimitLayer::new(512)) //limit to 512 inflight reqs
         .with_state(state.clone());
 
-    let port: SocketAddr = var("KNOT_SERVER_IP")
-        .expect("need KNOT_SERVER_IP env var")
+    let port: SocketAddr = var("VENT_SERVER_IP")
+        .expect("need VENT_SERVER_IP env var")
         .parse()
-        .expect("need KNOT_SERVER_IP to be valid");
+        .expect("need VENT_SERVER_IP to be valid");
 
     info!(?port, "Serving: ");
 

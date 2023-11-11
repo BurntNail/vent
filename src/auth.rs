@@ -4,7 +4,7 @@ pub mod login;
 pub mod pg_session;
 
 use crate::{
-    error::{KnotError, SqlxAction, SqlxSnafu},
+    error::{VentError, SqlxAction, SqlxSnafu},
     state::db_objects::DbPerson,
 };
 use axum_login::{
@@ -48,7 +48,7 @@ pub type Auth = AuthContext<i32, DbPerson, Store, PermissionsRole>;
 pub type RequireAuth = RequireAuthorizationLayer<i32, DbPerson, PermissionsRole>;
 pub type Store = PostgresStore<DbPerson, PermissionsRole>;
 
-pub async fn get_secret(pool: &Pool<Postgres>) -> Result<Vec<u8>, KnotError> {
+pub async fn get_secret(pool: &Pool<Postgres>) -> Result<Vec<u8>, VentError> {
     if let Some(x) = sqlx::query!("SELECT sekrit FROM secrets")
         .fetch_optional(&mut *pool.acquire().await.context(SqlxSnafu {
             action: SqlxAction::AcquiringConnection,

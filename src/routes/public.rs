@@ -1,7 +1,7 @@
 use crate::{
     auth::cloudflare_turnstile::CommonHeaders,
     error::{
-        FileIdentifier, HeadersSnafu, IOAction, IOSnafu, KnotError, SerdeJsonAction,
+        FileIdentifier, HeadersSnafu, IOAction, IOSnafu, VentError, SerdeJsonAction,
         SerdeJsonSnafu, UnknownMIMESnafu,
     },
 };
@@ -21,7 +21,7 @@ use tokio_util::io::ReaderStream;
 #[instrument(level = "trace")]
 pub async fn serve_static_file(
     path: impl Into<PathBuf> + Debug,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     trace!("Getting file contents/details");
 
     let path = path.into();
@@ -61,7 +61,7 @@ pub async fn serve_static_file(
 }
 
 #[axum::debug_handler]
-pub async fn get_log() -> Result<Json<Vec<Value>>, KnotError> {
+pub async fn get_log() -> Result<Json<Vec<Value>>, VentError> {
     let contents = read_to_string("./precipice-log.json")
         .await
         .context(IOSnafu {
@@ -81,7 +81,7 @@ pub async fn get_log() -> Result<Json<Vec<Value>>, KnotError> {
 macro_rules! get_x {
     ($func_name:ident, $path:expr) => {
         #[axum::debug_handler]
-        pub async fn $func_name() -> Result<impl IntoResponse, KnotError> {
+        pub async fn $func_name() -> Result<impl IntoResponse, VentError> {
             serve_static_file($path).await
         }
     };

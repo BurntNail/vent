@@ -1,6 +1,6 @@
 use crate::{
     cfg::Settings,
-    error::{KnotError, LettreAction, LettreEmailSnafu},
+    error::{VentError, LettreAction, LettreEmailSnafu},
 };
 use lettre::{
     transport::smtp::authentication::Credentials, AsyncSmtpTransport, AsyncTransport, Message,
@@ -39,11 +39,11 @@ pub fn email_sender_thread(
         username_domain: &str,
         project_name: &str,
         project_domain: &str,
-    ) -> Result<(), KnotError> {
+    ) -> Result<(), VentError> {
         let m = Message::builder()
-            .from(format!("Knot NoReply <{}>", from_username).parse()?)
+            .from(format!("{} NoReply <{}>", project_name, from_username).parse()?)
             .to(format!("{to_fullname} <{to_username}@{}>", username_domain).parse()?)
-            .subject("Knot - Add Password".to_string())
+            .subject(format!("{} - Add Password", project_name))
             .body(format!(
                 r#"Dear {},
 

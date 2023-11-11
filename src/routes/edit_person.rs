@@ -8,10 +8,10 @@ use snafu::ResultExt;
 
 use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
-    error::{KnotError, SqlxAction, SqlxSnafu},
+    error::{VentError, SqlxAction, SqlxSnafu},
     liquid_utils::{compile_with_newtitle, EnvFormatter},
     routes::{add_person::NoIDPerson, rewards::Reward},
-    state::{db_objects::DbPerson, KnotState},
+    state::{db_objects::DbPerson, VentState},
 };
 
 #[instrument(level = "debug", skip(auth, state))]
@@ -19,8 +19,8 @@ use crate::{
 pub async fn get_edit_person(
     auth: Auth,
     Path(id): Path<i32>,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     #[derive(Serialize)]
     pub struct SmolPerson {
         pub id: i32,
@@ -125,7 +125,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1
 #[axum::debug_handler]
 pub async fn post_edit_person(
     Path(id): Path<i32>,
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(NoIDPerson {
         first_name,
         surname,
@@ -133,7 +133,7 @@ pub async fn post_edit_person(
         username,
         permissions,
     }): Form<NoIDPerson>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     debug!("Editing person");
     sqlx::query!(
         r#"
@@ -166,9 +166,9 @@ pub struct PasswordReset {
 #[axum::debug_handler]
 pub async fn post_reset_password(
     mut auth: Auth,
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(PasswordReset { id }): Form<PasswordReset>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     debug!("Logging out.");
 
     if auth

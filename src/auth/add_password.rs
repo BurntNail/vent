@@ -3,9 +3,9 @@ use crate::{
         cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP},
         get_auth_object, Auth,
     },
-    error::{KnotError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu},
+    error::{VentError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile,
-    state::{db_objects::DbPerson, mail::EmailToSend, KnotState},
+    state::{db_objects::DbPerson, mail::EmailToSend, VentState},
 };
 use axum::{
     extract::{Path, Query, State},
@@ -23,8 +23,8 @@ use sqlx::{pool::PoolConnection, Postgres};
 #[axum::debug_handler]
 pub async fn get_blank_add_password(
     auth: Auth,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     compile(
         "www/add_password.liquid",
         liquid::object!({
@@ -44,10 +44,10 @@ pub struct Link {
 #[axum::debug_handler]
 pub async fn get_add_password(
     auth: Auth,
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Path(id): Path<i32>,
     Query(Link { code: link_thingie }): Query<Link>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     let correct_code = sqlx::query!("SELECT password_link_id FROM people WHERE id = $1", id)
         .fetch_one(&mut state.get_connection().await?)
         .await
@@ -112,7 +112,7 @@ pub struct AddPasswordForm {
 #[axum::debug_handler]
 pub async fn post_add_password(
     mut auth: Auth,
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     remote_ip: GrabCFRemoteIP,
     Form(AddPasswordForm {
         id,
@@ -120,7 +120,7 @@ pub async fn post_add_password(
         password_link_id,
         cf_turnstile_response,
     }): Form<AddPasswordForm>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     if !verify_turnstile(cf_turnstile_response, remote_ip).await? {
         return Ok(Redirect::to("/login_failure/failed_turnstile"));
     }
@@ -178,7 +178,7 @@ RETURNING id, first_name, surname, username, form, hashed_password, permissions 
 pub async fn get_email_to_be_sent_for_reset_password(
     mut connection: PoolConnection<Postgres>,
     user_id: i32,
-) -> Result<EmailToSend, KnotError> {
+) -> Result<EmailToSend, VentError> {
     let current_ids =
         sqlx::query!(r#"SELECT password_link_id FROM people WHERE password_link_id <> NULL"#)
             .fetch_all(&mut connection)

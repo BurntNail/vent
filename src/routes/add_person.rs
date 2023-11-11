@@ -2,9 +2,9 @@
 
 use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
-    error::{KnotError, SqlxAction, SqlxSnafu},
+    error::{VentError, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
-    state::KnotState,
+    state::VentState,
 };
 use axum::{
     extract::State,
@@ -19,8 +19,8 @@ use snafu::ResultExt;
 #[axum::debug_handler]
 pub async fn get_add_person(
     auth: Auth,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     compile_with_newtitle(
         "www/add_person.liquid",
         liquid::object!({"auth": get_auth_object(auth)}),
@@ -42,7 +42,7 @@ pub struct NoIDPerson {
 #[instrument(level = "info", skip(state, first_name, surname))]
 #[axum::debug_handler]
 pub async fn post_add_person(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(NoIDPerson {
         first_name,
         surname,
@@ -50,7 +50,7 @@ pub async fn post_add_person(
         form,
         permissions,
     }): Form<NoIDPerson>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     info!("Inserting new person into DB");
     sqlx::query!(
         r#"

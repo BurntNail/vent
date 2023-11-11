@@ -9,17 +9,17 @@ use snafu::ResultExt;
 
 use crate::{
     auth::{get_auth_object, Auth},
-    error::{KnotError, SqlxAction, SqlxSnafu},
+    error::{VentError, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
-    state::KnotState,
+    state::VentState,
 };
 
 #[instrument(level = "debug", skip(auth, state))]
 #[axum::debug_handler]
 pub async fn get_eoy_migration(
     auth: Auth,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     debug!("Getting all forms");
 
     let forms: Vec<String> = sqlx::query!(r#"SELECT form FROM people"#)
@@ -56,9 +56,9 @@ pub struct FormNameChange {
 #[instrument(level = "debug", skip(state))]
 #[axum::debug_handler]
 pub async fn post_eoy_migration(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(FormNameChange { old_name, new_name }): Form<FormNameChange>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     debug!("Sending DB query");
     sqlx::query!(
         r#"

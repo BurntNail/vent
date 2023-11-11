@@ -10,9 +10,9 @@ use snafu::ResultExt;
 
 use crate::{
     auth::{get_auth_object, Auth},
-    error::{KnotError, SqlxAction, SqlxSnafu},
+    error::{VentError, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
-    state::KnotState,
+    state::VentState,
 };
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -26,8 +26,8 @@ pub struct Reward {
 #[axum::debug_handler]
 pub async fn get_rewards(
     auth: Auth,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     ///NB: these are rewards TO BE RECEIVED
     #[derive(Serialize, Deserialize)]
     struct Person {
@@ -151,12 +151,12 @@ pub struct AddReward {
 
 #[axum::debug_handler]
 pub async fn post_add_reward(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(AddReward {
         reward_id,
         person_id,
     }): Form<AddReward>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     sqlx::query!(
         "INSERT INTO rewards_received (reward_id, person_id) VALUES ($1, $2)",
         reward_id,

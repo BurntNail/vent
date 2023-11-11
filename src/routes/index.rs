@@ -4,9 +4,9 @@ use snafu::ResultExt;
 
 use crate::{
     auth::{get_auth_object, Auth},
-    error::{KnotError, SqlxAction, SqlxSnafu},
+    error::{VentError, SqlxAction, SqlxSnafu},
     liquid_utils::{compile, EnvFormatter},
-    state::{db_objects::DbEvent, KnotState},
+    state::{db_objects::DbEvent, VentState},
 };
 
 #[allow(clippy::too_many_lines)]
@@ -14,8 +14,8 @@ use crate::{
 #[axum::debug_handler]
 pub async fn get_index(
     auth: Auth,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     #[derive(Serialize, Debug)]
     struct HTMLEvent {
         pub id: i32,

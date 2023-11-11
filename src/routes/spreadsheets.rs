@@ -1,7 +1,7 @@
 use super::public::serve_static_file;
 use crate::{
-    error::{JoinSnafu, KnotError, SqlxAction, SqlxSnafu, ThreadReason},
-    state::KnotState,
+    error::{JoinSnafu, VentError, SqlxAction, SqlxSnafu, ThreadReason},
+    state::VentState,
 };
 use axum::{extract::State, response::IntoResponse};
 use rust_xlsxwriter::{Color, Format, FormatAlign, Workbook};
@@ -12,8 +12,8 @@ use tokio::task;
 #[instrument(level = "debug", skip(state))]
 #[axum::debug_handler]
 pub async fn get_spreadsheet(
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     debug!("Getting people");
     let mut people = sqlx::query!(
         r#"
@@ -62,7 +62,7 @@ SELECT * FROM events"#
 
     debug!("Building workbook");
 
-    task::spawn_blocking(move || -> Result<(), KnotError> {
+    task::spawn_blocking(move || -> Result<(), VentError> {
         let mut workbook = Workbook::new();
 
         let title_fmt = Format::new()

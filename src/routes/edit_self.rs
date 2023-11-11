@@ -1,8 +1,8 @@
 use crate::{
     auth::{get_auth_object, Auth},
-    error::{KnotError, SqlxAction, SqlxSnafu},
+    error::{VentError, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
-    state::KnotState,
+    state::VentState,
 };
 use axum::{
     extract::State,
@@ -16,8 +16,8 @@ use snafu::ResultExt;
 #[axum::debug_handler]
 pub async fn get_edit_user(
     auth: Auth,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     compile_with_newtitle(
         "www/edit_self.liquid",
         liquid::object!({"auth": get_auth_object(auth)}),
@@ -41,13 +41,13 @@ pub struct LoginDetails {
 #[axum::debug_handler]
 pub async fn post_edit_user(
     auth: Auth,
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(LoginDetails {
         first_name,
         surname,
         unhashed_password,
     }): Form<LoginDetails>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     let current_id = auth.current_user.unwrap().id;
 
     debug!(%current_id, "Hashing password");

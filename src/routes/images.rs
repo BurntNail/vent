@@ -2,11 +2,11 @@ use crate::{
     auth::Auth,
     error::{
         ConvertingWhatToString, DatabaseIDMethod, IOAction, IOSnafu, ImageAction, ImageSnafu,
-        JoinSnafu, KnotError, MissingExtensionSnafu, NoImageExtensionSnafu, SqlxAction, SqlxSnafu,
+        JoinSnafu, VentError, MissingExtensionSnafu, NoImageExtensionSnafu, SqlxAction, SqlxSnafu,
         ThreadReason, ToStrSnafu,
     },
     routes::public::serve_static_file,
-    state::KnotState,
+    state::VentState,
 };
 use async_zip::{tokio::write::ZipFileWriter, Compression, ZipEntryBuilder};
 use axum::{
@@ -30,9 +30,9 @@ use walkdir::WalkDir;
 pub async fn post_add_photo(
     auth: Auth,
     Path(event_id): Path<i32>,
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     mut multipart: Multipart,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     debug!("Zeroing old zip file");
     sqlx::query!(
         r#"
@@ -118,7 +118,7 @@ VALUES($1, $2, $3)"#,
 
 #[instrument(level = "debug")]
 #[axum::debug_handler]
-pub async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoResponse, KnotError> {
+pub async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoResponse, VentError> {
     debug!("Getting path/ext");
 
     let path = PathBuf::from(img_path.as_str());
@@ -155,8 +155,8 @@ pub async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoRespon
 #[axum::debug_handler]
 pub async fn get_all_images(
     Path(event_id): Path<i32>,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     debug!(%event_id, "Checking for existing zip");
     if let Some(file_name) = sqlx::query!(
         r#"

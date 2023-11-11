@@ -2,8 +2,8 @@
 
 use crate::{
     auth::{Auth, PermissionsRole},
-    error::{KnotError, SqlxAction, SqlxSnafu},
-    state::KnotState,
+    error::{VentError, SqlxAction, SqlxSnafu},
+    state::VentState,
 };
 use axum::{
     extract::State,
@@ -24,12 +24,12 @@ pub struct AddPerson {
 #[instrument(level = "debug", skip(state))]
 #[axum::debug_handler]
 pub async fn post_add_prefect_to_event(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(AddPerson {
         event_id,
         person_ids,
     }): Form<AddPerson>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     for prefect_id in person_ids {
         if sqlx::query!(
             r#"
@@ -80,12 +80,12 @@ pub async fn post_add_prefect_to_event(
 #[axum::debug_handler]
 pub async fn post_add_participant_to_event(
     auth: Auth,
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(AddPerson {
         event_id,
         person_ids,
     }): Form<AddPerson>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     let current_user = auth
         .current_user
         .expect("need to be logged in to add participants");

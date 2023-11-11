@@ -19,24 +19,24 @@ use crate::{
         pg_session::clear_out_old_sessions_thread,
     },
     cfg::Settings,
-    error::{ChannelReason, KnotError, SendSnafu, SqlxAction, SqlxSnafu},
+    error::{ChannelReason, VentError, SendSnafu, SqlxAction, SqlxSnafu},
     routes::calendar::update_calendar_thread,
     state::{
-        db::KnotDatabase,
+        db::VentDB,
         mail::{email_sender_thread, EmailToSend},
     },
 };
 
 #[derive(Clone, Debug)]
-pub struct KnotState {
+pub struct VentState {
     mail_sender: UnboundedSender<EmailToSend>,
     update_calendar_sender: UnboundedSender<()>,
     stop_senders: BroadcastSender<()>,
     pub settings: Settings,
-    database: KnotDatabase,
+    database: VentDB,
 }
 
-impl KnotState {
+impl VentState {
     pub async fn new(postgres: Pool<Postgres>) -> Self {
         let settings = Settings::new().await.expect("unable to get settings");
         let (stop_senders_tx, stop_senders_rx1) = broadcast_channel(3);
@@ -46,7 +46,7 @@ impl KnotState {
             update_calendar_thread(postgres.clone(), stop_senders_tx.subscribe());
         clear_out_old_sessions_thread(postgres.clone(), stop_senders_tx.subscribe());
 
-        let database = KnotDatabase::new(postgres);
+        let database = VentDB::new(postgres);
 
         Self {
             database,
@@ -57,13 +57,13 @@ impl KnotState {
         }
     }
 
-    pub async fn get_connection(&self) -> Result<PoolConnection<Postgres>, KnotError> {
+    pub async fn get_connection(&self) -> Result<PoolConnection<Postgres>, VentError> {
         self.database.pool.acquire().await.context(SqlxSnafu {
             action: SqlxAction::AcquiringConnection,
         })
     }
 
-    pub async fn reset_password(&self, user_id: i32) -> Result<(), KnotError> {
+    pub async fn reset_password(&self, user_id: i32) -> Result<(), VentError> {
         let email =
             get_email_to_be_sent_for_reset_password(self.get_connection().await?, user_id).await?;
 
@@ -72,13 +72,13 @@ impl KnotState {
         Ok(())
     }
 
-    pub fn update_events(&self) -> Result<(), KnotError> {
+    pub fn update_events(&self) -> Result<(), VentError> {
         self.update_calendar_sender.send(()).context(SendSnafu {
             reason: ChannelReason::SendUpdateCalMessage,
         })
     }
 
-    pub async fn ensure_calendar_exists(&self) -> Result<bool, KnotError> {
+    pub async fn ensure_calendar_exists(&self) -> Result<bool, VentError> {
         if let Err(e) = File::open("./calendar.ics").await {
             warn!(?e, "Tried to open calendar, failed, rebuilding");
             self.update_events()?;

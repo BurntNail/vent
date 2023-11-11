@@ -1,4 +1,4 @@
-use crate::error::{KnotError, SqlxAction, SqlxSnafu};
+use crate::error::{VentError, SqlxAction, SqlxSnafu};
 use axum_login::axum_sessions::async_session::{
     serde_json::from_value, Result as ASResult, Session, SessionStore,
 };
@@ -106,7 +106,7 @@ impl SessionStore for PostgresSessionStore {
 }
 
 pub fn clear_out_old_sessions_thread(pool: Pool<Postgres>, mut stop_rx: BroadcastReceiver<()>) {
-    async fn clear_out_old(mut conn: PoolConnection<Postgres>) -> Result<(), KnotError> {
+    async fn clear_out_old(mut conn: PoolConnection<Postgres>) -> Result<(), VentError> {
         let rows_affected =
             sqlx::query!("delete FROM sessions WHERE expires < (NOW() - interval '1 day')")
                 .execute(&mut conn)

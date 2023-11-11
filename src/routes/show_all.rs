@@ -9,9 +9,9 @@ use snafu::ResultExt;
 
 use crate::{
     auth::{get_auth_object, Auth},
-    error::{KnotError, SqlxAction, SqlxSnafu},
+    error::{VentError, SqlxAction, SqlxSnafu},
     liquid_utils::{compile_with_newtitle, EnvFormatter},
-    state::KnotState,
+    state::VentState,
 };
 
 #[derive(Deserialize)]
@@ -50,8 +50,8 @@ impl<'a> From<(SmolDbEvent, &'a str)> for SmolFormattedDbEvent {
 #[axum::debug_handler]
 pub async fn get_show_all(
     auth: Auth,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     #[derive(Serialize)]
     pub struct SmolPerson {
         pub first_name: String,
@@ -134,9 +134,9 @@ pub struct RemoveEvent {
 #[instrument(level = "info", skip(state))]
 #[axum::debug_handler]
 pub async fn post_remove_person(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(RemovePerson { person_id }): Form<RemovePerson>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     for person_id in person_id {
         trace!(?person_id, "Removing");
         sqlx::query!(
@@ -159,9 +159,9 @@ WHERE id=$1
 #[instrument(level = "info", skip(state))]
 #[axum::debug_handler]
 pub async fn post_remove_event(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(RemoveEvent { event_id }): Form<RemoveEvent>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     for event_id in event_id {
         trace!(?event_id, "Removing");
         sqlx::query!(

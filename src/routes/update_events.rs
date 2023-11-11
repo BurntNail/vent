@@ -1,11 +1,11 @@
 use super::FormEvent;
 use crate::{
     auth::{get_auth_object, Auth, PermissionsRole},
-    error::{IOAction, IOSnafu, KnotError, ParseTimeSnafu, SqlxAction, SqlxSnafu},
+    error::{IOAction, IOSnafu, VentError, ParseTimeSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
     state::{
         db_objects::{DbEvent, DbPerson},
-        KnotState,
+        VentState,
     },
 };
 use axum::{
@@ -25,8 +25,8 @@ use tokio::fs::remove_file;
 pub async fn get_update_event(
     auth: Auth,
     Path(event_id): Path<i32>,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     debug!("Getting event");
     let DbEvent {
         id,
@@ -336,7 +336,7 @@ WHERE event_id = $1
 #[axum::debug_handler]
 pub async fn post_update_event(
     Path(event_id): Path<i32>,
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(FormEvent {
         name,
         date,
@@ -344,7 +344,7 @@ pub async fn post_update_event(
         teacher,
         info,
     }): Form<FormEvent>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M").context(ParseTimeSnafu {
         original: date.clone(),
     })?;
@@ -380,9 +380,9 @@ pub struct Removal {
 
 #[axum::debug_handler]
 pub async fn get_remove_prefect_from_event(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(Removal { relation_id }): Form<Removal>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     let id = sqlx::query!(
         r#"
 DELETE FROM prefect_events WHERE relation_id = $1 
@@ -404,9 +404,9 @@ RETURNING event_id
 #[axum::debug_handler]
 pub async fn get_remove_participant_from_event(
     auth: Auth,
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(Removal { relation_id }): Form<Removal>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     let current_user = auth
         .current_user
         .expect("need to be logged in to add participants");
@@ -447,8 +447,8 @@ pub async fn get_remove_participant_from_event(
 #[axum::debug_handler]
 pub async fn delete_image(
     Path(img_id): Path<i32>,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     let event = sqlx::query!(
         r#"
 DELETE FROM public.photos
@@ -509,12 +509,12 @@ pub struct VerifyPerson {
 
 #[axum::debug_handler]
 pub async fn post_verify_person(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(VerifyPerson {
         event_id,
         person_id,
     }): Form<VerifyPerson>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     sqlx::query!("UPDATE participant_events SET is_verified = true WHERE event_id = $1 AND participant_id = $2", event_id, person_id).execute(&mut state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::UpdatingParticipantOrPrefect {person: person_id.into(), event_id} })?;
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
@@ -522,12 +522,12 @@ pub async fn post_verify_person(
 
 #[axum::debug_handler]
 pub async fn post_unverify_person(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(VerifyPerson {
         event_id,
         person_id,
     }): Form<VerifyPerson>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     sqlx::query!("UPDATE participant_events SET is_verified = false WHERE event_id = $1 AND participant_id = $2", event_id, person_id).execute(&mut state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::UpdatingParticipantOrPrefect {person: person_id.into(), event_id} })?;
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
@@ -540,9 +540,9 @@ pub struct VerifyEveryone {
 
 #[axum::debug_handler]
 pub async fn post_verify_everyone(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(VerifyEveryone { event_id }): Form<VerifyEveryone>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     sqlx::query!(
         "UPDATE participant_events SET is_verified = true WHERE event_id = $1",
         event_id
