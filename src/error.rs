@@ -14,6 +14,12 @@ use std::{
 };
 
 #[derive(Debug)]
+pub enum LoginFailureReason {
+    PasswordIsNotSet,
+    IncorrectPassword,
+}
+
+#[derive(Debug)]
 pub enum ChannelReason {
     SendUpdateCalMessage,
 }
@@ -355,6 +361,10 @@ pub enum KnotError {
     },
     #[snafu(display("Missing Cloudflare IP in headers"))]
     MissingCFIP,
+    #[snafu(display("Failure to login due to {reason:?}"))]
+    LoginFailure {
+        reason: LoginFailureReason
+    },
 }
 
 #[allow(clippy::needless_pass_by_value)]
@@ -400,7 +410,7 @@ impl IntoResponse for KnotError {
             | KnotError::Image { .. }
             | KnotError::NoImageExtension { .. }
             | KnotError::MalformedCSV { .. }
-            | KnotError::MissingCFIP => StatusCode::BAD_REQUEST,
+            | KnotError::MissingCFIP | KnotError::LoginFailure { .. } => StatusCode::BAD_REQUEST,
             KnotError::PageNotFound { .. } => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };

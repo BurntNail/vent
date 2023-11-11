@@ -101,7 +101,7 @@
             {% endif %}
 
 
-              {% unless auth.role == "visitor" %}
+              {% if auth.is_logged_in %}
                 <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{auth.user.first_name}} {{auth.user.surname}}</a>
                 <ul class="dropdown-menu">
                   <li>
@@ -114,7 +114,7 @@
               <li class="nav-item">
                 <a class="nav-link" href="/login">Login</a>
               </li>
-            {% endunless %}
+            {% endif %}
             </ul>
             </div>
           </nav>

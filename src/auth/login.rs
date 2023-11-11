@@ -7,18 +7,15 @@ use crate::{
     liquid_utils::compile,
     state::{db_objects::DbPerson, KnotState},
 };
-use axum::{
-    extract::{Path, State},
-    response::{IntoResponse, Redirect},
-    Form,
-};
+use axum::{extract::{Path, State}, response::{IntoResponse, Redirect}, Form, Router};
 use bcrypt::verify;
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
+use crate::error::LoginFailureReason;
 
 #[derive(Deserialize)]
-pub struct LoginDetails {
+pub struct LoginForm {
     pub username: String,
     pub unhashed_password: String,
     #[serde(rename = "cf-turnstile-response")]
@@ -82,58 +79,50 @@ pub async fn get_login_failure(
     Ok((was_password_related.status_code(), html).into_response())
 }
 
+pub struct LoginCreds {
+    pub username: String,
+    pub unhashed_password: String,
+}
+
 #[axum::debug_handler]
 pub async fn post_login(
     mut auth: Auth,
     State(state): State<KnotState>,
     remote_ip: GrabCFRemoteIP,
-    Form(LoginDetails {
-        username,
-        unhashed_password,
-        cf_turnstile_response,
-    }): Form<LoginDetails>,
+    Form(LoginForm {
+             username, unhashed_password, cf_turnstile_response
+         }): Form<LoginForm>,
 ) -> Result<impl IntoResponse, KnotError> {
     if !verify_turnstile(cf_turnstile_response, remote_ip).await? {
         return Ok(Redirect::to("/login_failure/failed_turnstile"));
     }
 
-    let db_user = sqlx::query_as!(
-        DbPerson,
-        r#"
-SELECT id, first_name, surname, username, form, hashed_password, permissions as "permissions: _", was_first_entry
-FROM people 
-WHERE LOWER(username) = LOWER($1)
-        "#,
-        username
-    )
-    .fetch_optional(&mut state.get_connection().await?)
-    .await.context(SqlxSnafu {action: SqlxAction::FindingPerson(username.into())})?;
-
-    let Some(db_user) = db_user else {
-        return Ok(Redirect::to("/login_failure/user_not_found"));
-    };
-
-    Ok(match &db_user.hashed_password {
-        //some of the code below looks weird as otherwise borrow not living long enough
-        Some(pw) => Redirect::to(if verify(unhashed_password, pw)? {
-            auth.login(&db_user).await.context(SerdeJsonSnafu {
-                action: SerdeJsonAction::TryingToLogin,
-            })?;
+    Ok(Redirect::to(match auth.authenticate(LoginCreds {username: username.clone(), unhashed_password}).await {
+        Ok(Some(x)) => {
+            auth.login(&x);
             "/"
-        } else {
-            error!(username=?db_user.username, "Wrong password for trying to login");
-            "/login_failure/bad_password"
-        }),
-        None => {
-            state.reset_password(db_user.id).await?;
-
-            Redirect::to("/add_password")
-        }
-    })
+        },
+        Ok(None) => {
+            "/login_failure/user_not_found"
+        },
+        Err(KnotError::LoginFailure {reason}) => match reason {
+            LoginFailureReason::PasswordIsNotSet => "/add_password",
+            LoginFailureReason::IncorrectPassword => {
+                error!(username=?username, "Wrong password for trying to login");
+                "/login_failure/bad_password"
+            }
+        },
+        Err(e) => Err(e)?,
+    }))
 }
 
 #[axum::debug_handler]
 pub async fn post_logout(mut auth: Auth) -> Result<impl IntoResponse, KnotError> {
     auth.logout().await;
     Ok(Redirect::to("/"))
+}
+
+pub fn router () -> Router<KnotState> {
+    Router::new()
+        .
 }

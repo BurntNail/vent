@@ -1,17 +1,14 @@
 use crate::{
     auth::{
         cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP},
-        get_auth_object, Auth,
+        get_auth_object, backend::Auth,
     },
     error::{KnotError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile,
     state::{db_objects::DbPerson, mail::EmailToSend, KnotState},
 };
-use axum::{
-    extract::{Path, Query, State},
-    response::{IntoResponse, Redirect},
-    Form,
-};
+use axum::{extract::{Path, Query, State}, response::{IntoResponse, Redirect}, Form, Router};
+use axum::routing::get;
 use bcrypt::{hash, DEFAULT_COST};
 use itertools::Itertools;
 use rand::{thread_rng, Rng};
@@ -21,7 +18,7 @@ use sqlx::{pool::PoolConnection, Postgres};
 
 //tried to use an Option<Path<_>>, but didn't work
 #[axum::debug_handler]
-pub async fn get_blank_add_password(
+async fn get_blank_add_password(
     auth: Auth,
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
@@ -37,12 +34,12 @@ pub async fn get_blank_add_password(
 }
 
 #[derive(Debug, Deserialize)]
-pub struct Link {
+struct Link {
     code: i32,
 }
 
 #[axum::debug_handler]
-pub async fn get_add_password(
+async fn get_add_password(
     auth: Auth,
     State(state): State<KnotState>,
     Path(id): Path<i32>,
@@ -101,7 +98,7 @@ WHERE id = $1"#,
 }
 
 #[derive(Deserialize)]
-pub struct AddPasswordForm {
+struct AddPasswordForm {
     pub id: i32,
     pub unhashed_password: String,
     pub password_link_id: i32,
@@ -110,7 +107,7 @@ pub struct AddPasswordForm {
 }
 
 #[axum::debug_handler]
-pub async fn post_add_password(
+async fn post_add_password(
     mut auth: Auth,
     State(state): State<KnotState>,
     remote_ip: GrabCFRemoteIP,
@@ -175,7 +172,7 @@ RETURNING id, first_name, surname, username, form, hashed_password, permissions 
     Ok(Redirect::to("/"))
 }
 
-pub async fn get_email_to_be_sent_for_reset_password(
+async fn get_email_to_be_sent_for_reset_password(
     mut connection: PoolConnection<Postgres>,
     user_id: i32,
 ) -> Result<EmailToSend, KnotError> {
@@ -227,4 +224,13 @@ pub async fn get_email_to_be_sent_for_reset_password(
         to_fullname: format!("{} {}", person.first_name, person.surname),
         unique_id: id,
     })
+}
+
+pub fn router () -> Router<KnotState> {
+    Router::new()
+        .route("/add_password", get(get_blank_add_password))
+        .route(
+            "/add_password/:user_id",
+            get(get_add_password).post(post_add_password),
+        )
 }

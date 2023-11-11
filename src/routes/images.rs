@@ -47,7 +47,7 @@ WHERE id = $1"#,
         action: SqlxAction::UpdatingEvent(event_id),
     })?;
 
-    let user_id = auth.current_user.unwrap().id;
+    let user_id = auth.user.unwrap().id;
 
     while let Some(field) = multipart.next_field().await? {
         debug!("Getting bytes");

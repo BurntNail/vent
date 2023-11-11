@@ -48,7 +48,7 @@ pub async fn post_edit_user(
         unhashed_password,
     }): Form<LoginDetails>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let current_id = auth.current_user.unwrap().id;
+    let current_id = auth.user.unwrap().id;
 
     debug!(%current_id, "Hashing password");
 

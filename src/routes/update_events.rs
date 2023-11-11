@@ -279,7 +279,7 @@ WHERE event_id = $1
         pub rel_id: i32,
     }
 
-    let already_in = auth.current_user.clone().map_or(
+    let already_in = auth.user.clone().map_or(
         AlreadyIn {
             is_in: false,
             past_date: naive_date < Utc::now().naive_local(),

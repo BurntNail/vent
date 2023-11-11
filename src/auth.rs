@@ -1,19 +1,21 @@
 pub mod add_password;
 pub mod cloudflare_turnstile;
 pub mod login;
-pub mod pg_session;
 
-use crate::{
-    error::{KnotError, SqlxAction, SqlxSnafu},
-    state::db_objects::DbPerson,
-};
-use axum_login::{
-    extractors::AuthContext, secrecy::SecretVec, AuthUser, PostgresStore, RequireAuthorizationLayer,
-};
-use rand::{thread_rng, Rng};
+pub mod backend;
+
+use std::collections::HashSet;
+use axum_login::{AuthnBackend, AuthzBackend};
+use change_case::snake_case;
+use itertools::Itertools;
+use liquid::model::Value;
+use liquid::Object;
+use rand::{Rng};
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
-use sqlx::{Pool, Postgres};
+use strum::IntoEnumIterator;
+use crate::auth::backend::Auth;
+use crate::error::KnotError;
 
 #[derive(
     sqlx::Type, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Serialize, Deserialize, Debug,
@@ -26,100 +28,70 @@ pub enum PermissionsRole {
     Dev,
 }
 
-impl AuthUser<i32, PermissionsRole> for DbPerson {
-    fn get_id(&self) -> i32 {
-        self.id
-    }
-
-    fn get_password_hash(&self) -> SecretVec<u8> {
-        let Some(hp) = self.hashed_password.clone() else {
-            error!(?self, "Missing Password");
-            panic!("Missing Password!");
-        };
-        SecretVec::new(hp.into())
-    }
-
-    fn get_role(&self) -> Option<PermissionsRole> {
-        Some(self.permissions)
+impl PermissionsRole {
+    pub fn can (self) -> HashSet<PermissionsTarget> {
+        PermissionsTarget::iter().filter(|x| x.can(&self)).collect()
     }
 }
 
-pub type Auth = AuthContext<i32, DbPerson, Store, PermissionsRole>;
-pub type RequireAuth = RequireAuthorizationLayer<i32, DbPerson, PermissionsRole>;
-pub type Store = PostgresStore<DbPerson, PermissionsRole>;
+#[derive(strum::EnumIter, strum::IntoStaticStr, Copy, Clone, Debug)]
+pub enum PermissionsTarget {
+    DevAccess,
+    ImportCSV,
+    RunMigrations,
+    EditPeople,
+    AddRewards,
+    EditEvents,
+    ViewPhotoAdders,
+    EditPrefectsOnEvents,
+    EditParticipantsOnEvents,
+    VerifyEvents,
+    AddRmSelfToEvent,
+    SeePhotos,
+    AddPhotos,
+}
 
-pub async fn get_secret(pool: &Pool<Postgres>) -> Result<Vec<u8>, KnotError> {
-    if let Some(x) = sqlx::query!("SELECT sekrit FROM secrets")
-        .fetch_optional(&mut *pool.acquire().await.context(SqlxSnafu {
-            action: SqlxAction::AcquiringConnection,
-        })?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::FindingSecret,
-        })?
-    {
-        Ok(x.sekrit)
-    } else {
-        let secret = {
-            let mut rng = thread_rng();
-            let mut v = Vec::with_capacity(64);
-            v.append(&mut rng.gen::<[u8; 32]>().to_vec());
-            v.append(&mut rng.gen::<[u8; 32]>().to_vec());
-            v
-        };
-
-        sqlx::query!("INSERT INTO secrets (sekrit) VALUES ($1)", secret)
-            .execute(&mut *pool.acquire().await.context(SqlxSnafu {
-                action: SqlxAction::AcquiringConnection,
-            })?)
-            .await
-            .context(SqlxSnafu {
-                action: SqlxAction::AddingSecret,
-            })?;
-
-        Ok(secret)
+impl PermissionsTarget {
+    pub const fn can (&self, role: &PermissionsRole) -> bool {
+        match self {
+            PermissionsTarget::DevAccess => role >= &PermissionsRole::Dev,
+            PermissionsTarget::ImportCSV => role >= &PermissionsRole::Admin,
+            PermissionsTarget::RunMigrations => role >= &PermissionsRole::Admin,
+            PermissionsTarget::EditPeople => role >= &PermissionsRole::Admin,
+            PermissionsTarget::AddRewards => role >= &PermissionsRole::Admin,
+            PermissionsTarget::EditEvents => role >= &PermissionsRole::Prefect,
+            PermissionsTarget::ViewPhotoAdders => role >= &PermissionsRole::Prefect,
+            PermissionsTarget::EditPrefectsOnEvents => role >= &PermissionsRole::Prefect,
+            PermissionsTarget::EditParticipantsOnEvents => role >= &PermissionsRole::Prefect,
+            PermissionsTarget::VerifyEvents => role >= &PermissionsRole::Prefect,
+            PermissionsTarget::AddRmSelfToEvent => role >= &PermissionsRole::Participant,
+            PermissionsTarget::SeePhotos => role >= &PermissionsRole::Participant,
+            PermissionsTarget::AddPhotos => role >= &PermissionsRole::Participant,
+        }
     }
 }
 
-pub fn get_auth_object(auth: Auth) -> liquid::Object {
-    if let Some(user) = auth.current_user {
-        let perms = liquid::object!({
-            "dev_access": user.permissions >= PermissionsRole::Dev,
-            "import_csv": user.permissions >= PermissionsRole::Admin,
-            "run_migrations": user.permissions >= PermissionsRole::Admin,
-            "edit_people": user.permissions >= PermissionsRole::Admin,
-            "add_rewards": user.permissions >= PermissionsRole::Admin,
-            "edit_events": user.permissions >= PermissionsRole::Prefect,
-            "view_photo_adders": user.permissions >= PermissionsRole::Prefect,
-            "edit_prefects_on_events": user.permissions >= PermissionsRole::Prefect,
-            "edit_participants_on_events": user.permissions >= PermissionsRole::Prefect,
-            "verify_events": user.permissions >= PermissionsRole::Prefect,
-            "add_rm_self_to_event": user.permissions >= PermissionsRole::Participant,
-            "see_photos": user.permissions >= PermissionsRole::Participant,
-            "add_photos": user.permissions >= PermissionsRole::Participant,
-            "export_csv": user.permissions >= PermissionsRole::Participant,
 
-        });
+pub async fn get_auth_object(auth: Auth) -> Result<Object, KnotError> {
+    let iter = PermissionsTarget::iter().map(|x| (x, snake_case(x.into()).parse().unwrap()));
 
-        liquid::object!({ "role": user.permissions, "permissions": perms, "user": user })
-    } else {
-        let perms = liquid::object!({
-            "dev_access": false,
-            "import_csv": false,
-            "run_migrations": false,
-            "add_rewards": false,
-            "edit_people": false,
-            "edit_events": false,
-            "add_photos": false,
-            "view_photo_adders": false,
-            "edit_prefects_on_events": false,
-            "edit_participants_on_events": false,
-            "add_rm_self_to_event": false,
-            "verify_events": false,
-            "see_photos": false,
-            "export_csv": false,
-        });
+    match &auth.user {
+        Some(x) => {
+            let allowed = auth.backend.get_all_permissions(x).await?.into_iter().collect_vec();
+            let mut perms = Object::new();
+            for (variant, snake) in iter {
+                perms.insert(snake, Value::Scalar(allowed.contains(&variant).into()))
+            }
 
-        liquid::object!({"role": "visitor", "permissions": perms })
+            Ok(liquid::object!({"is_logged_in": true, "permissions": perms, "user": x}))
+        },
+        None => {
+            let mut perms = Object::new();
+            for (_variant, snake) in iter {
+                perms.insert(snake, Value::Scalar(false.into()))
+            }
+
+            Ok(liquid::object!({"is_logged_in": false, "permissions": perms}))
+        }
     }
 }

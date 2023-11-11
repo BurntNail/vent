@@ -5,16 +5,13 @@ use crate::{
         SerdeJsonSnafu, UnknownMIMESnafu,
     },
 };
-use axum::{
-    body::StreamBody,
-    http::{header, HeaderMap},
-    response::{IntoResponse, Json},
-};
+use axum::{body::StreamBody, http::{header, HeaderMap}, response::{IntoResponse, Json}, Router};
 use http::HeaderValue;
 use new_mime_guess::from_path;
 use serde_json::{from_str, Value};
 use snafu::{OptionExt, ResultExt};
 use std::{fmt::Debug, path::PathBuf};
+use axum::routing::get;
 use tokio::fs::{read_to_string, File};
 use tokio_util::io::ReaderStream;
 
@@ -95,3 +92,17 @@ get_x!(get_512, "public/512x512.png");
 get_x!(get_256, "public/256x256.png");
 get_x!(get_people_csv_example, "public/people_example.csv");
 get_x!(get_events_csv_example, "public/events_example.csv");
+
+
+pub fn router () -> Router {
+    Router::new()
+        .route("/favicon.ico", get(get_favicon))
+        .route("/manifest.json", get(get_manifest))
+        .route("/sw.js", get(get_sw))
+        .route("/offline.html", get(get_offline))
+        .route("/512x512.png", get(get_512))
+        .route("/256x256.png", get(get_256))
+        .route("/people_example.csv", get(get_people_csv_example))
+        .route("/events_example.csv", get(get_events_csv_example))
+
+}
