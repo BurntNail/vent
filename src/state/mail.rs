@@ -75,23 +75,23 @@ Have a nice day!"#,
             .build();
 
         loop {
-            if let Some(ret) = tokio::select! {
+            if tokio::select! {
                 _stop = stop_rx.recv() => {
                     info!("Mail thread stopping");
-                    Some(Ok::<_, KnotError>(()))
+                    true
                 },
                 msg = msg_rx.recv() => match msg {
-                    None => Some(Ok(())),
+                    None => true,
                     Some(msg) => {
                         if let Err(e) = send_email(msg, &mailer, &mail_settings.username, &mail_settings.username_domain, &settings.brand.instance_name, &settings.brand.domain).await {
                             error!(?e, "Error sending email");
                         }
 
-                        None
+                        false
                     }
                 }
             } {
-                return ret;
+                return;
             }
         }
     });

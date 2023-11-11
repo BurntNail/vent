@@ -6,7 +6,10 @@ use serde_json::to_value;
 use snafu::ResultExt;
 use sqlx::{pool::PoolConnection, Pool, Postgres};
 use std::time::Duration;
-use tokio::sync::broadcast::{error::TryRecvError, Receiver as BroadcastReceiver};
+use tokio::{
+    sync::broadcast::Receiver as BroadcastReceiver,
+    time::interval,
+};
 
 #[derive(Debug, Clone)]
 pub struct PostgresSessionStore {
@@ -119,22 +122,24 @@ pub fn clear_out_old_sessions_thread(pool: Pool<Postgres>, mut stop_rx: Broadcas
     }
 
     tokio::spawn(async move {
+        let mut interval = interval(Duration::from_secs(60 * 60 * 24));
         loop {
-            if !matches!(stop_rx.try_recv(), Err(TryRecvError::Empty)) {
-                info!("Old sessions thread stopping");
+            if tokio::select! {
+                _stop = stop_rx.recv() => {true},
+                _tick = interval.tick() => {
+                    match pool.acquire().await {
+                        Ok(conn) => {
+                            if let Err(e) = clear_out_old(conn).await {
+                                error!(?e, "Error clearing out old sessions");
+                            }
+                        }
+                        Err(e) => error!(?e, "Error getting connection to clear out old sessions"),
+                    }
+                    false
+                }
+            } {
                 return;
             }
-
-            match pool.acquire().await {
-                Ok(conn) => {
-                    if let Err(e) = clear_out_old(conn).await {
-                        error!(?e, "Error clearing out old sessions");
-                    }
-                }
-                Err(e) => error!(?e, "Error getting connection to clear out old sessions"),
-            }
-
-            tokio::time::sleep(Duration::from_secs(60 * 60 * 24)).await; //every day
         }
     });
 }
