@@ -85,7 +85,7 @@ impl VentState {
 
             Ok(false)
         } else {
-            info!("Successfully found calendar");
+            debug!("Successfully found calendar");
 
             Ok(true)
         }
