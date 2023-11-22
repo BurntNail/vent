@@ -39,6 +39,6 @@ serde_json = "1.0"
 tower = { version = "0.4", features = ["limit"] }
 tokio-util = { version = "0.7", features = ["io"] }
 config = "0.13"
-url = { version = "2.4", features = ["serde"] }
+url = { version = "2.5", features = ["serde"] }
 snafu = "0.7.5"
 eyre = "0.6"
