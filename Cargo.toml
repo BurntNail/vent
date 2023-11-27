@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 axum = { version = "0.6", features = ["form", "tracing", "macros", "headers", "multipart"] }
-axum-extra = { version = "0.8", features = ["form"] }
+axum-extra = { version = "0.9", features = ["form"] }
 chrono = { version = "0.4", features = ["rkyv", "serde", "clock"] }
 chrono-tz = "0.8"
 icalendar = { version = "0.15", features = ["chrono-tz"] }
