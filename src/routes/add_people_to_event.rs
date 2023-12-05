@@ -1,15 +1,21 @@
 //! Module that publishes 2 `POST` methods that deal with adding prefects and participants to events based off of path parameters. This is a fair bit easier than an invisible form.
 
 use crate::{
-    auth::{Auth, PermissionsRole},
+    auth::{
+        backend::{Auth, KnotAuthBackend},
+        PermissionsRole, PermissionsTarget,
+    },
     error::{KnotError, SqlxAction, SqlxSnafu},
     state::KnotState,
 };
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
+    routing::post,
+    Router,
 };
 use axum_extra::extract::Form;
+use axum_login::{login_required, permission_required};
 use chrono::Utc;
 use serde::Deserialize;
 use snafu::ResultExt;
@@ -21,9 +27,8 @@ pub struct AddPerson {
 }
 
 ///`POST` method that adds a prefect to an event
-#[instrument(level = "debug", skip(state))]
 #[axum::debug_handler]
-pub async fn post_add_prefect_to_event(
+async fn post_add_prefect_to_event(
     State(state): State<KnotState>,
     Form(AddPerson {
         event_id,
@@ -39,7 +44,7 @@ pub async fn post_add_prefect_to_event(
             prefect_id,
             event_id
         )
-        .fetch_optional(&mut state.get_connection().await?)
+        .fetch_optional(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingPerson(prefect_id.into()),
@@ -59,7 +64,7 @@ pub async fn post_add_prefect_to_event(
                 prefect_id,
                 event_id
             )
-            .execute(&mut state.get_connection().await?)
+            .execute(&mut *state.get_connection().await?)
             .await
             .context(SqlxSnafu {
                 action: SqlxAction::AddingParticipantOrPrefect {
@@ -76,9 +81,8 @@ pub async fn post_add_prefect_to_event(
 }
 
 ///`POST` method that adds a participant
-#[instrument(level = "debug", skip(state, auth))]
 #[axum::debug_handler]
-pub async fn post_add_participant_to_event(
+async fn post_add_participant_to_event(
     auth: Auth,
     State(state): State<KnotState>,
     Form(AddPerson {
@@ -86,12 +90,10 @@ pub async fn post_add_participant_to_event(
         person_ids,
     }): Form<AddPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
-    let current_user = auth
-        .current_user
-        .expect("need to be logged in to add participants");
+    let current_user = auth.user.expect("need to be logged in to add participants");
 
     let event_date = sqlx::query!("SELECT date FROM events WHERE id = $1", event_id)
-        .fetch_one(&mut state.get_connection().await?)
+        .fetch_one(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingEvent(event_id),
@@ -114,7 +116,7 @@ pub async fn post_add_participant_to_event(
             participant_id,
             event_id
         )
-        .fetch_optional(&mut state.get_connection().await?)
+        .fetch_optional(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingParticipantOrPrefect {
@@ -143,7 +145,7 @@ pub async fn post_add_participant_to_event(
                 participant_id,
                 event_id
             )
-            .execute(&mut state.get_connection().await?)
+            .execute(&mut *state.get_connection().await?)
             .await
             .context(SqlxSnafu {
                 action: SqlxAction::AddingParticipantOrPrefect {
@@ -159,4 +161,16 @@ pub async fn post_add_participant_to_event(
     state.update_events()?;
 
     Ok(Redirect::to(&format!("/update_event/{event_id}"))) //then back to the update event page
+}
+
+pub fn router() -> Router<KnotState> {
+    Router::new()
+        .route("/add_prefect", post(post_add_prefect_to_event))
+        .route_layer(permission_required!(
+            KnotAuthBackend,
+            login_url = "/login",
+            PermissionsTarget::EditPrefectsOnEvents
+        ))
+        .route("/add_participant", post(post_add_participant_to_event))
+        .route_layer(login_required!(KnotAuthBackend)) //TODO: actually use `PermissionsTarget::AddRmSelfToEvent`
 }

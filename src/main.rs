@@ -12,63 +12,41 @@ mod liquid_utils;
 mod routes;
 mod state;
 
+pub use http;
+
 use crate::{
-    auth::{
-        add_password::{get_add_password, get_blank_add_password, post_add_password},
-        login::{get_login, get_login_failure, post_login, post_logout},
-        PermissionsRole,
-    },
+    auth::{add_password, backend::KnotAuthBackend, login, pg_session::PostgresStore},
     error::not_found_fallback,
-    liquid_utils::partials::reload_partials,
+    liquid_utils::partials,
     routes::{
-        add_event::{get_add_event_form, post_add_event_form},
-        add_people_to_event::{post_add_participant_to_event, post_add_prefect_to_event},
-        add_person::{get_add_person, post_add_person},
-        calendar::get_calendar_feed,
-        edit_person::{get_edit_person, post_edit_person, post_reset_password},
-        edit_self::{get_edit_user, post_edit_user},
-        eoy_migration::{get_eoy_migration, post_eoy_migration},
-        images::{get_all_images, post_add_photo, serve_image},
-        import_export::{
-            export_events_to_csv, export_people_to_csv, get_import_export_csv,
-            post_import_events_from_csv, post_import_people_from_csv,
-        },
-        index::get_index,
-        public::{
-            get_256, get_512, get_events_csv_example, get_favicon, get_log, get_manifest,
-            get_offline, get_people_csv_example, get_sw,
-        },
-        rewards::{get_rewards, post_add_reward},
-        show_all::{get_show_all, post_remove_event, post_remove_person},
-        spreadsheets::get_spreadsheet,
-        update_events::{
-            delete_image, get_remove_participant_from_event, get_remove_prefect_from_event,
-            get_update_event, post_unverify_person, post_update_event, post_verify_everyone,
-            post_verify_person,
-        },
+        add_event, add_people_to_event, add_person, calendar::get_calendar_feed, edit_person,
+        edit_self, eoy_migration, images, import_export, index::get_index, public, rewards,
+        show_all, spreadsheets::get_spreadsheet, update_events,
     },
     state::KnotState,
 };
 use axum::{
-    extract::DefaultBodyLimit,
-    routing::{get, post},
-    Router,
+    error_handling::HandleErrorLayer,
+    extract::{DefaultBodyLimit, Request},
+    response::IntoResponse,
+    routing::get,
+    BoxError, Router,
 };
+use axum_login::{
+    tower_sessions::{Expiry, SessionManagerLayer},
+    AuthManagerLayerBuilder,
+};
+use http::StatusCode;
+use hyper::{body::Incoming, service::service_fn};
+use hyper_util::rt::TokioIo;
 use liquid_utils::partials::PARTIALS;
 use sqlx::postgres::PgPoolOptions;
-use std::{env::var, net::SocketAddr, time::Duration};
-use axum_login::{AuthManagerLayer, permission_required};
-use sqlx::PgPool;
-use tokio::signal;
-use tower::limit::ConcurrencyLimitLayer;
-use tower::ServiceBuilder;
+use std::{env::var, net::SocketAddr};
+use time::Duration;
+use tokio::{net::TcpListener, signal, sync::watch};
+use tower::{limit::ConcurrencyLimitLayer, Service, ServiceBuilder};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, EnvFilter, Registry};
-use tower_sessions::{Expiry, PostgresStore, SessionManagerLayer};
-use tower_sessions::sqlx::Postgres;
-use crate::auth::backend::KnotAuthBackend;
-use crate::auth::PermissionsTarget;
-use crate::routes::public;
 
 #[macro_use]
 extern crate tracing;
@@ -104,6 +82,11 @@ async fn shutdown_signal(state: KnotState) {
     warn!("signal received, starting graceful shutdown");
 }
 
+#[axum::debug_handler]
+async fn healthcheck() -> impl IntoResponse {
+    StatusCode::OK
+}
+
 #[tokio::main]
 #[allow(clippy::too_many_lines)]
 async fn main() {
@@ -132,20 +115,42 @@ async fn main() {
 
     let state = KnotState::new(pool).await;
 
+    let auth_service = ServiceBuilder::new()
+        .layer(HandleErrorLayer::new(|e: BoxError| async move {
+            error!(?e, "Error in handling errors layer!");
+            StatusCode::BAD_REQUEST
+        }))
+        .layer(
+            AuthManagerLayerBuilder::new(KnotAuthBackend::new(state.clone()), session_layer)
+                .build(),
+        );
+
     let router = Router::new()
-        .route("/show_all", get(get_show_all))
+        .route("/healthcheck", get(healthcheck))
         .route("/ical", get(get_calendar_feed))
         .route("/spreadsheet", get(get_spreadsheet))
         .route("/", get(get_index))
         .merge(public::router())
         .merge(add_password::router())
+        .merge(login::router())
+        .merge(partials::router())
+        .merge(import_export::router())
+        .merge(edit_self::router())
+        .merge(rewards::router())
+        .merge(add_event::router())
+        .merge(add_people_to_event::router())
+        .merge(add_person::router())
+        .merge(edit_person::router())
+        .merge(eoy_migration::router())
+        .merge(images::router())
+        .merge(show_all::router())
+        .merge(update_events::router())
         .fallback(not_found_fallback)
         .layer(TraceLayer::new_for_http())
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think
-        .layer(AuthManagerLayer::new(KnotAuthBackend::new(state.clone()), session_layer))
+        .layer(auth_service)
         .layer(ConcurrencyLimitLayer::new(512)) //limit to 512 inflight reqs
         .with_state(state.clone());
-
 
     let port: SocketAddr = var("KNOT_SERVER_IP")
         .expect("need KNOT_SERVER_IP env var")
@@ -154,9 +159,58 @@ async fn main() {
 
     info!(?port, "Serving: ");
 
-    axum::Server::bind(&port)
-        .serve(router.into_make_service())
-        .with_graceful_shutdown(shutdown_signal(state))
-        .await
-        .unwrap();
+    serve(router, TcpListener::bind(port).await.unwrap(), state).await;
+}
+
+//https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs
+async fn serve(app: Router, listener: TcpListener, state: KnotState) {
+    let (close_tx, close_rx) = watch::channel(());
+
+    loop {
+        let (socket, _remote_addr) = tokio::select! {
+            result = listener.accept() => {
+                result.unwrap()
+            },
+            _ = shutdown_signal(state.clone()) => {
+                break;
+            }
+        };
+
+        let tower_service = app.clone();
+        let close_rx = close_rx.clone();
+        let state = state.clone();
+
+        tokio::spawn(async move {
+            let socket = TokioIo::new(socket);
+            let hyper_service =
+                service_fn(move |req: Request<Incoming>| tower_service.clone().call(req));
+
+            let conn = hyper::server::conn::http1::Builder::new()
+                .serve_connection(socket, hyper_service)
+                .with_upgrades();
+
+            let mut conn = std::pin::pin!(conn);
+
+            loop {
+                tokio::select! {
+                    result = conn.as_mut() => {
+                        if let Err(err) = result {
+                            error!(?err, "Failed to serve connection :(")
+                        }
+                        break;
+                    },
+                    _ = shutdown_signal(state.clone()) => {
+                        conn.as_mut().graceful_shutdown();
+                    }
+                }
+            }
+
+            drop(close_rx)
+        });
+    }
+
+    drop(close_rx);
+    drop(listener);
+
+    close_tx.closed().await
 }

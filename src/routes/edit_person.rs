@@ -1,22 +1,25 @@
+use crate::{
+    auth::{
+        backend::{Auth, KnotAuthBackend},
+        get_auth_object, PermissionsRole, PermissionsTarget,
+    },
+    error::{KnotError, SqlxAction, SqlxSnafu},
+    liquid_utils::{compile_with_newtitle, CustomFormat},
+    routes::{rewards::Reward, FormPerson},
+    state::{db_objects::DbPerson, KnotState},
+};
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Redirect},
-    Form,
+    routing::{get, post},
+    Form, Router,
 };
+use axum_login::permission_required;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 
-use crate::{
-    auth::{get_auth_object, Auth, PermissionsRole},
-    error::{KnotError, SqlxAction, SqlxSnafu},
-    liquid_utils::{compile_with_newtitle, EnvFormatter},
-    routes::{add_person::NoIDPerson, rewards::Reward},
-    state::{db_objects::DbPerson, KnotState},
-};
-
-#[instrument(level = "debug", skip(auth, state))]
 #[axum::debug_handler]
-pub async fn get_edit_person(
+async fn get_edit_person(
     auth: Auth,
     Path(id): Path<i32>,
     State(state): State<KnotState>,
@@ -43,7 +46,7 @@ FROM people WHERE id = $1
         "#,
         id
     )
-        .fetch_one(&mut state.get_connection().await?)
+        .fetch_one(&mut *state.get_connection().await?)
         .await.context(SqlxSnafu { action: SqlxAction::FindingPerson(id.into()) })?;
     let person = SmolPerson {
         id: person.id,
@@ -74,7 +77,7 @@ ON pe.event_id = e.id AND pe.prefect_id = $1
         "#,
         person.id
     )
-    .fetch_all(&mut state.get_connection().await?)
+    .fetch_all(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingPerson(person.id.into()),
@@ -98,7 +101,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1
         "#,
         person.id
     )
-    .fetch_all(&mut state.get_connection().await?)
+    .fetch_all(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingEventsOnPeople {
@@ -114,25 +117,26 @@ ON pe.event_id = e.id AND pe.participant_id = $1
     })
     .collect::<Vec<_>>();
 
-    let rewards = sqlx::query_as!(Reward, "select name, first_entry_pts, second_entry_pts, id FROM rewards_received rr inner join rewards r on r.id = rr.reward_id and rr.person_id = $1", person.id).fetch_all(&mut state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::FindingPerson(person.id.into()) })?;
+    let rewards = sqlx::query_as!(Reward, "select name, first_entry_pts, second_entry_pts, id FROM rewards_received rr inner join rewards r on r.id = rr.reward_id and rr.person_id = $1", person.id).fetch_all(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::FindingPerson(person.id.into()) })?;
 
     debug!("Compiling");
 
-    compile_with_newtitle("www/edit_person.liquid", liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "rewards": rewards,  "auth": get_auth_object(auth) }), &state.settings.brand.instance_name, Some(format!("Edit {} {}", person.first_name, person.surname))).await
+    let aa = get_auth_object(auth).await?;
+
+    compile_with_newtitle("www/edit_person.liquid", liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "rewards": rewards,  "auth": aa }), &state.settings.brand.instance_name, Some(format!("Edit {} {}", person.first_name, person.surname))).await
 }
 
-#[instrument(level = "debug", skip(state, first_name, surname))]
 #[axum::debug_handler]
-pub async fn post_edit_person(
+async fn post_edit_person(
     Path(id): Path<i32>,
     State(state): State<KnotState>,
-    Form(NoIDPerson {
+    Form(FormPerson {
         first_name,
         surname,
         form,
         username,
         permissions,
-    }): Form<NoIDPerson>,
+    }): Form<FormPerson>,
 ) -> Result<impl IntoResponse, KnotError> {
     debug!("Editing person");
     sqlx::query!(
@@ -148,7 +152,7 @@ WHERE id=$1
         username,
         permissions as _
     )
-    .execute(&mut state.get_connection().await?)
+    .execute(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::UpdatingPerson(id.into()),
@@ -158,30 +162,35 @@ WHERE id=$1
 }
 
 #[derive(Deserialize)]
-pub struct PasswordReset {
+struct PasswordReset {
     id: i32,
 }
 
-#[instrument(level = "debug", skip(auth, state))]
 #[axum::debug_handler]
-pub async fn post_reset_password(
+async fn post_reset_password(
     mut auth: Auth,
     State(state): State<KnotState>,
     Form(PasswordReset { id }): Form<PasswordReset>,
 ) -> Result<impl IntoResponse, KnotError> {
     debug!("Logging out.");
 
-    if auth
-        .current_user
-        .clone()
-        .expect("user logged in to reset password")
-        .id
-        == id
-    {
-        auth.logout().await;
+    if auth.user.as_ref().map(|x| x.id == id).unwrap_or(false) {
+        auth.logout()?;
     }
 
     debug!("Sending password reset");
     state.reset_password(id).await?;
     Ok(Redirect::to("/show_all"))
+}
+
+pub fn router() -> Router<KnotState> {
+    Router::new()
+        .route("/edit_person/:id", post(post_edit_person))
+        .route("/reset_password", post(post_reset_password))
+        .route_layer(permission_required!(
+            KnotAuthBackend,
+            login_url = "/url",
+            PermissionsTarget::EditPeople
+        ))
+        .route("/edit_person/:id", get(get_edit_person))
 }

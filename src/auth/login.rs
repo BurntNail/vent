@@ -1,18 +1,22 @@
 use crate::{
     auth::{
+        backend::{Auth, KnotAuthBackend},
         cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP},
-        get_auth_object, Auth,
+        get_auth_object,
     },
-    error::{KnotError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu},
+    error::{ALError, KnotError, LoginFailureReason},
     liquid_utils::compile,
-    state::{db_objects::DbPerson, KnotState},
+    state::KnotState,
 };
-use axum::{extract::{Path, State}, response::{IntoResponse, Redirect}, Form, Router};
-use bcrypt::verify;
+use axum::{
+    extract::{Path, State},
+    response::{IntoResponse, Redirect},
+    routing::get,
+    Form, Router,
+};
+use axum_login::login_required;
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
-use snafu::ResultExt;
-use crate::error::LoginFailureReason;
 
 #[derive(Deserialize)]
 pub struct LoginForm {
@@ -27,9 +31,10 @@ pub async fn get_login(
     auth: Auth,
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
+    let aa = get_auth_object(auth).await?;
     compile(
         "www/login.liquid",
-        liquid::object!({ "auth": get_auth_object(auth) }),
+        liquid::object!({ "auth": aa }),
         &state.settings.brand.instance_name,
     )
     .await
@@ -69,16 +74,18 @@ pub async fn get_login_failure(
     Path(was_password_related): Path<FailureReason>,
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
+    let aa = get_auth_object(auth).await?;
     let html = compile(
         "www/failed_auth.liquid",
-        liquid::object!({ "auth": get_auth_object(auth), "was_password_related": was_password_related }),
-        &state.settings.brand.instance_name
+        liquid::object!({ "auth": aa, "was_password_related": was_password_related }),
+        &state.settings.brand.instance_name,
     )
     .await?;
 
     Ok((was_password_related.status_code(), html).into_response())
 }
 
+#[derive(Clone)]
 pub struct LoginCreds {
     pub username: String,
     pub unhashed_password: String,
@@ -87,42 +94,60 @@ pub struct LoginCreds {
 #[axum::debug_handler]
 pub async fn post_login(
     mut auth: Auth,
-    State(state): State<KnotState>,
     remote_ip: GrabCFRemoteIP,
     Form(LoginForm {
-             username, unhashed_password, cf_turnstile_response
-         }): Form<LoginForm>,
+        username,
+        unhashed_password,
+        cf_turnstile_response,
+    }): Form<LoginForm>,
 ) -> Result<impl IntoResponse, KnotError> {
     if !verify_turnstile(cf_turnstile_response, remote_ip).await? {
         return Ok(Redirect::to("/login_failure/failed_turnstile"));
     }
 
-    Ok(Redirect::to(match auth.authenticate(LoginCreds {username: username.clone(), unhashed_password}).await {
-        Ok(Some(x)) => {
-            auth.login(&x);
-            "/"
-        },
-        Ok(None) => {
-            "/login_failure/user_not_found"
-        },
-        Err(KnotError::LoginFailure {reason}) => match reason {
-            LoginFailureReason::PasswordIsNotSet => "/add_password",
-            LoginFailureReason::IncorrectPassword => {
-                error!(username=?username, "Wrong password for trying to login");
-                "/login_failure/bad_password"
+    Ok(Redirect::to(
+        match auth
+            .authenticate(LoginCreds {
+                username: username.clone(),
+                unhashed_password,
+            })
+            .await
+        {
+            Ok(Some(x)) => {
+                auth.login(&x).await?;
+                "/"
+            }
+            Ok(None) => "/login_failure/user_not_found",
+            Err(error) => {
+                if let ALError::Backend(KnotError::LoginFailure { reason }) = error {
+                    match reason {
+                        LoginFailureReason::PasswordIsNotSet => "/add_password",
+                        LoginFailureReason::IncorrectPassword => {
+                            error!(username = ? username, "Wrong password for trying to login");
+                            "/login_failure/bad_password"
+                        }
+                    }
+                } else {
+                    return Err(error.into());
+                }
             }
         },
-        Err(e) => Err(e)?,
-    }))
+    ))
 }
 
 #[axum::debug_handler]
-pub async fn post_logout(mut auth: Auth) -> Result<impl IntoResponse, KnotError> {
-    auth.logout().await;
+pub async fn get_logout(mut auth: Auth) -> Result<impl IntoResponse, KnotError> {
+    auth.logout()?;
     Ok(Redirect::to("/"))
 }
 
-pub fn router () -> Router<KnotState> {
+pub fn router() -> Router<KnotState> {
     Router::new()
-        .
+        .route("/logout", get(get_logout))
+        .route_layer(login_required!(KnotAuthBackend, login_url = "/login"))
+        .route("/login", get(get_login).post(post_login))
+        .route(
+            "/login_failure/:was_password_related",
+            get(get_login_failure),
+        )
 }

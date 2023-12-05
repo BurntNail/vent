@@ -1,14 +1,19 @@
 use crate::{
     auth::{
+        backend::Auth,
         cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP},
-        get_auth_object, backend::Auth,
+        get_auth_object,
     },
-    error::{KnotError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu},
+    error::{KnotError, SqlxAction, SqlxSnafu},
     liquid_utils::compile,
     state::{db_objects::DbPerson, mail::EmailToSend, KnotState},
 };
-use axum::{extract::{Path, Query, State}, response::{IntoResponse, Redirect}, Form, Router};
-use axum::routing::get;
+use axum::{
+    extract::{Path, Query, State},
+    response::{IntoResponse, Redirect},
+    routing::get,
+    Form, Router,
+};
 use bcrypt::{hash, DEFAULT_COST};
 use itertools::Itertools;
 use rand::{thread_rng, Rng};
@@ -22,11 +27,12 @@ async fn get_blank_add_password(
     auth: Auth,
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
+    let aa = get_auth_object(auth).await?;
     compile(
         "www/add_password.liquid",
         liquid::object!({
             "is_authing_user": false,
-            "auth": get_auth_object(auth),
+            "auth": aa,
         }),
         &state.settings.brand.instance_name,
     )
@@ -46,7 +52,7 @@ async fn get_add_password(
     Query(Link { code: link_thingie }): Query<Link>,
 ) -> Result<impl IntoResponse, KnotError> {
     let correct_code = sqlx::query!("SELECT password_link_id FROM people WHERE id = $1", id)
-        .fetch_one(&mut state.get_connection().await?)
+        .fetch_one(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingPerson(id.into()),
@@ -61,7 +67,7 @@ async fn get_add_password(
     };
 
     if sqlx::query!("SELECT hashed_password FROM people WHERE id = $1", id)
-        .fetch_one(&mut state.get_connection().await?)
+        .fetch_one(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingPerson(id.into()),
@@ -80,15 +86,17 @@ FROM people
 WHERE id = $1"#,
         id
     )
-    .fetch_one(&mut state.get_connection().await?)
+    .fetch_one(&mut *state.get_connection().await?)
     .await.context(SqlxSnafu { action: SqlxAction::FindingPerson(id.into()) })?;
+
+    let aa = get_auth_object(auth).await?;
 
     Ok(compile(
         "www/add_password.liquid",
         liquid::object!({
             "is_authing_user": true,
             "person": person,
-            "auth": get_auth_object(auth),
+            "auth": aa,
             "link_id": link_thingie
         }),
         &state.settings.brand.instance_name,
@@ -123,7 +131,7 @@ async fn post_add_password(
     }
 
     if sqlx::query!("SELECT hashed_password FROM people WHERE id = $1", id)
-        .fetch_one(&mut state.get_connection().await?)
+        .fetch_one(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingPerson(id.into()),
@@ -135,7 +143,7 @@ async fn post_add_password(
     }
 
     let expected = sqlx::query!("SELECT password_link_id FROM people WHERE id = $1", id)
-        .fetch_one(&mut state.get_connection().await?)
+        .fetch_one(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingPerson(id.into()),
@@ -162,23 +170,21 @@ RETURNING id, first_name, surname, username, form, hashed_password, permissions 
         hashed,
         id
     )
-    .fetch_one(&mut state.get_connection().await?)
+    .fetch_one(&mut *state.get_connection().await?)
     .await.context(SqlxSnafu { action: SqlxAction::UpdatingPerson(id.into()) })?;
 
-    auth.login(&person).await.context(SerdeJsonSnafu {
-        action: SerdeJsonAction::TryingToLogin,
-    })?;
+    auth.login(&(person.into())).await?;
 
     Ok(Redirect::to("/"))
 }
 
-async fn get_email_to_be_sent_for_reset_password(
+pub async fn get_email_to_be_sent_for_reset_password(
     mut connection: PoolConnection<Postgres>,
     user_id: i32,
 ) -> Result<EmailToSend, KnotError> {
     let current_ids =
         sqlx::query!(r#"SELECT password_link_id FROM people WHERE password_link_id <> NULL"#)
-            .fetch_all(&mut connection)
+            .fetch_all(&mut *connection)
             .await
             .context(SqlxSnafu {
                 action: SqlxAction::FindingPerson(user_id.into()),
@@ -202,7 +208,7 @@ async fn get_email_to_be_sent_for_reset_password(
         id,
         user_id
     )
-    .execute(&mut connection)
+    .execute(&mut *connection)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::UpdatingPerson(id.into()),
@@ -212,7 +218,7 @@ async fn get_email_to_be_sent_for_reset_password(
         "SELECT username, first_name, surname FROM people WHERE id = $1",
         user_id
     )
-    .fetch_one(&mut connection)
+    .fetch_one(&mut *connection)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingPerson(id.into()),
@@ -226,7 +232,7 @@ async fn get_email_to_be_sent_for_reset_password(
     })
 }
 
-pub fn router () -> Router<KnotState> {
+pub fn router() -> Router<KnotState> {
     Router::new()
         .route("/add_password", get(get_blank_add_password))
         .route(

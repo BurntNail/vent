@@ -19,7 +19,6 @@ use tokio::{
     },
 };
 
-#[instrument(level = "debug", skip(state))]
 #[axum::debug_handler]
 pub async fn get_calendar_feed(
     State(state): State<KnotState>,
@@ -43,7 +42,7 @@ pub fn update_calendar_thread(
             r#"
     SELECT id, first_name, surname FROM people p WHERE p.permissions != 'participant'"#
         )
-        .fetch_all(&mut conn)
+        .fetch_all(&mut *conn)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingPeople,
@@ -55,7 +54,7 @@ pub fn update_calendar_thread(
             r#"
     SELECT event_id, prefect_id FROM prefect_events"#
         )
-        .fetch_all(&mut conn)
+        .fetch_all(&mut *conn)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingParticipantsOrPrefectsAtEvents { event_id: None },
@@ -79,7 +78,7 @@ pub fn update_calendar_thread(
             other_info,
             zip_file: _,
         } in sqlx::query_as!(DbEvent, r#"SELECT * FROM events"#)
-            .fetch_all(&mut conn)
+            .fetch_all(&mut *conn)
             .await
             .context(SqlxSnafu {
                 action: SqlxAction::FindingAllEvents,

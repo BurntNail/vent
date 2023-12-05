@@ -1,20 +1,22 @@
 use crate::{
-    auth::Auth,
+    auth::backend::{Auth, KnotAuthBackend},
     error::{
         ConvertingWhatToString, DatabaseIDMethod, IOAction, IOSnafu, ImageAction, ImageSnafu,
         JoinSnafu, KnotError, MissingExtensionSnafu, NoImageExtensionSnafu, SqlxAction, SqlxSnafu,
-        ThreadReason, ToStrSnafu,
+        ThreadReason, ToStrSnafu, UnknownMIMESnafu,
     },
-    routes::public::serve_static_file,
+    routes::public::{serve_read, serve_static_file},
     state::KnotState,
 };
 use async_zip::{tokio::write::ZipFileWriter, Compression, ZipEntryBuilder};
 use axum::{
-    body::StreamBody,
     extract::{Multipart, Path, State},
-    http::header,
     response::{IntoResponse, Redirect},
+    routing::{get, post},
+    Router,
 };
+use axum_login::login_required;
+use new_mime_guess::MimeGuess;
 use rand::{random, thread_rng, Rng};
 use snafu::{OptionExt, ResultExt};
 use std::{ffi::OsStr, path::PathBuf};
@@ -22,12 +24,10 @@ use tokio::{
     fs::File,
     io::{AsyncReadExt, AsyncWriteExt},
 };
-use tokio_util::io::ReaderStream;
 use walkdir::WalkDir;
 
-#[instrument(level = "debug", skip(state, auth))]
 #[axum::debug_handler]
-pub async fn post_add_photo(
+async fn post_add_photo(
     auth: Auth,
     Path(event_id): Path<i32>,
     State(state): State<KnotState>,
@@ -41,7 +41,7 @@ SET zip_file = NULL
 WHERE id = $1"#,
         event_id
     )
-    .execute(&mut state.get_connection().await?)
+    .execute(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::UpdatingEvent(event_id),
@@ -74,7 +74,7 @@ WHERE id = $1"#,
             "#,
                 &key
             )
-            .fetch_optional(&mut state.get_connection().await?)
+            .fetch_optional(&mut *state.get_connection().await?)
             .await
             .with_context(|_| SqlxSnafu {
                 action: SqlxAction::FindingPhotos(DatabaseIDMethod::Path(key.clone().into())),
@@ -97,7 +97,7 @@ VALUES($1, $2, $3)"#,
             event_id,
             user_id,
         )
-        .execute(&mut state.get_connection().await?)
+        .execute(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::AddingPhotos,
@@ -116,9 +116,8 @@ VALUES($1, $2, $3)"#,
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
 
-#[instrument(level = "debug")]
 #[axum::debug_handler]
-pub async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoResponse, KnotError> {
+async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoResponse, KnotError> {
     debug!("Getting path/ext");
 
     let path = PathBuf::from(img_path.as_str());
@@ -127,33 +126,28 @@ pub async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoRespon
         was_looking_for: path.clone(),
     })?;
     let ext = ext.to_str().context(ToStrSnafu {
-        what: ConvertingWhatToString::PathBuffer(path),
+        what: ConvertingWhatToString::PathBuffer(path.clone()),
     })?;
 
     debug!("Getting body");
 
-    let path = format!("uploads/{img_path}");
-    let file = File::open(&path).await.context(IOSnafu {
-        action: IOAction::OpeningFile(path.into()),
+    let short_path = format!("uploads/{img_path}");
+    let file = File::open(&short_path).await.context(IOSnafu {
+        action: IOAction::OpeningFile(short_path.clone().into()),
     })?;
-    let body = StreamBody::new(ReaderStream::new(file));
 
-    let headers = [
-        (header::CONTENT_TYPE, format!("image/{ext}")),
-        (
-            header::CONTENT_DISPOSITION,
-            format!("filename=\"{img_path}\""),
-        ),
-    ];
-
-    debug!("Returning");
-
-    Ok((headers, body))
+    serve_read(
+        MimeGuess::from_ext(ext)
+            .first()
+            .context(UnknownMIMESnafu { path })?,
+        file,
+        IOAction::ReadingFile(short_path.into()),
+    )
+    .await
 }
 
-#[instrument(level = "debug", skip(state))]
 #[axum::debug_handler]
-pub async fn get_all_images(
+async fn get_all_images(
     Path(event_id): Path<i32>,
     State(state): State<KnotState>,
 ) -> Result<impl IntoResponse, KnotError> {
@@ -165,7 +159,7 @@ FROM events
 WHERE id = $1"#,
         event_id
     )
-    .fetch_one(&mut state.get_connection().await?)
+    .fetch_one(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingEvent(event_id),
@@ -183,7 +177,7 @@ SELECT path FROM public.photos
 WHERE event_id = $1"#,
         event_id
     )
-    .fetch_all(&mut state.get_connection().await?)
+    .fetch_all(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingPhotos(event_id.into()),
@@ -192,7 +186,6 @@ WHERE event_id = $1"#,
     .map(|x| x.path);
 
     let file_name = {
-        #[instrument(level = "debug")]
         fn get_existing() -> Vec<String> {
             let zip_ext = OsStr::new("zip");
             let mut files = vec![];
@@ -288,7 +281,7 @@ WHERE id = $2"#,
         &file_name,
         event_id
     )
-    .execute(&mut state.get_connection().await?)
+    .execute(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::UpdatingEvent(event_id),
@@ -297,4 +290,12 @@ WHERE id = $2"#,
     debug!("Serving");
 
     serve_static_file(file_name).await
+}
+
+pub fn router() -> Router<KnotState> {
+    Router::new()
+        .route("/add_image/:id", post(post_add_photo))
+        .route("/get_all_imgs/:event_id", get(get_all_images))
+        .route("/uploads/:img", get(serve_image))
+        .route_layer(login_required!(KnotAuthBackend, login_url = "/login"))
 }

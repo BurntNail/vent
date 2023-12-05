@@ -1,60 +1,82 @@
 use crate::{
-    auth::cloudflare_turnstile::CommonHeaders,
+    auth::{backend::KnotAuthBackend, cloudflare_turnstile::CommonHeaders, PermissionsTarget},
     error::{
-        FileIdentifier, HeadersSnafu, IOAction, IOSnafu, KnotError, SerdeJsonAction,
-        SerdeJsonSnafu, UnknownMIMESnafu,
+        FileIdentifier, HeadersSnafu, HttpAction, HttpSnafu, IOAction, IOSnafu, KnotError,
+        SerdeJsonAction, SerdeJsonSnafu, UnknownMIMESnafu,
     },
+    state::KnotState,
 };
-use axum::{body::StreamBody, http::{header, HeaderMap}, response::{IntoResponse, Json}, Router};
-use http::HeaderValue;
-use new_mime_guess::from_path;
+use axum::{
+    body::{Body, Bytes},
+    http::header,
+    response::{IntoResponse, Json},
+    routing::get,
+    Router,
+};
+use axum_login::permission_required;
+use http::{HeaderValue, Response};
+use new_mime_guess::{from_path, Mime};
 use serde_json::{from_str, Value};
 use snafu::{OptionExt, ResultExt};
 use std::{fmt::Debug, path::PathBuf};
-use axum::routing::get;
-use tokio::fs::{read_to_string, File};
-use tokio_util::io::ReaderStream;
+use tokio::{
+    fs::{read_to_string, File},
+    io::{AsyncRead, AsyncReadExt},
+};
 
-#[instrument(level = "trace")]
 pub async fn serve_static_file(
     path: impl Into<PathBuf> + Debug,
 ) -> Result<impl IntoResponse, KnotError> {
-    trace!("Getting file contents/details");
-
     let path = path.into();
-
-    trace!(?path);
 
     let file = File::open(path.clone()).await.context(IOSnafu {
         action: IOAction::OpeningFile(path.clone().into()),
     })?;
-    let file_size = file
-        .metadata()
-        .await
-        .context(IOSnafu {
-            action: IOAction::ReadingMetadata,
-        })?
-        .len();
-    let body = StreamBody::new(ReaderStream::new(file));
 
     let mime = from_path(path.clone())
         .first()
-        .context(UnknownMIMESnafu { path })?;
+        .context(UnknownMIMESnafu { path: path.clone() })?;
 
-    trace!("Building headers");
+    serve_read(mime, file, IOAction::ReadingFile(path.clone().into())).await
+}
 
-    let mut headers = HeaderMap::new();
-    headers.insert(
-        header::CONTENT_TYPE,
-        HeaderValue::try_from(mime.essence_str()).context(HeadersSnafu {
-            which_header: CommonHeaders::ContentType,
-        })?,
-    );
-    headers.insert(header::CONTENT_LENGTH, file_size.into());
+pub async fn serve_read(
+    mime: Mime,
+    mut reader: impl AsyncRead + Unpin,
+    io_action_for_errors: IOAction,
+) -> Result<impl IntoResponse, KnotError> {
+    let mut contents = vec![];
+    let mut tmp = [0; 1024];
+    loop {
+        let n = reader.read(&mut tmp).await.context(IOSnafu {
+            action: io_action_for_errors.clone(),
+        })?;
+        match n {
+            0 => break,
+            n => {
+                contents.extend_from_slice(&tmp[0..n]);
+            }
+        }
+    }
 
-    trace!("Serving");
+    drop(reader);
 
-    Ok((headers, body))
+    let file_size = contents.len();
+
+    let rsp = Response::builder()
+        .header(
+            header::CONTENT_TYPE,
+            HeaderValue::try_from(mime.essence_str()).context(HeadersSnafu {
+                which_header: CommonHeaders::ContentType,
+            })?,
+        )
+        .header(header::CONTENT_LENGTH, file_size)
+        .body(Body::from(Bytes::from(contents)))
+        .context(HttpSnafu {
+            action: HttpAction::BuildingResponse,
+        })?;
+
+    Ok(rsp)
 }
 
 #[axum::debug_handler]
@@ -93,9 +115,14 @@ get_x!(get_256, "public/256x256.png");
 get_x!(get_people_csv_example, "public/people_example.csv");
 get_x!(get_events_csv_example, "public/events_example.csv");
 
-
-pub fn router () -> Router {
+pub fn router() -> Router<KnotState> {
     Router::new()
+        .route("/logs", get(get_log))
+        .route_layer(permission_required!(
+            KnotAuthBackend,
+            login_url = "/login",
+            PermissionsTarget::DevAccess
+        ))
         .route("/favicon.ico", get(get_favicon))
         .route("/manifest.json", get(get_manifest))
         .route("/sw.js", get(get_sw))
@@ -104,5 +131,4 @@ pub fn router () -> Router {
         .route("/256x256.png", get(get_256))
         .route("/people_example.csv", get(get_people_csv_example))
         .route("/events_example.csv", get(get_events_csv_example))
-
 }

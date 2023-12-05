@@ -1,21 +1,17 @@
 pub mod add_password;
+pub mod backend;
 pub mod cloudflare_turnstile;
 pub mod login;
+pub mod pg_session;
 
-pub mod backend;
-
-use std::collections::HashSet;
-use axum_login::{AuthnBackend, AuthzBackend};
+use crate::{auth::backend::Auth, error::KnotError};
+use axum_login::AuthzBackend;
 use change_case::snake_case;
 use itertools::Itertools;
-use liquid::model::Value;
-use liquid::Object;
-use rand::{Rng};
+use liquid::{model::Value, Object};
 use serde::{Deserialize, Serialize};
-use snafu::ResultExt;
+use std::collections::HashSet;
 use strum::IntoEnumIterator;
-use crate::auth::backend::Auth;
-use crate::error::KnotError;
 
 #[derive(
     sqlx::Type, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Serialize, Deserialize, Debug,
@@ -29,12 +25,12 @@ pub enum PermissionsRole {
 }
 
 impl PermissionsRole {
-    pub fn can (self) -> HashSet<PermissionsTarget> {
+    pub fn can(self) -> HashSet<PermissionsTarget> {
         PermissionsTarget::iter().filter(|x| x.can(&self)).collect()
     }
 }
 
-#[derive(strum::EnumIter, strum::IntoStaticStr, Copy, Clone, Debug)]
+#[derive(strum::EnumIter, strum::IntoStaticStr, Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum PermissionsTarget {
     DevAccess,
     ImportCSV,
@@ -52,7 +48,7 @@ pub enum PermissionsTarget {
 }
 
 impl PermissionsTarget {
-    pub const fn can (&self, role: &PermissionsRole) -> bool {
+    pub fn can(&self, role: &PermissionsRole) -> bool {
         match self {
             PermissionsTarget::DevAccess => role >= &PermissionsRole::Dev,
             PermissionsTarget::ImportCSV => role >= &PermissionsRole::Admin,
@@ -71,24 +67,28 @@ impl PermissionsTarget {
     }
 }
 
-
 pub async fn get_auth_object(auth: Auth) -> Result<Object, KnotError> {
     let iter = PermissionsTarget::iter().map(|x| (x, snake_case(x.into()).parse().unwrap()));
 
     match &auth.user {
         Some(x) => {
-            let allowed = auth.backend.get_all_permissions(x).await?.into_iter().collect_vec();
+            let allowed = auth
+                .backend
+                .get_all_permissions(x)
+                .await?
+                .into_iter()
+                .collect_vec();
             let mut perms = Object::new();
             for (variant, snake) in iter {
-                perms.insert(snake, Value::Scalar(allowed.contains(&variant).into()))
+                perms.insert(snake, Value::Scalar(allowed.contains(&variant).into()));
             }
 
             Ok(liquid::object!({"is_logged_in": true, "permissions": perms, "user": x}))
-        },
+        }
         None => {
             let mut perms = Object::new();
             for (_variant, snake) in iter {
-                perms.insert(snake, Value::Scalar(false.into()))
+                perms.insert(snake, Value::Scalar(false.into()));
             }
 
             Ok(liquid::object!({"is_logged_in": false, "permissions": perms}))

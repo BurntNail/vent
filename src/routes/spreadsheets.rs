@@ -1,6 +1,6 @@
-use super::public::serve_static_file;
 use crate::{
     error::{JoinSnafu, KnotError, SqlxAction, SqlxSnafu, ThreadReason},
+    routes::public::serve_static_file,
     state::KnotState,
 };
 use axum::{extract::State, response::IntoResponse};
@@ -9,7 +9,6 @@ use snafu::ResultExt;
 use std::collections::HashMap;
 use tokio::task;
 
-#[instrument(level = "debug", skip(state))]
 #[axum::debug_handler]
 pub async fn get_spreadsheet(
     State(state): State<KnotState>,
@@ -19,7 +18,7 @@ pub async fn get_spreadsheet(
         r#"
 SELECT id, first_name, surname, form  FROM people"#
     )
-    .fetch_all(&mut state.get_connection().await?)
+    .fetch_all(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingPeople,
@@ -33,7 +32,7 @@ SELECT id, first_name, surname, form  FROM people"#
         r#"
 SELECT * FROM events"#
     )
-    .fetch_all(&mut state.get_connection().await?)
+    .fetch_all(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingAllEvents,
@@ -47,7 +46,7 @@ SELECT * FROM events"#
     sqlx::query!(
         "SELECT participant_id, event_id FROM participant_events WHERE is_verified = true"
     )
-    .fetch_all(&mut state.get_connection().await?)
+    .fetch_all(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingAllEvents,

@@ -1,15 +1,20 @@
-use std::collections::HashMap;
-
 use axum::{
     extract::{Form, State},
     response::{IntoResponse, Redirect},
+    routing::{get, post},
+    Router,
 };
+use axum_login::{login_required, permission_required};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
+use std::collections::HashMap;
 
 use crate::{
-    auth::{get_auth_object, Auth},
+    auth::{
+        backend::{Auth, KnotAuthBackend},
+        get_auth_object, PermissionsTarget,
+    },
     error::{KnotError, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
     state::KnotState,
@@ -40,7 +45,7 @@ pub async fn get_rewards(
     }
 
     let general_awards = sqlx::query_as!(Reward, "SELECT * FROM rewards")
-        .fetch_all(&mut state.get_connection().await?)
+        .fetch_all(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::GettingRewards,
@@ -56,8 +61,8 @@ pub async fn get_rewards(
     for record in sqlx::query!(r#"
     SELECT first_name, surname, form, id, was_first_entry, (select count(*) from participant_events pe where pe.participant_id = id and pe.is_verified = true) as no_events
     FROM people
-    "#).fetch_all(&mut state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::FindingPeople })? {
-        let already_got_award_ids = sqlx::query!("SELECT reward_id FROM rewards_received WHERE person_id = $1", record.id).fetch_all(&mut state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(record.id.into())) })?.into_iter().map(|x| x.reward_id).collect_vec();
+    "#).fetch_all(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::FindingPeople })? {
+        let already_got_award_ids = sqlx::query!("SELECT reward_id FROM rewards_received WHERE person_id = $1", record.id).fetch_all(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(record.id.into())) })?.into_iter().map(|x| x.reward_id).collect_vec();
 
         if already_got_award_ids.len() == general_awards.len() {
             continue;
@@ -97,7 +102,7 @@ pub async fn get_rewards(
     let mut already_awarded_hm = HashMap::new();
 
     for record in sqlx::query!("SELECT * FROM rewards_received")
-        .fetch_all(&mut state.get_connection().await?)
+        .fetch_all(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::GettingRewardsReceived(None),
@@ -115,7 +120,7 @@ pub async fn get_rewards(
             "SELECT first_name, surname, form FROM people WHERE id = $1",
             person_id
         )
-        .fetch_one(&mut state.get_connection().await?)
+        .fetch_one(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingPerson(person_id.into()),
@@ -134,11 +139,13 @@ pub async fn get_rewards(
     already_awarded.sort_by_cached_key(|x| x.form.clone());
     already_awarded.sort_by_cached_key(|x| x.awards.clone());
 
+    let aa = get_auth_object(auth).await?;
+
     compile_with_newtitle(
         "www/rewards.liquid",
-        liquid::object!({ "tba": to_be_awarded, "aa": already_awarded, "auth": get_auth_object(auth) })
-        , &state.settings.brand.instance_name,
-        Some("Rewards".into())
+        liquid::object!({ "tba": to_be_awarded, "aa": already_awarded, "auth": aa }),
+        &state.settings.brand.instance_name,
+        Some("Rewards".into()),
     )
     .await
 }
@@ -162,11 +169,23 @@ pub async fn post_add_reward(
         reward_id,
         person_id
     )
-    .execute(&mut state.get_connection().await?)
+    .execute(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::AddingReward,
     })?;
 
     Ok(Redirect::to("/add_reward"))
+}
+
+pub fn router() -> Router<KnotState> {
+    Router::new()
+        .route("/add_reward", post(post_add_reward))
+        .route_layer(permission_required!(
+            KnotAuthBackend,
+            login_url = "/login",
+            PermissionsTarget::AddRewards
+        ))
+        .route("/add_reward", get(get_rewards))
+        .route_layer(login_required!(KnotAuthBackend, login_url = "/login"))
 }

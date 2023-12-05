@@ -1,12 +1,20 @@
+use crate::{
+    auth::{backend::KnotAuthBackend, PermissionsTarget},
+    state::KnotState,
+};
+use axum::{
+    response::{IntoResponse, Redirect},
+    routing::get,
+    Router,
+};
+use axum_login::permission_required;
+use liquid::partials::{EagerCompiler, PartialSource};
+use once_cell::sync::Lazy;
 use std::{
     borrow::Cow,
     collections::HashMap,
     ffi::{OsStr, OsString},
 };
-
-use axum::response::{IntoResponse, Redirect};
-use liquid::partials::{EagerCompiler, PartialSource};
-use once_cell::sync::Lazy;
 use tokio::{fs::read_to_string, sync::RwLock};
 use walkdir::{DirEntry, WalkDir};
 
@@ -42,9 +50,8 @@ impl PartialSource for Partials {
 ///Static variable to store all of the partials
 pub static PARTIALS: Lazy<RwLock<Partials>> = Lazy::new(|| RwLock::new(Partials::default()));
 
-#[instrument(level = "debug")]
 #[axum::debug_handler]
-pub async fn reload_partials() -> impl IntoResponse {
+async fn reload_partials() -> impl IntoResponse {
     debug!("Reloading Partials");
     PARTIALS.write().await.reload().await;
     Redirect::to("/")
@@ -53,7 +60,6 @@ pub async fn reload_partials() -> impl IntoResponse {
 ///Async function to get `Partials` - used to set [`PARTIALS`]
 ///
 /// Looks for the Partials in `www/partials/`, and sets their `liquid` names to be in the `partials/` directory, and accepts `html`, and `liquid` extensions
-#[instrument]
 async fn get_partials() -> HashMap<String, String> {
     ///The directory which contains the partials
     const PARTIALS_DIR: &str = "www/partials/";
@@ -98,4 +104,13 @@ async fn get_partials() -> HashMap<String, String> {
     }
 
     in_memory_source
+}
+
+pub fn router() -> Router<KnotState> {
+    Router::new()
+        .route("/reload_partials", get(reload_partials))
+        .route_layer(permission_required!(
+            KnotAuthBackend,
+            PermissionsTarget::DevAccess
+        ))
 }
