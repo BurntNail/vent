@@ -1,8 +1,11 @@
-use super::FormEvent;
 use crate::{
-    auth::{get_auth_object, Auth, PermissionsRole},
+    auth::{
+        backend::{Auth, VentAuthBackend},
+        get_auth_object, PermissionsRole, PermissionsTarget,
+    },
     error::{IOAction, IOSnafu, VentError, ParseTimeSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
+    routes::FormEvent,
     state::{
         db_objects::{DbEvent, DbPerson},
         VentState,
@@ -11,8 +14,11 @@ use crate::{
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Redirect},
+    routing::{get, post},
+    Router,
 };
 use axum_extra::extract::Form;
+use axum_login::{login_required, permission_required};
 use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
@@ -20,9 +26,8 @@ use std::collections::HashMap;
 use tokio::fs::remove_file;
 
 #[allow(clippy::too_many_lines)]
-#[instrument(level = "debug", skip(state, auth))]
 #[axum::debug_handler]
-pub async fn get_update_event(
+async fn get_update_event(
     auth: Auth,
     Path(event_id): Path<i32>,
     State(state): State<VentState>,
@@ -43,7 +48,7 @@ SELECT * FROM events WHERE id = $1
 "#,
         event_id
     )
-    .fetch_one(&mut state.get_connection().await?)
+    .fetch_one(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingEvent(event_id),
@@ -82,7 +87,7 @@ INNER JOIN prefect_events pe ON pe.event_id = $1 AND pe.prefect_id = p.id
 "#,
         event_id
     )
-    .fetch_all(&mut state.get_connection().await?)
+    .fetch_all(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingParticipantsOrPrefectsAtEvents {
@@ -126,7 +131,7 @@ INNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.i
 "#,
         event_id
     )
-    .fetch_all(&mut state.get_connection().await?)
+    .fetch_all(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingParticipantsOrPrefectsAtEvents {
@@ -162,7 +167,7 @@ FROM people p
 WHERE p.permissions != 'participant'
 "#
     )
-    .fetch_all(&mut state.get_connection().await?)
+    .fetch_all(&mut *state.get_connection().await?)
     .await.context(SqlxSnafu { action: SqlxAction::FindingPeople })?
     .into_iter()
     .filter(|p| {
@@ -198,7 +203,7 @@ SELECT id, first_name, surname, username, form, hashed_password, permissions as 
 FROM people p
 "#
     )
-    .fetch_all(&mut state.get_connection().await?)
+    .fetch_all(&mut *state.get_connection().await?)
     .await.context(SqlxSnafu { action: SqlxAction::FindingPeople })?
     .into_iter()
     .filter(|p| {
@@ -242,7 +247,7 @@ WHERE event_id = $1
         "#,
         event_id
     )
-    .fetch_all(&mut state.get_connection().await?)
+    .fetch_all(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingPhotos(event_id.into()),
@@ -252,7 +257,7 @@ WHERE event_id = $1
                 "SELECT first_name, surname, form FROM people WHERE id = $1",
                 added_by
             )
-            .fetch_one(&mut state.get_connection().await?)
+            .fetch_one(&mut *state.get_connection().await?)
             .await
             .context(SqlxSnafu {
                 action: SqlxAction::FindingPerson(added_by.into()),
@@ -279,7 +284,7 @@ WHERE event_id = $1
         pub rel_id: i32,
     }
 
-    let already_in = auth.current_user.clone().map_or(
+    let already_in = auth.user.clone().map_or(
         AlreadyIn {
             is_in: false,
             past_date: naive_date < Utc::now().naive_local(),
@@ -310,6 +315,8 @@ WHERE event_id = $1
         },
     );
 
+    let aa = get_auth_object(auth).await?;
+
     compile_with_newtitle(
         "www/update_event.liquid",
         liquid::object!({"event": 
@@ -327,14 +334,14 @@ WHERE event_id = $1
         "participants": possible_participants,
         "n_imgs": photos.len(),
         "imgs": photos,
-        "auth": get_auth_object(auth), "already_in": already_in }),
+        "auth": aa, "already_in": already_in }),
         &state.settings.brand.instance_name,
         Some(event_name),
     )
     .await
 }
 #[axum::debug_handler]
-pub async fn post_update_event(
+async fn post_update_event(
     Path(event_id): Path<i32>,
     State(state): State<VentState>,
     Form(FormEvent {
@@ -362,7 +369,7 @@ WHERE id=$1
         teacher,
         info
     )
-    .execute(&mut state.get_connection().await?)
+    .execute(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::UpdatingEvent(event_id),
@@ -374,12 +381,12 @@ WHERE id=$1
 }
 
 #[derive(Deserialize)]
-pub struct Removal {
+struct Removal {
     relation_id: i32,
 }
 
 #[axum::debug_handler]
-pub async fn get_remove_prefect_from_event(
+async fn post_remove_prefect_from_event(
     State(state): State<VentState>,
     Form(Removal { relation_id }): Form<Removal>,
 ) -> Result<impl IntoResponse, VentError> {
@@ -390,7 +397,7 @@ RETURNING event_id
 "#,
         relation_id
     )
-    .fetch_one(&mut state.get_connection().await?)
+    .fetch_one(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::RemovingPrefectOrPrefectFromEventByRI { relation_id },
@@ -402,20 +409,18 @@ RETURNING event_id
     Ok(Redirect::to(&format!("/update_event/{id}")))
 }
 #[axum::debug_handler]
-pub async fn get_remove_participant_from_event(
+async fn get_remove_participant_from_event(
     auth: Auth,
     State(state): State<VentState>,
     Form(Removal { relation_id }): Form<Removal>,
 ) -> Result<impl IntoResponse, VentError> {
-    let current_user = auth
-        .current_user
-        .expect("need to be logged in to add participants");
+    let current_user = auth.user.expect("need to be logged in to add participants");
 
     let event_details = sqlx::query!(
         "SELECT * FROM participant_events WHERE relation_id = $1",
         relation_id
     )
-    .fetch_one(&mut state.get_connection().await?)
+    .fetch_one(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingParticipantOrPrefectByRI { relation_id },
@@ -432,7 +437,7 @@ pub async fn get_remove_participant_from_event(
     "#,
             relation_id
         )
-        .execute(&mut state.get_connection().await?)
+        .execute(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::RemovingPrefectOrPrefectFromEventByRI { relation_id },
@@ -445,7 +450,7 @@ pub async fn get_remove_participant_from_event(
 }
 
 #[axum::debug_handler]
-pub async fn delete_image(
+async fn delete_image(
     Path(img_id): Path<i32>,
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
@@ -456,7 +461,7 @@ WHERE id=$1
 RETURNING path, event_id"#,
         img_id
     )
-    .fetch_one(&mut state.get_connection().await?)
+    .fetch_one(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::RemovingPhoto(img_id),
@@ -469,7 +474,7 @@ FROM events
 WHERE id = $1"#,
         event.event_id
     )
-    .fetch_one(&mut state.get_connection().await?)
+    .fetch_one(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingEvent(event.event_id),
@@ -483,7 +488,7 @@ WHERE id = $1"#,
     WHERE id = $1"#,
             event.event_id
         )
-        .execute(&mut state.get_connection().await?)
+        .execute(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::UpdatingEvent(event.event_id),
@@ -502,44 +507,44 @@ WHERE id = $1"#,
 }
 
 #[derive(Deserialize)]
-pub struct VerifyPerson {
+struct VerifyPerson {
     event_id: i32,
     person_id: i32,
 }
 
 #[axum::debug_handler]
-pub async fn post_verify_person(
+async fn post_verify_person(
     State(state): State<VentState>,
     Form(VerifyPerson {
         event_id,
         person_id,
     }): Form<VerifyPerson>,
 ) -> Result<impl IntoResponse, VentError> {
-    sqlx::query!("UPDATE participant_events SET is_verified = true WHERE event_id = $1 AND participant_id = $2", event_id, person_id).execute(&mut state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::UpdatingParticipantOrPrefect {person: person_id.into(), event_id} })?;
+    sqlx::query!("UPDATE participant_events SET is_verified = true WHERE event_id = $1 AND participant_id = $2", event_id, person_id).execute(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::UpdatingParticipantOrPrefect {person: person_id.into(), event_id} })?;
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
 
 #[axum::debug_handler]
-pub async fn post_unverify_person(
+async fn post_unverify_person(
     State(state): State<VentState>,
     Form(VerifyPerson {
         event_id,
         person_id,
     }): Form<VerifyPerson>,
 ) -> Result<impl IntoResponse, VentError> {
-    sqlx::query!("UPDATE participant_events SET is_verified = false WHERE event_id = $1 AND participant_id = $2", event_id, person_id).execute(&mut state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::UpdatingParticipantOrPrefect {person: person_id.into(), event_id} })?;
+    sqlx::query!("UPDATE participant_events SET is_verified = false WHERE event_id = $1 AND participant_id = $2", event_id, person_id).execute(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::UpdatingParticipantOrPrefect {person: person_id.into(), event_id} })?;
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
 
 #[derive(Deserialize)]
-pub struct VerifyEveryone {
+struct VerifyEveryone {
     event_id: i32,
 }
 
 #[axum::debug_handler]
-pub async fn post_verify_everyone(
+async fn post_verify_everyone(
     State(state): State<VentState>,
     Form(VerifyEveryone { event_id }): Form<VerifyEveryone>,
 ) -> Result<impl IntoResponse, VentError> {
@@ -547,10 +552,49 @@ pub async fn post_verify_everyone(
         "UPDATE participant_events SET is_verified = true WHERE event_id = $1",
         event_id
     )
-    .execute(&mut state.get_connection().await?)
+    .execute(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::MassVerifying { event_id },
     })?;
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
+}
+
+pub fn router() -> Router<VentState> {
+    Router::new()
+        .route("/update_event/:id", post(post_update_event))
+        .route_layer(permission_required!(
+            VentAuthBackend,
+            login_url = "/login",
+            PermissionsTarget::EditEvents
+        ))
+        .route("/verify_all", post(post_verify_everyone))
+        .route("/verify_participant", post(post_verify_person))
+        .route("/unverify_participant", post(post_unverify_person))
+        .route_layer(permission_required!(
+            VentAuthBackend,
+            login_url = "/login",
+            PermissionsTarget::VerifyEvents
+        ))
+        .route(
+            "/remove_prefect_from_event",
+            post(post_remove_prefect_from_event),
+        )
+        .route_layer(permission_required!(
+            VentAuthBackend,
+            login_url = "/login",
+            PermissionsTarget::EditPrefectsOnEvents
+        ))
+        .route(
+            "/remove_participant_from_event",
+            post(get_remove_participant_from_event),
+        )
+        .route_layer(permission_required!(
+            VentAuthBackend,
+            login_url = "/login",
+            PermissionsTarget::EditParticipantsOnEvents
+        ))
+        .route("/remove_img/:id", get(delete_image))
+        .route_layer(login_required!(VentAuthBackend, login_url = "/login"))
+        .route("/update_event/:id", get(get_update_event))
 }

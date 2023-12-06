@@ -1,145 +1,115 @@
-use crate::error::{VentError, SqlxAction, SqlxSnafu};
-use axum_login::axum_sessions::async_session::{
-    serde_json::from_value, Result as ASResult, Session, SessionStore,
-};
-use serde_json::to_value;
+use crate::error::{VentError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use serde_json::from_slice;
 use snafu::ResultExt;
-use sqlx::{pool::PoolConnection, Pool, Postgres};
-use std::time::Duration;
-use tokio::{
-    sync::broadcast::Receiver as BroadcastReceiver,
-    time::interval,
-};
+use sqlx::{Pool, Postgres};
+use tower_sessions::{session::Id, ExpiredDeletion, Session, SessionStore};
 
-#[derive(Debug, Clone)]
-pub struct PostgresSessionStore {
+#[derive(Clone, Debug)]
+pub struct PostgresStore {
     pool: Pool<Postgres>,
 }
 
-impl PostgresSessionStore {
+impl PostgresStore {
     pub fn new(pool: Pool<Postgres>) -> Self {
         Self { pool }
     }
 }
 
-#[async_trait::async_trait]
-impl SessionStore for PostgresSessionStore {
-    #[instrument(level = "trace", skip(cookie_value, self), fields(id = ?Session::id_from_cookie_value(&cookie_value)))]
-    async fn load_session(&self, cookie_value: String) -> ASResult<Option<Session>> {
-        let id = Session::id_from_cookie_value(&cookie_value)?;
-
-        trace!(?id, "Loading");
-
-        let json = sqlx::query!(
-            "SELECT * FROM sessions WHERE id = $1 AND (expires IS NULL OR expires > NOW())",
-            id,
-        )
-        .fetch_optional(&mut self.pool.acquire().await?)
-        .await?;
-
-        if let Some(json) = json {
-            let fv = from_value::<Session>(json.session_json)?;
-            return Ok(fv.validate());
-        }
-        Ok(None)
-    }
-
-    #[instrument(level = "trace", skip(session, self), fields(id = ?session.id()))]
-    async fn store_session(&self, session: Session) -> ASResult<Option<String>> {
-        if sqlx::query!(
-            "SELECT id FROM sessions WHERE id = $1",
-            session.id().to_string()
-        )
-        .fetch_optional(&mut self.pool.acquire().await?)
-        .await?
-        .is_some()
-        {
-            sqlx::query!(
-                "UPDATE sessions SET session_json = $2, expires = $3 WHERE id = $1",
-                session.id(),
-                to_value(session.clone())?,
-                session.expiry().copied().map(|x| x.naive_local())
-            )
-            .execute(&mut self.pool.acquire().await?)
-            .await?;
-        } else {
-            sqlx::query!(
-                "INSERT INTO sessions (id, session_json, expires) VALUES ($1, $2, $3)",
-                session.id(),
-                to_value(session.clone())?,
-                session.expiry().copied().map(|x| x.naive_local())
-            )
-            .execute(&mut self.pool.acquire().await?)
-            .await?;
-        }
-
-        trace!(id=?session.id(), "Storing");
-
-        session.reset_data_changed();
-        Ok(session.into_cookie_value())
-    }
-
-    #[instrument(level = "trace", skip(session, self), values(id = ?session.id()))]
-    async fn destroy_session(&self, session: Session) -> ASResult {
-        sqlx::query!(
-            "DELETE FROM sessions WHERE id = $1",
-            session.id().to_string()
-        )
-        .execute(&mut self.pool.acquire().await?)
-        .await?;
-
-        trace!(id=?session.id(), "Destroying");
-
-        Ok(())
-    }
-
-    #[instrument(level = "info", skip(self))]
-    async fn clear_store(&self) -> ASResult {
-        sqlx::query!("TRUNCATE sessions")
-            .execute(&mut self.pool.acquire().await?)
-            .await?;
-
-        trace!("Truncating");
-
-        Ok(())
+#[async_trait]
+impl ExpiredDeletion for PostgresStore {
+    async fn delete_expired(&self) -> Result<(), Self::Error> {
+        sqlx::query!("DELETE FROM public.sessions where expiry_date < (now())")
+            .execute(&self.pool)
+            .await
+            .map(|_| ())
+            .context(SqlxSnafu {
+                action: SqlxAction::DeletingOldSessions,
+            })
     }
 }
 
-pub fn clear_out_old_sessions_thread(pool: Pool<Postgres>, mut stop_rx: BroadcastReceiver<()>) {
-    async fn clear_out_old(mut conn: PoolConnection<Postgres>) -> Result<(), VentError> {
-        let rows_affected =
-            sqlx::query!("delete FROM sessions WHERE expires < (NOW() - interval '1 day')")
-                .execute(&mut conn)
-                .await
-                .context(SqlxSnafu {
-                    action: SqlxAction::DeletingOldSessions,
-                })?
-                .rows_affected();
+#[async_trait]
+impl SessionStore for PostgresStore {
+    type Error = VentError;
 
-        info!(%rows_affected, "Deleted old sessions");
+    async fn save(&self, session: &Session) -> Result<(), Self::Error> {
+        let session_data = serde_json::to_vec(&session).context(SerdeJsonSnafu {
+            action: SerdeJsonAction::SessionSerde,
+        })?;
+        let session_id = &session.id().to_string();
+        let session_expiry = session.expiry_date();
+        let session_expiry = NaiveDateTime::new(
+            NaiveDate::from_ymd_opt(
+                session_expiry.year(),
+                session_expiry.month() as u32,
+                session_expiry.day() as u32,
+            )
+            .expect("poorly formatted date from OffsetDateTime"),
+            NaiveTime::from_hms_opt(
+                session_expiry.hour() as u32,
+                session_expiry.minute() as u32,
+                session_expiry.second() as u32,
+            )
+            .expect("poorly formatted time from OffsetDateTime"),
+        );
 
-        Ok(())
+        sqlx::query!(
+            r#"
+        INSERT INTO public.sessions (id, data, expiry_date)
+        VALUES ($1, $2, $3)
+        on conflict (id) do update
+            set
+              data = excluded.data,
+              expiry_date = excluded.expiry_date
+
+        "#,
+            session_id,
+            session_data,
+            session_expiry.into()
+        )
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
+        .context(SqlxSnafu {
+            action: SqlxAction::AddingSession,
+        })
     }
 
-    tokio::spawn(async move {
-        let mut interval = interval(Duration::from_secs(60 * 60 * 24));
-        loop {
-            if tokio::select! {
-                _stop = stop_rx.recv() => {true},
-                _tick = interval.tick() => {
-                    match pool.acquire().await {
-                        Ok(conn) => {
-                            if let Err(e) = clear_out_old(conn).await {
-                                error!(?e, "Error clearing out old sessions");
-                            }
-                        }
-                        Err(e) => error!(?e, "Error getting connection to clear out old sessions"),
-                    }
-                    false
-                }
-            } {
-                return;
-            }
-        }
-    });
+    async fn load(&self, id: &Id) -> Result<Option<Session>, Self::Error> {
+        let session_id = id.to_string();
+        let json = sqlx::query!(
+            "SELECT * FROM sessions WHERE id = $1 and expiry_date > now()",
+            session_id
+        )
+        .fetch_optional(&mut *self.pool.acquire().await.context(SqlxSnafu {
+            action: SqlxAction::AcquiringConnection,
+        })?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingSession(*id),
+        })?;
+
+        Ok(if let Some(json) = json {
+            let fv = from_slice::<Session>(&json.data).context(SerdeJsonSnafu {
+                action: SerdeJsonAction::SessionSerde,
+            })?;
+            Some(fv)
+        } else {
+            None
+        })
+    }
+
+    async fn delete(&self, session_id: &Id) -> Result<(), Self::Error> {
+        sqlx::query!(
+            "DELETE FROM public.sessions WHERE id = $1",
+            session_id.to_string()
+        )
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
+        .context(SqlxSnafu {
+            action: SqlxAction::RemovingSession(*session_id),
+        })
+    }
 }

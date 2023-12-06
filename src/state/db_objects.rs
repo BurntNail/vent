@@ -1,4 +1,5 @@
 use crate::auth::PermissionsRole;
+use axum_login::AuthUser;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
@@ -15,6 +16,57 @@ pub struct DbPerson {
     pub form: String,
     pub hashed_password: Option<String>,
     pub permissions: PermissionsRole,
+}
+
+//necessary due to unability to make breaking changes with old versions - in future implentations I might store the bytes
+#[derive(Clone, Debug, Serialize)]
+pub struct AuthorisationBackendPerson {
+    pub id: i32,
+    pub first_name: String,
+    pub surname: String,
+    pub username: String,
+    pub was_first_entry: bool,
+    pub form: String,
+    hashed_password_bytes: Vec<u8>,
+    pub permissions: PermissionsRole,
+}
+
+impl From<DbPerson> for AuthorisationBackendPerson {
+    fn from(
+        DbPerson {
+            id,
+            first_name,
+            surname,
+            username,
+            was_first_entry,
+            form,
+            hashed_password,
+            permissions,
+        }: DbPerson,
+    ) -> Self {
+        Self {
+            id,
+            first_name,
+            surname,
+            username,
+            was_first_entry,
+            form,
+            hashed_password_bytes: hashed_password.unwrap_or_default().as_bytes().to_vec(),
+            permissions,
+        }
+    }
+}
+
+impl AuthUser for AuthorisationBackendPerson {
+    type Id = i32;
+
+    fn id(&self) -> Self::Id {
+        self.id
+    }
+
+    fn session_auth_hash(&self) -> &[u8] {
+        &self.hashed_password_bytes
+    }
 }
 
 #[derive(Deserialize, Clone, Debug)]

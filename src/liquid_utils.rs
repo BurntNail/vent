@@ -22,7 +22,6 @@ pub static DOMAIN: Lazy<(bool, String)> = Lazy::new(|| {
     }
 });
 
-#[instrument(level = "debug", skip(globals))]
 pub async fn compile_with_newtitle(
     path: impl AsRef<Path> + Debug,
     mut globals: Object,
@@ -81,7 +80,6 @@ pub async fn compile_with_newtitle(
     Ok(Html(html?))
 }
 
-#[instrument(level = "debug", skip(globals))]
 pub async fn compile(
     path: impl AsRef<Path> + Debug,
     globals: Object,
@@ -90,10 +88,10 @@ pub async fn compile(
     compile_with_newtitle(path, globals, project_name, None).await
 }
 
-pub trait EnvFormatter {
+pub trait CustomFormat {
     fn to_env_string(&self, format: &str) -> String;
 }
-impl EnvFormatter for NaiveDateTime {
+impl CustomFormat for NaiveDateTime {
     fn to_env_string(&self, format: &str) -> String {
         self.format(format).to_string()
     }

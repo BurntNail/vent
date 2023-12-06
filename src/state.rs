@@ -14,15 +14,12 @@ use tokio::{
 };
 
 use crate::{
-    auth::{
-        add_password::get_email_to_be_sent_for_reset_password,
-        pg_session::clear_out_old_sessions_thread,
-    },
+    auth::add_password::get_email_to_be_sent_for_reset_password,
     cfg::Settings,
     error::{ChannelReason, VentError, SendSnafu, SqlxAction, SqlxSnafu},
     routes::calendar::update_calendar_thread,
     state::{
-        db::VentDB,
+        db::VentDatabase,
         mail::{email_sender_thread, EmailToSend},
     },
 };
@@ -33,20 +30,19 @@ pub struct VentState {
     update_calendar_sender: UnboundedSender<()>,
     stop_senders: BroadcastSender<()>,
     pub settings: Settings,
-    database: VentDB,
+    database: VentDatabase,
 }
 
 impl VentState {
     pub async fn new(postgres: Pool<Postgres>) -> Self {
         let settings = Settings::new().await.expect("unable to get settings");
-        let (stop_senders_tx, stop_senders_rx1) = broadcast_channel(3);
+        let (stop_senders_tx, stop_senders_rx1) = broadcast_channel(2);
 
         let mail_sender = email_sender_thread(settings.clone(), stop_senders_rx1);
         let update_calendar_sender =
             update_calendar_thread(postgres.clone(), stop_senders_tx.subscribe());
-        clear_out_old_sessions_thread(postgres.clone(), stop_senders_tx.subscribe());
 
-        let database = VentDB::new(postgres);
+        let database = VentDatabase::new(postgres);
 
         Self {
             database,
@@ -85,7 +81,7 @@ impl VentState {
 
             Ok(false)
         } else {
-            debug!("Successfully found calendar");
+            info!("Successfully found calendar");
 
             Ok(true)
         }

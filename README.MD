@@ -85,7 +85,7 @@ I would highly reccomend a `tmux` based setup to run this without needing an act
 4) Run the binary - `cargo r --release` for production, or `cargo r` for development. In production to minimise
    downtime, I use `cargo b` rather than `cargo r` to quickly stop the old binary and launch into the new one without
    recompiling.
-5) Enjoy!
+5Enjoy!
 
 ### Reccomendations
 
@@ -104,7 +104,6 @@ from `/etc/caddy/Caddyfile`:
 # https://caddyserver.com/docs/caddyfile
 
 FULL_DOMAIN { #eg. vent.your.domain
-    # Another common task is to set up a reverse proxy:
     reverse_proxy 127.0.0.1:8080 # make sure this is set to a localhost address, and NOT your server's external IP
 }
 ```
