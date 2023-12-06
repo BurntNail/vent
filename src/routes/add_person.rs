@@ -2,13 +2,13 @@
 
 use crate::{
     auth::{
-        backend::{Auth, KnotAuthBackend},
+        backend::{Auth, VentAuthBackend},
         get_auth_object, PermissionsTarget,
     },
-    error::{KnotError, SqlxAction, SqlxSnafu},
+    error::{VentError, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
     routes::FormPerson,
-    state::KnotState,
+    state::VentState,
 };
 use axum::{
     extract::State,
@@ -23,8 +23,8 @@ use snafu::ResultExt;
 #[axum::debug_handler]
 async fn get_add_person(
     auth: Auth,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     let aa = get_auth_object(auth).await?;
 
     compile_with_newtitle(
@@ -38,7 +38,7 @@ async fn get_add_person(
 
 #[axum::debug_handler]
 async fn post_add_person(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(FormPerson {
         first_name,
         surname,
@@ -46,7 +46,7 @@ async fn post_add_person(
         form,
         permissions,
     }): Form<FormPerson>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     info!("Inserting new person into DB");
     sqlx::query!(
         r#"
@@ -69,11 +69,11 @@ VALUES($1, $2, $3, $4, $5);
     Ok(Redirect::to("/add_person"))
 }
 
-pub fn router() -> Router<KnotState> {
+pub fn router() -> Router<VentState> {
     Router::new()
         .route("/add_person", get(get_add_person).post(post_add_person))
         .route_layer(permission_required!(
-            KnotAuthBackend,
+            VentAuthBackend,
             login_url = "/login",
             PermissionsTarget::EditPeople
         ))

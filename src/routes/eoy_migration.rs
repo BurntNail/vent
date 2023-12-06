@@ -1,11 +1,11 @@
 use crate::{
     auth::{
-        backend::{Auth, KnotAuthBackend},
+        backend::{Auth, VentAuthBackend},
         get_auth_object, PermissionsTarget,
     },
-    error::{KnotError, SqlxAction, SqlxSnafu},
+    error::{VentError, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
-    state::KnotState,
+    state::VentState,
 };
 use axum::{
     extract::State,
@@ -21,8 +21,8 @@ use snafu::ResultExt;
 #[axum::debug_handler]
 async fn get_eoy_migration(
     auth: Auth,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     debug!("Getting all forms");
 
     let forms: Vec<String> = sqlx::query!(r#"SELECT form FROM people"#)
@@ -60,9 +60,9 @@ struct FormNameChange {
 
 #[axum::debug_handler]
 async fn post_eoy_migration(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(FormNameChange { old_name, new_name }): Form<FormNameChange>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     debug!("Sending DB query");
     sqlx::query!(
         r#"
@@ -82,14 +82,14 @@ WHERE form = $1
     Ok(Redirect::to("/eoy_migration"))
 }
 
-pub fn router() -> Router<KnotState> {
+pub fn router() -> Router<VentState> {
     Router::new()
         .route(
             "/eoy_migration",
             post(post_eoy_migration).get(get_eoy_migration),
         )
         .route_layer(permission_required!(
-            KnotAuthBackend,
+            VentAuthBackend,
             login_url = "/login",
             PermissionsTarget::EditPeople
         ))

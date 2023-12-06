@@ -1,14 +1,14 @@
 use crate::{
     auth::{
-        backend::{Auth, KnotAuthBackend},
+        backend::{Auth, VentAuthBackend},
         get_auth_object, PermissionsRole, PermissionsTarget,
     },
-    error::{IOAction, IOSnafu, KnotError, ParseTimeSnafu, SqlxAction, SqlxSnafu},
+    error::{IOAction, IOSnafu, VentError, ParseTimeSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
     routes::FormEvent,
     state::{
         db_objects::{DbEvent, DbPerson},
-        KnotState,
+        VentState,
     },
 };
 use axum::{
@@ -30,8 +30,8 @@ use tokio::fs::remove_file;
 async fn get_update_event(
     auth: Auth,
     Path(event_id): Path<i32>,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     debug!("Getting event");
     let DbEvent {
         id,
@@ -343,7 +343,7 @@ WHERE event_id = $1
 #[axum::debug_handler]
 async fn post_update_event(
     Path(event_id): Path<i32>,
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(FormEvent {
         name,
         date,
@@ -351,7 +351,7 @@ async fn post_update_event(
         teacher,
         info,
     }): Form<FormEvent>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M").context(ParseTimeSnafu {
         original: date.clone(),
     })?;
@@ -387,9 +387,9 @@ struct Removal {
 
 #[axum::debug_handler]
 async fn post_remove_prefect_from_event(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(Removal { relation_id }): Form<Removal>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     let id = sqlx::query!(
         r#"
 DELETE FROM prefect_events WHERE relation_id = $1 
@@ -411,9 +411,9 @@ RETURNING event_id
 #[axum::debug_handler]
 async fn get_remove_participant_from_event(
     auth: Auth,
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(Removal { relation_id }): Form<Removal>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     let current_user = auth.user.expect("need to be logged in to add participants");
 
     let event_details = sqlx::query!(
@@ -452,8 +452,8 @@ async fn get_remove_participant_from_event(
 #[axum::debug_handler]
 async fn delete_image(
     Path(img_id): Path<i32>,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     let event = sqlx::query!(
         r#"
 DELETE FROM public.photos
@@ -514,12 +514,12 @@ struct VerifyPerson {
 
 #[axum::debug_handler]
 async fn post_verify_person(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(VerifyPerson {
         event_id,
         person_id,
     }): Form<VerifyPerson>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     sqlx::query!("UPDATE participant_events SET is_verified = true WHERE event_id = $1 AND participant_id = $2", event_id, person_id).execute(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::UpdatingParticipantOrPrefect {person: person_id.into(), event_id} })?;
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
@@ -527,12 +527,12 @@ async fn post_verify_person(
 
 #[axum::debug_handler]
 async fn post_unverify_person(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(VerifyPerson {
         event_id,
         person_id,
     }): Form<VerifyPerson>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     sqlx::query!("UPDATE participant_events SET is_verified = false WHERE event_id = $1 AND participant_id = $2", event_id, person_id).execute(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::UpdatingParticipantOrPrefect {person: person_id.into(), event_id} })?;
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
@@ -545,9 +545,9 @@ struct VerifyEveryone {
 
 #[axum::debug_handler]
 async fn post_verify_everyone(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(VerifyEveryone { event_id }): Form<VerifyEveryone>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     sqlx::query!(
         "UPDATE participant_events SET is_verified = true WHERE event_id = $1",
         event_id
@@ -560,11 +560,11 @@ async fn post_verify_everyone(
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
 
-pub fn router() -> Router<KnotState> {
+pub fn router() -> Router<VentState> {
     Router::new()
         .route("/update_event/:id", post(post_update_event))
         .route_layer(permission_required!(
-            KnotAuthBackend,
+            VentAuthBackend,
             login_url = "/login",
             PermissionsTarget::EditEvents
         ))
@@ -572,7 +572,7 @@ pub fn router() -> Router<KnotState> {
         .route("/verify_participant", post(post_verify_person))
         .route("/unverify_participant", post(post_unverify_person))
         .route_layer(permission_required!(
-            KnotAuthBackend,
+            VentAuthBackend,
             login_url = "/login",
             PermissionsTarget::VerifyEvents
         ))
@@ -581,7 +581,7 @@ pub fn router() -> Router<KnotState> {
             post(post_remove_prefect_from_event),
         )
         .route_layer(permission_required!(
-            KnotAuthBackend,
+            VentAuthBackend,
             login_url = "/login",
             PermissionsTarget::EditPrefectsOnEvents
         ))
@@ -590,11 +590,11 @@ pub fn router() -> Router<KnotState> {
             post(get_remove_participant_from_event),
         )
         .route_layer(permission_required!(
-            KnotAuthBackend,
+            VentAuthBackend,
             login_url = "/login",
             PermissionsTarget::EditParticipantsOnEvents
         ))
         .route("/remove_img/:id", get(delete_image))
-        .route_layer(login_required!(KnotAuthBackend, login_url = "/login"))
+        .route_layer(login_required!(VentAuthBackend, login_url = "/login"))
         .route("/update_event/:id", get(get_update_event))
 }

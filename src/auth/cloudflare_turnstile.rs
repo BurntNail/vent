@@ -12,7 +12,7 @@ use std::{
     fmt::{Debug, Display, Formatter},
 };
 
-use crate::error::{HeaderToStrSnafu, KnotError, ReqwestAction, ReqwestSnafu, SerdeJsonAction};
+use crate::error::{HeaderToStrSnafu, VentError, ReqwestAction, ReqwestSnafu, SerdeJsonAction};
 
 static CFT_SECRETKEY: Lazy<String> =
     Lazy::new(|| var("CFT_SECRETKEY").expect("missing environment variable `CFT_SECRETKEY`"));
@@ -21,7 +21,7 @@ pub struct GrabCFRemoteIP(HeaderValue);
 
 #[async_trait]
 impl<S: Send + Sync> FromRequestParts<S> for GrabCFRemoteIP {
-    type Rejection = KnotError;
+    type Rejection = VentError;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         if cfg!(debug_assertions) {
@@ -32,7 +32,7 @@ impl<S: Send + Sync> FromRequestParts<S> for GrabCFRemoteIP {
             Ok(Self(cfrip.clone()))
         } else {
             error!("Failed to get Remote IP");
-            Err(KnotError::MissingCFIP)
+            Err(VentError::MissingCFIP)
         }
     }
 }
@@ -93,7 +93,7 @@ impl Display for CommonHeaders {
 pub async fn verify_turnstile(
     cf_turnstile_response: String,
     GrabCFRemoteIP(remote_ip): GrabCFRemoteIP,
-) -> Result<bool, KnotError> {
+) -> Result<bool, VentError> {
     if cfg!(debug_assertions) {
         return Ok(true);
     }

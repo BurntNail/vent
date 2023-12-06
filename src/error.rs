@@ -1,4 +1,4 @@
-use crate::auth::{backend::KnotAuthBackend, cloudflare_turnstile::CommonHeaders};
+use crate::auth::{backend::VentAuthBackend, cloudflare_turnstile::CommonHeaders};
 use axum::{
     http::StatusCode,
     response::{Html, IntoResponse},
@@ -13,7 +13,7 @@ use std::{
 };
 use tower_sessions::session::Id;
 
-pub type ALError = axum_login::Error<KnotAuthBackend>;
+pub type ALError = axum_login::Error<VentAuthBackend>;
 
 #[derive(Debug)]
 pub enum HttpAction {
@@ -256,7 +256,7 @@ impl std::error::Error for MissingImageFormat {}
 
 #[derive(Snafu, Debug)]
 #[snafu(visibility(pub))]
-pub enum KnotError {
+pub enum VentError {
     //external errors
     #[snafu(display("Database Error: {source:?}. Cause: {action:?}"))]
     Sqlx {
@@ -379,17 +379,17 @@ pub enum KnotError {
     LoginFailure { reason: LoginFailureReason },
 }
 
-impl From<ALError> for KnotError {
+impl From<ALError> for VentError {
     fn from(src: ALError) -> Self {
         match src {
-            ALError::Session(source) => KnotError::TowerSessions { source },
+            ALError::Session(source) => VentError::TowerSessions { source },
             ALError::Backend(be) => be,
         }
     }
 }
 
 #[allow(clippy::needless_pass_by_value)]
-pub fn get_error_page(error_code: StatusCode, content: KnotError) -> (StatusCode, Html<String>) {
+pub fn get_error_page(error_code: StatusCode, content: VentError) -> (StatusCode, Html<String>) {
     error!(
         ?content,
         ?error_code,
@@ -410,30 +410,30 @@ pub fn get_error_page(error_code: StatusCode, content: KnotError) -> (StatusCode
 pub async fn not_found_fallback(uri: Uri) -> (StatusCode, Html<String>) {
     get_error_page(
         StatusCode::NOT_FOUND,
-        KnotError::PageNotFound {
+        VentError::PageNotFound {
             was_looking_for: uri,
         },
     )
 }
 
-impl IntoResponse for KnotError {
+impl IntoResponse for VentError {
     fn into_response(self) -> axum::response::Response {
         let code = match &self {
-            KnotError::Sqlx {
+            VentError::Sqlx {
                 source: _,
                 action: trying_to_do,
             } if !matches!(trying_to_do, SqlxAction::AcquiringConnection) => StatusCode::NOT_FOUND,
-            KnotError::ParseInt { .. }
-            | KnotError::ParseBool { .. }
-            | KnotError::ParseTime { .. }
-            | KnotError::Headers { .. }
-            | KnotError::Multipart { .. }
-            | KnotError::Image { .. }
-            | KnotError::NoImageExtension { .. }
-            | KnotError::MalformedCSV { .. }
-            | KnotError::MissingCFIP
-            | KnotError::LoginFailure { .. } => StatusCode::BAD_REQUEST,
-            KnotError::PageNotFound { .. } => StatusCode::NOT_FOUND,
+            VentError::ParseInt { .. }
+            | VentError::ParseBool { .. }
+            | VentError::ParseTime { .. }
+            | VentError::Headers { .. }
+            | VentError::Multipart { .. }
+            | VentError::Image { .. }
+            | VentError::NoImageExtension { .. }
+            | VentError::MalformedCSV { .. }
+            | VentError::MissingCFIP
+            | VentError::LoginFailure { .. } => StatusCode::BAD_REQUEST,
+            VentError::PageNotFound { .. } => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
 

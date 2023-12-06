@@ -1,11 +1,11 @@
 use crate::{
     auth::{
-        backend::{Auth, KnotAuthBackend},
+        backend::{Auth, VentAuthBackend},
         get_auth_object, PermissionsTarget,
     },
-    error::{KnotError, SqlxAction, SqlxSnafu},
+    error::{VentError, SqlxAction, SqlxSnafu},
     liquid_utils::{compile_with_newtitle, CustomFormat},
-    state::KnotState,
+    state::VentState,
 };
 use axum::{
     extract::State,
@@ -54,8 +54,8 @@ impl<'a> From<(SmolDbEvent, &'a str)> for SmolFormattedDbEvent {
 #[axum::debug_handler]
 async fn get_show_all(
     auth: Auth,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     #[derive(Serialize)]
     pub struct SmolPerson {
         pub first_name: String,
@@ -139,9 +139,9 @@ struct RemoveEvent {
 
 #[axum::debug_handler]
 async fn post_remove_person(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(RemovePerson { person_id }): Form<RemovePerson>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     for person_id in person_id {
         trace!(?person_id, "Removing");
         sqlx::query!(
@@ -163,9 +163,9 @@ WHERE id=$1
 
 #[axum::debug_handler]
 async fn post_remove_event(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(RemoveEvent { event_id }): Form<RemoveEvent>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     for event_id in event_id {
         trace!(?event_id, "Removing");
         sqlx::query!(
@@ -185,17 +185,17 @@ async fn post_remove_event(
     Ok(Redirect::to("/show_all"))
 }
 
-pub fn router() -> Router<KnotState> {
+pub fn router() -> Router<VentState> {
     Router::new()
         .route("/remove_person", post(post_remove_person))
         .route_layer(permission_required!(
-            KnotAuthBackend,
+            VentAuthBackend,
             login_url = "/login",
             PermissionsTarget::EditPeople
         ))
         .route("/remove_event", post(post_remove_event))
         .route_layer(permission_required!(
-            KnotAuthBackend,
+            VentAuthBackend,
             login_url = "/login",
             PermissionsTarget::EditEvents
         ))

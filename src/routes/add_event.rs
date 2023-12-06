@@ -6,13 +6,13 @@
 
 use crate::{
     auth::{
-        backend::{Auth, KnotAuthBackend},
+        backend::{Auth, VentAuthBackend},
         get_auth_object, PermissionsTarget,
     },
-    error::{KnotError, ParseTimeSnafu, SqlxAction, SqlxSnafu},
+    error::{VentError, ParseTimeSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
     routes::FormEvent,
-    state::KnotState,
+    state::VentState,
 };
 use axum::{
     extract::State,
@@ -29,8 +29,8 @@ use snafu::ResultExt;
 #[axum::debug_handler]
 async fn get_add_event_form(
     auth: Auth,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     let aa = get_auth_object(auth).await?;
 
     compile_with_newtitle(
@@ -45,7 +45,7 @@ async fn get_add_event_form(
 ///`POST` method to add an event from a form to the database. Redirects back to the [`get_add_event_form`]
 #[axum::debug_handler]
 async fn post_add_event_form(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(FormEvent {
         name,
         date,
@@ -53,7 +53,7 @@ async fn post_add_event_form(
         teacher,
         info,
     }): Form<FormEvent>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M")
         .context(ParseTimeSnafu { original: date })?;
 
@@ -84,14 +84,14 @@ RETURNING id
     Ok(Redirect::to(&format!("/update_event/{id}"))) //redirect to the relevant update event page for that event
 }
 
-pub fn router() -> Router<KnotState> {
+pub fn router() -> Router<VentState> {
     Router::new()
         .route(
             "/add_event",
             get(get_add_event_form).post(post_add_event_form),
         )
         .route_layer(permission_required!(
-            KnotAuthBackend,
+            VentAuthBackend,
             login_url = "/login",
             PermissionsTarget::EditEvents
         ))

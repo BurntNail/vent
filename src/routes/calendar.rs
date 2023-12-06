@@ -1,9 +1,9 @@
 //! Module that publishes an iCalendar file in a GET method
 
 use crate::{
-    error::{IOAction, IOSnafu, KnotError, SqlxAction, SqlxSnafu},
+    error::{IOAction, IOSnafu, VentError, SqlxAction, SqlxSnafu},
     routes::public::serve_static_file,
-    state::{db_objects::DbEvent, KnotState},
+    state::{db_objects::DbEvent, VentState},
 };
 use axum::{extract::State, response::IntoResponse};
 use icalendar::{Calendar, Component, Event, EventLike};
@@ -21,8 +21,8 @@ use tokio::{
 
 #[axum::debug_handler]
 pub async fn get_calendar_feed(
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     if !(state.ensure_calendar_exists().await?) {
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
@@ -35,7 +35,7 @@ pub fn update_calendar_thread(
 ) -> UnboundedSender<()> {
     let (update_tx, mut update_rx) = unbounded_channel();
 
-    async fn update_events(mut conn: PoolConnection<Postgres>) -> Result<(), KnotError> {
+    async fn update_events(mut conn: PoolConnection<Postgres>) -> Result<(), VentError> {
         let mut prefect_events: HashMap<i32, Vec<String>> = HashMap::new();
 
         let prefects = sqlx::query!(

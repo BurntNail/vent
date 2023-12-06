@@ -15,7 +15,7 @@ mod state;
 pub use http;
 
 use crate::{
-    auth::{add_password, backend::KnotAuthBackend, login, pg_session::PostgresStore},
+    auth::{add_password, backend::VentAuthBackend, login, pg_session::PostgresStore},
     error::not_found_fallback,
     liquid_utils::partials,
     routes::{
@@ -23,7 +23,7 @@ use crate::{
         edit_self, eoy_migration, images, import_export, index::get_index, public, rewards,
         show_all, spreadsheets::get_spreadsheet, update_events,
     },
-    state::KnotState,
+    state::VentState,
 };
 use axum::{
     error_handling::HandleErrorLayer,
@@ -55,7 +55,7 @@ extern crate tracing;
 extern crate async_trait;
 
 // https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs
-async fn shutdown_signal(state: KnotState) {
+async fn shutdown_signal(state: VentState) {
     let ctrl_c = async {
         signal::ctrl_c()
             .await
@@ -113,7 +113,7 @@ async fn main() {
         .with_secure(false)
         .with_expiry(Expiry::OnInactivity(Duration::days(14)));
 
-    let state = KnotState::new(pool).await;
+    let state = VentState::new(pool).await;
 
     let auth_service = ServiceBuilder::new()
         .layer(HandleErrorLayer::new(|e: BoxError| async move {
@@ -121,7 +121,7 @@ async fn main() {
             StatusCode::BAD_REQUEST
         }))
         .layer(
-            AuthManagerLayerBuilder::new(KnotAuthBackend::new(state.clone()), session_layer)
+            AuthManagerLayerBuilder::new(VentAuthBackend::new(state.clone()), session_layer)
                 .build(),
         );
 
@@ -152,10 +152,10 @@ async fn main() {
         .layer(ConcurrencyLimitLayer::new(512)) //limit to 512 inflight reqs
         .with_state(state.clone());
 
-    let port: SocketAddr = var("KNOT_SERVER_IP")
-        .expect("need KNOT_SERVER_IP env var")
+    let port: SocketAddr = var("VENT_SERVER_IP")
+        .expect("need VENT_SERVER_IP env var")
         .parse()
-        .expect("need KNOT_SERVER_IP to be valid");
+        .expect("need VENT_SERVER_IP to be valid");
 
     info!(?port, "Serving: ");
 
@@ -163,7 +163,7 @@ async fn main() {
 }
 
 //https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs
-async fn serve(app: Router, listener: TcpListener, state: KnotState) {
+async fn serve(app: Router, listener: TcpListener, state: VentState) {
     let (close_tx, close_rx) = watch::channel(());
 
     loop {

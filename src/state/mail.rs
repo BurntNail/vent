@@ -1,6 +1,6 @@
 use crate::{
     cfg::Settings,
-    error::{KnotError, LettreAction, LettreEmailSnafu},
+    error::{VentError, LettreAction, LettreEmailSnafu},
 };
 use lettre::{
     transport::smtp::authentication::Credentials, AsyncSmtpTransport, AsyncTransport, Message,
@@ -39,20 +39,19 @@ pub fn email_sender_thread(
         username_domain: &str,
         project_name: &str,
         project_domain: &str,
-    ) -> Result<(), KnotError> {
+    ) -> Result<(), VentError> {
         let m = Message::builder()
-            .from(format!("Knot NoReply <{}>", from_username).parse()?)
-            .to(format!("{to_fullname} <{to_username}@{}>", username_domain).parse()?)
-            .subject("Knot - Add Password".to_string())
+            .from(format!("{project_name} NoReply <{from_username}>").parse()?)
+            .to(format!("{to_fullname} <{to_username}@{username_domain}>").parse()?)
+            .subject(format!("{project_name} - Add Password"))
             .body(format!(
-                r#"Dear {},
+                r#"Dear {to_fullname},
 
-You've just tried to login to {}, but you don't have a password set yet.
+You've just tried to login to {project_name}, but you don't have a password set yet.
 
-To set one, go to {}/add_password/{}?code={}.
+To set one, go to {project_domain}/add_password/{to_id}?code={unique_id}.
 
-Have a nice day!"#,
-                to_fullname, project_name, project_domain, to_id, unique_id
+Have a nice day!"#
             ))
             .context(LettreEmailSnafu {
                 trying_to: LettreAction::BuildMessage,
@@ -78,7 +77,7 @@ Have a nice day!"#,
             if let Some(ret) = tokio::select! {
                 _stop = stop_rx.recv() => {
                     info!("Mail thread stopping");
-                    Some(Ok::<_, KnotError>(()))
+                    Some(Ok::<_, VentError>(()))
                 },
                 msg = msg_rx.recv() => match msg {
                     None => Some(Ok(())),

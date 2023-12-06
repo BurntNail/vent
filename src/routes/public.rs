@@ -1,10 +1,10 @@
 use crate::{
-    auth::{backend::KnotAuthBackend, cloudflare_turnstile::CommonHeaders, PermissionsTarget},
+    auth::{backend::VentAuthBackend, cloudflare_turnstile::CommonHeaders, PermissionsTarget},
     error::{
-        FileIdentifier, HeadersSnafu, HttpAction, HttpSnafu, IOAction, IOSnafu, KnotError,
+        FileIdentifier, HeadersSnafu, HttpAction, HttpSnafu, IOAction, IOSnafu, VentError,
         SerdeJsonAction, SerdeJsonSnafu, UnknownMIMESnafu,
     },
-    state::KnotState,
+    state::VentState,
 };
 use axum::{
     body::{Body, Bytes},
@@ -26,7 +26,7 @@ use tokio::{
 
 pub async fn serve_static_file(
     path: impl Into<PathBuf> + Debug,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     let path = path.into();
 
     let file = File::open(path.clone()).await.context(IOSnafu {
@@ -44,7 +44,7 @@ pub async fn serve_read(
     mime: Mime,
     mut reader: impl AsyncRead + Unpin,
     io_action_for_errors: IOAction,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     let mut contents = vec![];
     let mut tmp = [0; 1024];
     loop {
@@ -80,7 +80,7 @@ pub async fn serve_read(
 }
 
 #[axum::debug_handler]
-pub async fn get_log() -> Result<Json<Vec<Value>>, KnotError> {
+pub async fn get_log() -> Result<Json<Vec<Value>>, VentError> {
     let contents = read_to_string("./precipice-log.json")
         .await
         .context(IOSnafu {
@@ -100,7 +100,7 @@ pub async fn get_log() -> Result<Json<Vec<Value>>, KnotError> {
 macro_rules! get_x {
     ($func_name:ident, $path:expr) => {
         #[axum::debug_handler]
-        pub async fn $func_name() -> Result<impl IntoResponse, KnotError> {
+        pub async fn $func_name() -> Result<impl IntoResponse, VentError> {
             serve_static_file($path).await
         }
     };
@@ -115,11 +115,11 @@ get_x!(get_256, "public/256x256.png");
 get_x!(get_people_csv_example, "public/people_example.csv");
 get_x!(get_events_csv_example, "public/events_example.csv");
 
-pub fn router() -> Router<KnotState> {
+pub fn router() -> Router<VentState> {
     Router::new()
         .route("/logs", get(get_log))
         .route_layer(permission_required!(
-            KnotAuthBackend,
+            VentAuthBackend,
             login_url = "/login",
             PermissionsTarget::DevAccess
         ))

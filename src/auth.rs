@@ -4,7 +4,7 @@ pub mod cloudflare_turnstile;
 pub mod login;
 pub mod pg_session;
 
-use crate::{auth::backend::Auth, error::KnotError};
+use crate::{auth::backend::Auth, error::VentError};
 use axum_login::AuthzBackend;
 use change_case::snake_case;
 use itertools::Itertools;
@@ -67,7 +67,7 @@ impl PermissionsTarget {
     }
 }
 
-pub async fn get_auth_object(auth: Auth) -> Result<Object, KnotError> {
+pub async fn get_auth_object(auth: Auth) -> Result<Object, VentError> {
     let iter = PermissionsTarget::iter().map(|x| (x, snake_case(x.into()).parse().unwrap()));
 
     match &auth.user {

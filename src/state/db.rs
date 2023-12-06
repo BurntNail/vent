@@ -1,11 +1,11 @@
 use sqlx::{Pool, Postgres};
 
 #[derive(Clone, Debug)]
-pub struct KnotDatabase {
+pub struct VentDatabase {
     pub pool: Pool<Postgres>,
 }
 
-impl KnotDatabase {
+impl VentDatabase {
     pub fn new(pool: Pool<Postgres>) -> Self {
         Self { pool }
     }

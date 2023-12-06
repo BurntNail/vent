@@ -1,12 +1,12 @@
 use crate::{
     auth::{
-        backend::{Auth, KnotAuthBackend},
+        backend::{Auth, VentAuthBackend},
         get_auth_object, PermissionsRole, PermissionsTarget,
     },
-    error::{KnotError, SqlxAction, SqlxSnafu},
+    error::{VentError, SqlxAction, SqlxSnafu},
     liquid_utils::{compile_with_newtitle, CustomFormat},
     routes::{rewards::Reward, FormPerson},
-    state::{db_objects::DbPerson, KnotState},
+    state::{db_objects::DbPerson, VentState},
 };
 use axum::{
     extract::{Path, State},
@@ -22,8 +22,8 @@ use snafu::ResultExt;
 async fn get_edit_person(
     auth: Auth,
     Path(id): Path<i32>,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     #[derive(Serialize)]
     pub struct SmolPerson {
         pub id: i32,
@@ -129,7 +129,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1
 #[axum::debug_handler]
 async fn post_edit_person(
     Path(id): Path<i32>,
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(FormPerson {
         first_name,
         surname,
@@ -137,7 +137,7 @@ async fn post_edit_person(
         username,
         permissions,
     }): Form<FormPerson>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     debug!("Editing person");
     sqlx::query!(
         r#"
@@ -169,9 +169,9 @@ struct PasswordReset {
 #[axum::debug_handler]
 async fn post_reset_password(
     mut auth: Auth,
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(PasswordReset { id }): Form<PasswordReset>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     debug!("Logging out.");
 
     if auth.user.as_ref().map(|x| x.id == id).unwrap_or(false) {
@@ -183,12 +183,12 @@ async fn post_reset_password(
     Ok(Redirect::to("/show_all"))
 }
 
-pub fn router() -> Router<KnotState> {
+pub fn router() -> Router<VentState> {
     Router::new()
         .route("/edit_person/:id", post(post_edit_person))
         .route("/reset_password", post(post_reset_password))
         .route_layer(permission_required!(
-            KnotAuthBackend,
+            VentAuthBackend,
             login_url = "/url",
             PermissionsTarget::EditPeople
         ))

@@ -1,11 +1,11 @@
 use crate::{
     auth::{
-        backend::{Auth, KnotAuthBackend},
+        backend::{Auth, VentAuthBackend},
         get_auth_object,
     },
-    error::{KnotError, SqlxAction, SqlxSnafu},
+    error::{VentError, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
-    state::KnotState,
+    state::VentState,
 };
 use axum::{
     extract::State,
@@ -21,8 +21,8 @@ use snafu::ResultExt;
 #[axum::debug_handler]
 pub async fn get_edit_user(
     auth: Auth,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     let aa = get_auth_object(auth).await?;
     compile_with_newtitle(
         "www/edit_self.liquid",
@@ -42,13 +42,13 @@ pub struct LoginDetails {
 #[axum::debug_handler]
 pub async fn post_edit_user(
     auth: Auth,
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(LoginDetails {
         first_name,
         surname,
         unhashed_password,
     }): Form<LoginDetails>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     let current_id = auth.user.unwrap().id;
 
     debug!(%current_id, "Hashing password");
@@ -77,8 +77,8 @@ WHERE id=$4;
     Ok(Redirect::to("/"))
 }
 
-pub fn router() -> Router<KnotState> {
+pub fn router() -> Router<VentState> {
     Router::new()
         .route("/edit_user", get(get_edit_user).post(post_edit_user))
-        .route_layer(login_required!(KnotAuthBackend, login_url = "/login"))
+        .route_layer(login_required!(VentAuthBackend, login_url = "/login"))
 }

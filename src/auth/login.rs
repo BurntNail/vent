@@ -1,12 +1,12 @@
 use crate::{
     auth::{
-        backend::{Auth, KnotAuthBackend},
+        backend::{Auth, VentAuthBackend},
         cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP},
         get_auth_object,
     },
-    error::{ALError, KnotError, LoginFailureReason},
+    error::{ALError, VentError, LoginFailureReason},
     liquid_utils::compile,
-    state::KnotState,
+    state::VentState,
 };
 use axum::{
     extract::{Path, State},
@@ -29,8 +29,8 @@ pub struct LoginForm {
 #[axum::debug_handler]
 pub async fn get_login(
     auth: Auth,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     let aa = get_auth_object(auth).await?;
     compile(
         "www/login.liquid",
@@ -72,8 +72,8 @@ impl FailureReason {
 pub async fn get_login_failure(
     auth: Auth,
     Path(was_password_related): Path<FailureReason>,
-    State(state): State<KnotState>,
-) -> Result<impl IntoResponse, KnotError> {
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
     let aa = get_auth_object(auth).await?;
     let html = compile(
         "www/failed_auth.liquid",
@@ -100,7 +100,7 @@ pub async fn post_login(
         unhashed_password,
         cf_turnstile_response,
     }): Form<LoginForm>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     if !verify_turnstile(cf_turnstile_response, remote_ip).await? {
         return Ok(Redirect::to("/login_failure/failed_turnstile"));
     }
@@ -119,7 +119,7 @@ pub async fn post_login(
             }
             Ok(None) => "/login_failure/user_not_found",
             Err(error) => {
-                if let ALError::Backend(KnotError::LoginFailure { reason }) = error {
+                if let ALError::Backend(VentError::LoginFailure { reason }) = error {
                     match reason {
                         LoginFailureReason::PasswordIsNotSet => "/add_password",
                         LoginFailureReason::IncorrectPassword => {
@@ -136,15 +136,15 @@ pub async fn post_login(
 }
 
 #[axum::debug_handler]
-pub async fn get_logout(mut auth: Auth) -> Result<impl IntoResponse, KnotError> {
+pub async fn get_logout(mut auth: Auth) -> Result<impl IntoResponse, VentError> {
     auth.logout()?;
     Ok(Redirect::to("/"))
 }
 
-pub fn router() -> Router<KnotState> {
+pub fn router() -> Router<VentState> {
     Router::new()
         .route("/logout", get(get_logout))
-        .route_layer(login_required!(KnotAuthBackend, login_url = "/login"))
+        .route_layer(login_required!(VentAuthBackend, login_url = "/login"))
         .route("/login", get(get_login).post(post_login))
         .route(
             "/login_failure/:was_password_related",

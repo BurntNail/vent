@@ -1472,55 +1472,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "knot"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "async_zip",
- "axum",
- "axum-extra",
- "axum-login",
- "bcrypt",
- "change-case",
- "chrono",
- "chrono-tz",
- "config",
- "csv-async",
- "dotenvy",
- "futures",
- "http 1.0.0",
- "http-body 1.0.0",
- "http-body-util",
- "hyper 1.0.1",
- "hyper-util",
- "icalendar",
- "image",
- "itertools 0.12.0",
- "lettre",
- "liquid",
- "new_mime_guess",
- "once_cell",
- "rand",
- "reqwest",
- "rust_xlsxwriter",
- "serde",
- "serde_json",
- "snafu",
- "sqlx",
- "strum",
- "time",
- "tokio",
- "tokio-util",
- "tower",
- "tower-http",
- "tower-sessions",
- "tracing",
- "tracing-subscriber",
- "url",
- "walkdir",
-]
-
-[[package]]
 name = "kstring"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3658,6 +3609,55 @@ name = "vcpkg"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
+
+[[package]]
+name = "vent"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "async_zip",
+ "axum",
+ "axum-extra",
+ "axum-login",
+ "bcrypt",
+ "change-case",
+ "chrono",
+ "chrono-tz",
+ "config",
+ "csv-async",
+ "dotenvy",
+ "futures",
+ "http 1.0.0",
+ "http-body 1.0.0",
+ "http-body-util",
+ "hyper 1.0.1",
+ "hyper-util",
+ "icalendar",
+ "image",
+ "itertools 0.12.0",
+ "lettre",
+ "liquid",
+ "new_mime_guess",
+ "once_cell",
+ "rand",
+ "reqwest",
+ "rust_xlsxwriter",
+ "serde",
+ "serde_json",
+ "snafu",
+ "sqlx",
+ "strum",
+ "time",
+ "tokio",
+ "tokio-util",
+ "tower",
+ "tower-http",
+ "tower-sessions",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "walkdir",
+]
 
 [[package]]
 name = "version_check"

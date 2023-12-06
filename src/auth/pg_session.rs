@@ -1,4 +1,4 @@
-use crate::error::{KnotError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu};
+use crate::error::{VentError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde_json::from_slice;
 use snafu::ResultExt;
@@ -31,7 +31,7 @@ impl ExpiredDeletion for PostgresStore {
 
 #[async_trait]
 impl SessionStore for PostgresStore {
-    type Error = KnotError;
+    type Error = VentError;
 
     async fn save(&self, session: &Session) -> Result<(), Self::Error> {
         let session_data = serde_json::to_vec(&session).context(SerdeJsonSnafu {

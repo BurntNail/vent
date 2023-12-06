@@ -1,9 +1,9 @@
 use crate::{
     auth::{login::LoginCreds, PermissionsTarget},
-    error::{KnotError, LoginFailureReason, SqlxAction, SqlxSnafu},
+    error::{VentError, LoginFailureReason, SqlxAction, SqlxSnafu},
     state::{
         db_objects::{AuthorisationBackendPerson, DbPerson},
-        KnotState,
+        VentState,
     },
 };
 use axum_login::{AuthSession, AuthnBackend, AuthzBackend, UserId};
@@ -11,24 +11,24 @@ use bcrypt::verify;
 use snafu::ResultExt;
 use std::collections::HashSet;
 
-pub type Auth = AuthSession<KnotAuthBackend>;
+pub type Auth = AuthSession<VentAuthBackend>;
 
 #[derive(Clone)]
-pub struct KnotAuthBackend {
-    state: KnotState,
+pub struct VentAuthBackend {
+    state: VentState,
 }
 
-impl KnotAuthBackend {
-    pub fn new(state: KnotState) -> Self {
+impl VentAuthBackend {
+    pub fn new(state: VentState) -> Self {
         Self { state }
     }
 }
 
 #[async_trait::async_trait]
-impl AuthnBackend for KnotAuthBackend {
+impl AuthnBackend for VentAuthBackend {
     type User = AuthorisationBackendPerson;
     type Credentials = LoginCreds;
-    type Error = KnotError;
+    type Error = VentError;
 
     async fn authenticate(
         &self,
@@ -54,7 +54,7 @@ WHERE LOWER(username) = LOWER($1)
         };
         let Some(hashed_password) = &db_user.hashed_password else {
             self.state.reset_password(db_user.id).await?;
-            return Err(KnotError::LoginFailure {
+            return Err(VentError::LoginFailure {
                 reason: LoginFailureReason::PasswordIsNotSet,
             });
         };
@@ -62,7 +62,7 @@ WHERE LOWER(username) = LOWER($1)
         if verify(unhashed_password, hashed_password)? {
             Ok(Some(db_user.into()))
         } else {
-            Err(KnotError::LoginFailure {
+            Err(VentError::LoginFailure {
                 reason: LoginFailureReason::IncorrectPassword,
             })
         }
@@ -85,7 +85,7 @@ WHERE id = $1
 }
 
 #[async_trait::async_trait]
-impl AuthzBackend for KnotAuthBackend {
+impl AuthzBackend for VentAuthBackend {
     type Permission = PermissionsTarget;
 
     async fn get_user_permissions(

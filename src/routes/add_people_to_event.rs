@@ -2,11 +2,11 @@
 
 use crate::{
     auth::{
-        backend::{Auth, KnotAuthBackend},
+        backend::{Auth, VentAuthBackend},
         PermissionsRole, PermissionsTarget,
     },
-    error::{KnotError, SqlxAction, SqlxSnafu},
-    state::KnotState,
+    error::{VentError, SqlxAction, SqlxSnafu},
+    state::VentState,
 };
 use axum::{
     extract::State,
@@ -29,12 +29,12 @@ pub struct AddPerson {
 ///`POST` method that adds a prefect to an event
 #[axum::debug_handler]
 async fn post_add_prefect_to_event(
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(AddPerson {
         event_id,
         person_ids,
     }): Form<AddPerson>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     for prefect_id in person_ids {
         if sqlx::query!(
             r#"
@@ -84,12 +84,12 @@ async fn post_add_prefect_to_event(
 #[axum::debug_handler]
 async fn post_add_participant_to_event(
     auth: Auth,
-    State(state): State<KnotState>,
+    State(state): State<VentState>,
     Form(AddPerson {
         event_id,
         person_ids,
     }): Form<AddPerson>,
-) -> Result<impl IntoResponse, KnotError> {
+) -> Result<impl IntoResponse, VentError> {
     let current_user = auth.user.expect("need to be logged in to add participants");
 
     let event_date = sqlx::query!("SELECT date FROM events WHERE id = $1", event_id)
@@ -163,14 +163,14 @@ async fn post_add_participant_to_event(
     Ok(Redirect::to(&format!("/update_event/{event_id}"))) //then back to the update event page
 }
 
-pub fn router() -> Router<KnotState> {
+pub fn router() -> Router<VentState> {
     Router::new()
         .route("/add_prefect", post(post_add_prefect_to_event))
         .route_layer(permission_required!(
-            KnotAuthBackend,
+            VentAuthBackend,
             login_url = "/login",
             PermissionsTarget::EditPrefectsOnEvents
         ))
         .route("/add_participant", post(post_add_participant_to_event))
-        .route_layer(login_required!(KnotAuthBackend)) //TODO: actually use `PermissionsTarget::AddRmSelfToEvent`
+        .route_layer(login_required!(VentAuthBackend)) //TODO: actually use `PermissionsTarget::AddRmSelfToEvent`
 }

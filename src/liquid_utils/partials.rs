@@ -1,6 +1,6 @@
 use crate::{
-    auth::{backend::KnotAuthBackend, PermissionsTarget},
-    state::KnotState,
+    auth::{backend::VentAuthBackend, PermissionsTarget},
+    state::VentState,
 };
 use axum::{
     response::{IntoResponse, Redirect},
@@ -106,11 +106,11 @@ async fn get_partials() -> HashMap<String, String> {
     in_memory_source
 }
 
-pub fn router() -> Router<KnotState> {
+pub fn router() -> Router<VentState> {
     Router::new()
         .route("/reload_partials", get(reload_partials))
         .route_layer(permission_required!(
-            KnotAuthBackend,
+            VentAuthBackend,
             PermissionsTarget::DevAccess
         ))
 }
