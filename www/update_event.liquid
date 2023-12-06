@@ -99,7 +99,7 @@
 
 <br>
 
-{% unless auth.role == "visitor" %}
+{% if auth.is_logged_in %}
 
 {% if auth.permissions["add_rm_self_to_event"] %}
   <div class="card">
@@ -379,7 +379,7 @@
 
 <br>
 
-{% endunless %}
+{% endif %}
 
 <div class="card">
   <div class="card-body">

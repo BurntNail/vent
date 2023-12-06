@@ -1,9 +1,10 @@
 {% include "partials/header.liquid" %}
 
-<h2>People</h2>
 
-{% unless auth.role == "visitor" %}
-<table class="table">
+{% if auth.is_logged_in %}
+    <h2>People</h2>
+
+    <table class="table">
     <thead>
     <tr>
         <th scope="col">
@@ -52,7 +53,7 @@
 </table>
 <br><br>
 
-{% endunless %}
+{% endif %}
 
 <h2 id="AllEvents">Events</h2>
 <table class="table">
