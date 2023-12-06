@@ -21,7 +21,7 @@ use crate::{
     routes::{
         add_event, add_people_to_event, add_person, calendar::get_calendar_feed, edit_person,
         edit_self, eoy_migration, images, import_export, index::get_index, public, rewards,
-        show_all, spreadsheets::get_spreadsheet, update_events,
+        show_all, spreadsheets, update_events,
     },
     state::VentState,
 };
@@ -126,10 +126,10 @@ async fn main() {
         );
 
     let router = Router::new()
-        .route("/healthcheck", get(healthcheck))
         .route("/ical", get(get_calendar_feed))
-        .route("/spreadsheet", get(get_spreadsheet))
+        .route("/healthcheck", get(healthcheck))
         .route("/", get(get_index))
+        .merge(spreadsheets::router())
         .merge(public::router())
         .merge(add_password::router())
         .merge(login::router())

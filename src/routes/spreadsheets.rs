@@ -3,11 +3,15 @@ use crate::{
     routes::public::serve_static_file,
     state::VentState,
 };
-use axum::{extract::State, response::IntoResponse};
+use axum::{extract::State, response::IntoResponse, Router};
 use rust_xlsxwriter::{Color, Format, FormatAlign, Workbook};
 use snafu::ResultExt;
 use std::collections::HashMap;
+use axum::routing::get;
+use axum_login::permission_required;
 use tokio::task;
+use crate::auth::backend::VentAuthBackend;
+use crate::auth::PermissionsTarget;
 
 #[axum::debug_handler]
 pub async fn get_spreadsheet(
@@ -135,4 +139,10 @@ SELECT * FROM events"#
     debug!("Serving spreadsheet");
 
     serve_static_file("student_spreadsheet.xlsx").await
+}
+
+pub fn router () -> Router<VentState> {
+    Router::new()
+        .route("/spreadsheet", get(get_spreadsheet))
+        .route_layer(permission_required!(VentAuthBackend, login_url = "/login", PermissionsTarget::ViewSpreadsheet))
 }

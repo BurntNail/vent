@@ -45,6 +45,7 @@ pub enum PermissionsTarget {
     AddRmSelfToEvent,
     SeePhotos,
     AddPhotos,
+    ViewSpreadsheet,
 }
 
 impl PermissionsTarget {
@@ -60,6 +61,7 @@ impl PermissionsTarget {
             PermissionsTarget::EditPrefectsOnEvents => role >= &PermissionsRole::Prefect,
             PermissionsTarget::EditParticipantsOnEvents => role >= &PermissionsRole::Prefect,
             PermissionsTarget::VerifyEvents => role >= &PermissionsRole::Prefect,
+            PermissionsTarget::ViewSpreadsheet => role >= &PermissionsRole::Prefect,
             PermissionsTarget::AddRmSelfToEvent => role >= &PermissionsRole::Participant,
             PermissionsTarget::SeePhotos => role >= &PermissionsRole::Participant,
             PermissionsTarget::AddPhotos => role >= &PermissionsRole::Participant,
