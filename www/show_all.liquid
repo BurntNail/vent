@@ -2,6 +2,7 @@
 
 <h2>People</h2>
 
+{% unless auth.role == "visitor" %}
 <table class="table">
     <thead>
     <tr>
@@ -33,8 +34,8 @@
             </tr>
         {% endif %}
         <tr>
-            {% assign fn_array = person.first_name | split: "" %}
-            <td>{{ fn_array[1] }}. {{ person.surname }}
+            {% assign sn_array = person.surname | split: "" %}
+            <td>{{ person.first_name }} {{ sn_array[1] }}
             </td>
             <td>
                 {{ person.pts }}
@@ -49,8 +50,9 @@
     {% endfor %}
     </tbody>
 </table>
-
 <br><br>
+
+{% endunless %}
 
 <h2 id="AllEvents">Events</h2>
 <table class="table">
