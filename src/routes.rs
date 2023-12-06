@@ -14,6 +14,7 @@ pub mod show_all;
 pub mod spreadsheets;
 pub mod update_events;
 
+use crate::auth::PermissionsRole;
 use serde::Deserialize;
 
 ///Struct to hold the event that comes back from the [`add_event`] form
@@ -26,4 +27,13 @@ pub struct FormEvent {
     pub location: String,
     pub teacher: String,
     pub info: String,
+}
+
+#[derive(Deserialize)]
+pub struct FormPerson {
+    pub first_name: String,
+    pub surname: String,
+    pub username: String,
+    pub form: Option<String>,
+    pub permissions: PermissionsRole,
 }

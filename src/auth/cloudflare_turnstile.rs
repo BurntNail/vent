@@ -89,7 +89,6 @@ impl Display for CommonHeaders {
     }
 }
 
-#[instrument(level = "debug")]
 ///returns whether or not it worked
 pub async fn verify_turnstile(
     cf_turnstile_response: String,
@@ -127,7 +126,7 @@ pub async fn verify_turnstile(
         })?
         .error_for_status()
         .with_context(|e| ReqwestSnafu {
-            action: ReqwestAction::ErrorForStatus(e.status()),
+            action: ReqwestAction::RErrorForStatus(e.status()),
         })?
         .json::<TurnstileResponse>()
         .await

@@ -1,27 +1,32 @@
+use crate::{
+    auth::{
+        backend::{Auth, VentAuthBackend},
+        get_auth_object, PermissionsTarget,
+    },
+    error::{VentError, SqlxAction, SqlxSnafu},
+    liquid_utils::{compile_with_newtitle, CustomFormat},
+    state::VentState,
+};
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
+    routing::{get, post},
+    Router,
 };
 use axum_extra::extract::Form;
+use axum_login::permission_required;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 
-use crate::{
-    auth::{get_auth_object, Auth},
-    error::{VentError, SqlxAction, SqlxSnafu},
-    liquid_utils::{compile_with_newtitle, EnvFormatter},
-    state::VentState,
-};
-
 #[derive(Deserialize)]
-pub struct SmolDbEvent {
+struct SmolDbEvent {
     pub id: i32,
     pub event_name: String,
     pub date: NaiveDateTime,
 }
 #[derive(Serialize)]
-pub struct SmolFormattedDbEvent {
+struct SmolFormattedDbEvent {
     pub id: i32,
     pub event_name: String,
     pub date: String,
@@ -46,9 +51,8 @@ impl<'a> From<(SmolDbEvent, &'a str)> for SmolFormattedDbEvent {
     }
 }
 
-#[instrument(level = "debug", skip(auth, state))]
 #[axum::debug_handler]
-pub async fn get_show_all(
+async fn get_show_all(
     auth: Auth,
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
@@ -69,7 +73,7 @@ SELECT first_name, surname, form, id
 FROM people p
         "#
     )
-    .fetch_all(&mut state.get_connection().await?)
+    .fetch_all(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingPeople,
@@ -79,7 +83,7 @@ FROM people p
 
     let mut new_people = vec![];
     for person in people {
-        let pts = sqlx::query!("SELECT COUNT(participant_id) FROM participant_events WHERE participant_id = $1 AND is_verified = true", person.id).fetch_one(&mut state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(person.id.into())) })?.count.unwrap_or(0) as usize;
+        let pts = sqlx::query!("SELECT COUNT(participant_id) FROM participant_events WHERE participant_id = $1 AND is_verified = true", person.id).fetch_one(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(person.id.into())) })?.count.unwrap_or(0) as usize;
         new_people.push(SmolPerson {
             first_name: person.first_name,
             surname: person.surname,
@@ -99,7 +103,7 @@ FROM events e
 ORDER BY e.date DESC
         "#
     )
-    .fetch_all(&mut state.get_connection().await?)
+    .fetch_all(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingAllEvents,
@@ -112,9 +116,11 @@ ORDER BY e.date DESC
 
     trace!("Compiling");
 
+    let aa = get_auth_object(auth).await?;
+
     compile_with_newtitle(
         "www/show_all.liquid",
-        liquid::object!({ "people": new_people, "events": events, "auth": get_auth_object(auth) }),
+        liquid::object!({ "people": new_people, "events": events, "auth": aa }),
         &state.settings.brand.instance_name,
         Some("All People/Events".into()),
     )
@@ -122,18 +128,17 @@ ORDER BY e.date DESC
 }
 
 #[derive(Deserialize)]
-pub struct RemovePerson {
+struct RemovePerson {
     pub person_id: Vec<i32>,
 }
 
 #[derive(Deserialize)]
-pub struct RemoveEvent {
+struct RemoveEvent {
     pub event_id: Vec<i32>,
 }
 
-#[instrument(level = "info", skip(state))]
 #[axum::debug_handler]
-pub async fn post_remove_person(
+async fn post_remove_person(
     State(state): State<VentState>,
     Form(RemovePerson { person_id }): Form<RemovePerson>,
 ) -> Result<impl IntoResponse, VentError> {
@@ -146,7 +151,7 @@ WHERE id=$1
             "#,
             person_id
         )
-        .execute(&mut state.get_connection().await?)
+        .execute(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::RemovingPerson(person_id.into()),
@@ -156,9 +161,8 @@ WHERE id=$1
     Ok(Redirect::to("/show_all"))
 }
 
-#[instrument(level = "info", skip(state))]
 #[axum::debug_handler]
-pub async fn post_remove_event(
+async fn post_remove_event(
     State(state): State<VentState>,
     Form(RemoveEvent { event_id }): Form<RemoveEvent>,
 ) -> Result<impl IntoResponse, VentError> {
@@ -171,7 +175,7 @@ pub async fn post_remove_event(
             "#,
             event_id
         )
-        .execute(&mut state.get_connection().await?)
+        .execute(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::RemovingEvent(event_id),
@@ -179,4 +183,21 @@ pub async fn post_remove_event(
     }
 
     Ok(Redirect::to("/show_all"))
+}
+
+pub fn router() -> Router<VentState> {
+    Router::new()
+        .route("/remove_person", post(post_remove_person))
+        .route_layer(permission_required!(
+            VentAuthBackend,
+            login_url = "/login",
+            PermissionsTarget::EditPeople
+        ))
+        .route("/remove_event", post(post_remove_event))
+        .route_layer(permission_required!(
+            VentAuthBackend,
+            login_url = "/login",
+            PermissionsTarget::EditEvents
+        ))
+        .route("/show_all", get(get_show_all))
 }

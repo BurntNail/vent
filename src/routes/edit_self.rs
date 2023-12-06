@@ -1,5 +1,8 @@
 use crate::{
-    auth::{get_auth_object, Auth},
+    auth::{
+        backend::{Auth, VentAuthBackend},
+        get_auth_object,
+    },
     error::{VentError, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
     state::VentState,
@@ -7,8 +10,10 @@ use crate::{
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
-    Form,
+    routing::get,
+    Form, Router,
 };
+use axum_login::login_required;
 use bcrypt::{hash, DEFAULT_COST};
 use serde::Deserialize;
 use snafu::ResultExt;
@@ -18,9 +23,10 @@ pub async fn get_edit_user(
     auth: Auth,
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
+    let aa = get_auth_object(auth).await?;
     compile_with_newtitle(
         "www/edit_self.liquid",
-        liquid::object!({"auth": get_auth_object(auth)}),
+        liquid::object!({"auth": aa}),
         &state.settings.brand.instance_name,
         Some("Edit Profile".into()),
     )
@@ -33,11 +39,6 @@ pub struct LoginDetails {
     pub surname: String,
     pub unhashed_password: String,
 }
-
-#[instrument(
-    level = "debug",
-    skip(auth, state, first_name, surname, unhashed_password)
-)]
 #[axum::debug_handler]
 pub async fn post_edit_user(
     auth: Auth,
@@ -48,7 +49,7 @@ pub async fn post_edit_user(
         unhashed_password,
     }): Form<LoginDetails>,
 ) -> Result<impl IntoResponse, VentError> {
-    let current_id = auth.current_user.unwrap().id;
+    let current_id = auth.user.unwrap().id;
 
     debug!(%current_id, "Hashing password");
 
@@ -67,11 +68,17 @@ WHERE id=$4;
         hashed,
         current_id
     )
-    .execute(&mut state.get_connection().await?)
+    .execute(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::UpdatingPerson(current_id.into()),
     })?;
 
     Ok(Redirect::to("/"))
+}
+
+pub fn router() -> Router<VentState> {
+    Router::new()
+        .route("/edit_user", get(get_edit_user).post(post_edit_user))
+        .route_layer(login_required!(VentAuthBackend, login_url = "/login"))
 }

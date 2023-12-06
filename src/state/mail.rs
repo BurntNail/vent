@@ -41,18 +41,17 @@ pub fn email_sender_thread(
         project_domain: &str,
     ) -> Result<(), VentError> {
         let m = Message::builder()
-            .from(format!("{} NoReply <{}>", project_name, from_username).parse()?)
-            .to(format!("{to_fullname} <{to_username}@{}>", username_domain).parse()?)
-            .subject(format!("{} - Add Password", project_name))
+            .from(format!("{project_name} NoReply <{from_username}>").parse()?)
+            .to(format!("{to_fullname} <{to_username}@{username_domain}>").parse()?)
+            .subject(format!("{project_name} - Add Password"))
             .body(format!(
-                r#"Dear {},
+                r#"Dear {to_fullname},
 
-You've just tried to login to {}, but you don't have a password set yet.
+You've just tried to login to {project_name}, but you don't have a password set yet.
 
-To set one, go to {}/add_password/{}?code={}.
+To set one, go to {project_domain}/add_password/{to_id}?code={unique_id}.
 
-Have a nice day!"#,
-                to_fullname, project_name, project_domain, to_id, unique_id
+Have a nice day!"#
             ))
             .context(LettreEmailSnafu {
                 trying_to: LettreAction::BuildMessage,
@@ -75,23 +74,23 @@ Have a nice day!"#,
             .build();
 
         loop {
-            if tokio::select! {
+            if let Some(ret) = tokio::select! {
                 _stop = stop_rx.recv() => {
                     info!("Mail thread stopping");
-                    true
+                    Some(Ok::<_, VentError>(()))
                 },
                 msg = msg_rx.recv() => match msg {
-                    None => true,
+                    None => Some(Ok(())),
                     Some(msg) => {
                         if let Err(e) = send_email(msg, &mailer, &mail_settings.username, &mail_settings.username_domain, &settings.brand.instance_name, &settings.brand.domain).await {
                             error!(?e, "Error sending email");
                         }
 
-                        false
+                        None
                     }
                 }
             } {
-                return;
+                return ret;
             }
         }
     });

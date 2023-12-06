@@ -3,14 +3,13 @@ use serde::Serialize;
 use snafu::ResultExt;
 
 use crate::{
-    auth::{get_auth_object, Auth},
+    auth::{backend::Auth, get_auth_object},
     error::{VentError, SqlxAction, SqlxSnafu},
-    liquid_utils::{compile, EnvFormatter},
+    liquid_utils::{compile, CustomFormat},
     state::{db_objects::DbEvent, VentState},
 };
 
 #[allow(clippy::too_many_lines)]
-#[instrument(level = "debug", skip(auth, state))]
 #[axum::debug_handler]
 pub async fn get_index(
     auth: Auth,
@@ -82,7 +81,7 @@ ORDER BY e.date ASC
 LIMIT 15
         "#
     )
-    .fetch_all(&mut state.get_connection().await?)
+    .fetch_all(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingAllEvents,
@@ -100,7 +99,7 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
     "#,
             event_id
         )
-        .fetch_all(&mut state.get_connection().await?)
+        .fetch_all(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingParticipantsOrPrefectsAtEvents {
@@ -119,7 +118,7 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
     "#,
             event_id
         )
-        .fetch_all(&mut state.get_connection().await?)
+        .fetch_all(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingParticipantsOrPrefectsAtEvents {
@@ -129,7 +128,7 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
         .len();
 
         let photos = sqlx::query!("SELECT FROM photos WHERE event_id = $1", event_id)
-            .fetch_all(&mut state.get_connection().await?)
+            .fetch_all(&mut *state.get_connection().await?)
             .await
             .context(SqlxSnafu {
                 action: SqlxAction::FindingPhotos(event_id.into()),
@@ -154,7 +153,7 @@ ORDER BY e.date DESC
 LIMIT 10
         "#
     )
-    .fetch_all(&mut state.get_connection().await?)
+    .fetch_all(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingAllEvents,
@@ -172,7 +171,7 @@ INNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1
     "#,
             event_id
         )
-        .fetch_all(&mut state.get_connection().await?)
+        .fetch_all(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingParticipantsOrPrefectsAtEvents {
@@ -191,12 +190,12 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
     "#,
                 event_id
             )
-            .fetch_all(&mut state.get_connection().await?)
+            .fetch_all(&mut *state.get_connection().await?)
             .await.context(SqlxSnafu { action: SqlxAction::FindingParticipantsOrPrefectsAtEvents {event_id: Some(event_id)} })?
             .len();
 
         let photos = sqlx::query!("SELECT FROM photos WHERE event_id = $1", event_id)
-            .fetch_all(&mut state.get_connection().await?)
+            .fetch_all(&mut *state.get_connection().await?)
             .await
             .context(SqlxSnafu {
                 action: SqlxAction::FindingPhotos(event_id.into()),
@@ -211,5 +210,7 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
         });
     }
 
-    compile("www/index.liquid", liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events, "auth": get_auth_object(auth) }), &state.settings.brand.instance_name).await
+    let aa = get_auth_object(auth).await?;
+
+    compile("www/index.liquid", liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events, "auth": aa }), &state.settings.brand.instance_name).await
 }

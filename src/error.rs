@@ -1,4 +1,4 @@
-use crate::auth::cloudflare_turnstile::CommonHeaders;
+use crate::auth::{backend::VentAuthBackend, cloudflare_turnstile::CommonHeaders};
 use axum::{
     http::StatusCode,
     response::{Html, IntoResponse},
@@ -7,11 +7,24 @@ use http::Uri;
 use image::ImageFormat;
 use snafu::Snafu;
 use std::{
-    error::Error,
     ffi::OsString,
     fmt::{Debug, Display, Formatter},
     path::PathBuf,
 };
+use tower_sessions::session::Id;
+
+pub type ALError = axum_login::Error<VentAuthBackend>;
+
+#[derive(Debug)]
+pub enum HttpAction {
+    BuildingResponse,
+}
+
+#[derive(Debug)]
+pub enum LoginFailureReason {
+    PasswordIsNotSet,
+    IncorrectPassword,
+}
 
 #[derive(Debug)]
 pub enum ChannelReason {
@@ -75,7 +88,7 @@ pub enum ImageAction {
     GuessingFormat,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum FileIdentifier {
     Const(&'static str),
     Runtime(String),
@@ -98,7 +111,7 @@ impl From<PathBuf> for FileIdentifier {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum IOAction {
     ReadingFile(FileIdentifier),
     OpeningFile(FileIdentifier),
@@ -107,13 +120,13 @@ pub enum IOAction {
     ReadingAndOpening(FileIdentifier),
     WritingToFile,
     FlushingFile,
-    ReadingMetadata,
 }
 
 #[derive(Debug)]
 pub enum ReqwestAction {
     CloudflareTurntile,
-    ErrorForStatus(Option<StatusCode>),
+    RErrorForStatus(Option<reqwest::StatusCode>),
+    // HErrorForStatus(Option<http::StatusCode>),
     ConvertToJson(SerdeJsonAction),
 }
 
@@ -126,9 +139,9 @@ pub enum ConvertingWhatToString {
 
 #[derive(Debug)]
 pub enum SerdeJsonAction {
-    TryingToLogin,
     CloudflareTurnstileResponse,
     ParsingLogFile,
+    SessionSerde,
 }
 
 #[derive(Debug)]
@@ -219,10 +232,10 @@ pub enum SqlxAction {
     RemovingPhoto(i32),
     AddingPhotos,
 
-    FindingSecret,
-    AddingSecret,
-
     DeletingOldSessions,
+    RemovingSession(Id),
+    AddingSession,
+    FindingSession(Id),
 
     AcquiringConnection,
 
@@ -239,7 +252,7 @@ impl Display for MissingImageFormat {
         f.write_fmt(format_args!("No image format"))
     }
 }
-impl Error for MissingImageFormat {}
+impl std::error::Error for MissingImageFormat {}
 
 #[derive(Snafu, Debug)]
 #[snafu(visibility(pub))]
@@ -334,14 +347,21 @@ pub enum VentError {
         source: serde_json::Error,
         action: SerdeJsonAction,
     },
-    #[snafu(display("Random Eyre Error: {source:?}"))]
-    Eyre { source: eyre::Error }, //thanks axum_login ;)
+    #[snafu(display("Error with tower_sessions: {source:?}"))]
+    TowerSessions {
+        source: tower_sessions::session::Error,
+    },
     #[snafu(display("Not able page {was_looking_for:?}"))]
     PageNotFound { was_looking_for: Uri },
     #[snafu(display("Unable to send message {source:?} trying to {reason:?}"))]
     SendError {
         source: tokio::sync::mpsc::error::SendError<()>,
         reason: ChannelReason,
+    },
+    #[snafu(display("Error with HTTP trying to {action:?} due to {source:?}"))]
+    Http {
+        source: http::Error,
+        action: HttpAction,
     },
 
     // internal errors
@@ -355,6 +375,17 @@ pub enum VentError {
     },
     #[snafu(display("Missing Cloudflare IP in headers"))]
     MissingCFIP,
+    #[snafu(display("Failure to login due to {reason:?}"))]
+    LoginFailure { reason: LoginFailureReason },
+}
+
+impl From<ALError> for VentError {
+    fn from(src: ALError) -> Self {
+        match src {
+            ALError::Session(source) => VentError::TowerSessions { source },
+            ALError::Backend(be) => be,
+        }
+    }
 }
 
 #[allow(clippy::needless_pass_by_value)]
@@ -400,7 +431,8 @@ impl IntoResponse for VentError {
             | VentError::Image { .. }
             | VentError::NoImageExtension { .. }
             | VentError::MalformedCSV { .. }
-            | VentError::MissingCFIP => StatusCode::BAD_REQUEST,
+            | VentError::MissingCFIP
+            | VentError::LoginFailure { .. } => StatusCode::BAD_REQUEST,
             VentError::PageNotFound { .. } => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };

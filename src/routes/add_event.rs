@@ -4,31 +4,38 @@
 //!
 //! It serves a simple form, and handles post requests to add that event to the DB.
 
-use super::FormEvent;
 use crate::{
-    auth::{get_auth_object, Auth},
+    auth::{
+        backend::{Auth, VentAuthBackend},
+        get_auth_object, PermissionsTarget,
+    },
     error::{VentError, ParseTimeSnafu, SqlxAction, SqlxSnafu},
     liquid_utils::compile_with_newtitle,
+    routes::FormEvent,
     state::VentState,
 };
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
+    routing::get,
+    Router,
 };
 use axum_extra::extract::Form;
+use axum_login::permission_required;
 use chrono::NaiveDateTime;
 use snafu::ResultExt;
 
 ///`GET` method for the `add_event` form - just compiles and returns the liquid `www/add_event.liquid`
-#[instrument(level = "debug", skip(auth))]
 #[axum::debug_handler]
-pub async fn get_add_event_form(
+async fn get_add_event_form(
     auth: Auth,
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
+    let aa = get_auth_object(auth).await?;
+
     compile_with_newtitle(
         "www/add_event.liquid",
-        liquid::object!({"auth": get_auth_object(auth)}),
+        liquid::object!({"auth": aa}),
         &state.settings.brand.instance_name,
         Some("New House Event".to_string()),
     )
@@ -36,9 +43,8 @@ pub async fn get_add_event_form(
 }
 
 ///`POST` method to add an event from a form to the database. Redirects back to the [`get_add_event_form`]
-#[instrument(level = "debug", skip(state, date, location, teacher, info))]
 #[axum::debug_handler]
-pub async fn post_add_event_form(
+async fn post_add_event_form(
     State(state): State<VentState>,
     Form(FormEvent {
         name,
@@ -66,7 +72,7 @@ RETURNING id
         teacher,
         info
     )
-    .fetch_one(&mut state.get_connection().await?) //add the event to the db
+    .fetch_one(&mut *state.get_connection().await?) //add the event to the db
     .await
     .context(SqlxSnafu {
         action: SqlxAction::AddingEvent,
@@ -76,4 +82,17 @@ RETURNING id
     state.update_events()?;
 
     Ok(Redirect::to(&format!("/update_event/{id}"))) //redirect to the relevant update event page for that event
+}
+
+pub fn router() -> Router<VentState> {
+    Router::new()
+        .route(
+            "/add_event",
+            get(get_add_event_form).post(post_add_event_form),
+        )
+        .route_layer(permission_required!(
+            VentAuthBackend,
+            login_url = "/login",
+            PermissionsTarget::EditEvents
+        ))
 }

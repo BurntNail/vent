@@ -55,6 +55,9 @@
               <li class="nav-item">
                 <a class="nav-link" href="/show_all">See All</a>
               </li>
+              <li class="nav-item">
+                <a class="nav-link" href="/add_reward">See Rewards</a>
+              </li>
 
               {% if auth.permissions["export_csv"] %}
               <li class="nav-item dropdown">
@@ -97,17 +100,8 @@
               </li>
             {% endif %}
 
-            {% if auth.permissions["view_xlsx"] %}
-                <li class="nav-item">
-                  <a class="nav-link" href="/spreadsheet">Spreadsheet</a>
-                </li>
-            {% endif %}
 
-
-              {% unless auth.role == "visitor" %}
-                            <li class="nav-item">
-                              <a class="nav-link" href="/add_reward">See Rewards</a>
-                            </li>
+              {% if auth.is_logged_in %}
                 <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{auth.user.first_name}} {{auth.user.surname}}</a>
                 <ul class="dropdown-menu">
                   <li>
@@ -120,7 +114,7 @@
               <li class="nav-item">
                 <a class="nav-link" href="/login">Login</a>
               </li>
-            {% endunless %}
+            {% endif %}
             </ul>
             </div>
           </nav>

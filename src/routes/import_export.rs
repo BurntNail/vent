@@ -1,5 +1,8 @@
 use crate::{
-    auth::{get_auth_object, Auth, PermissionsRole},
+    auth::{
+        backend::{Auth, VentAuthBackend},
+        get_auth_object, PermissionsRole, PermissionsTarget,
+    },
     error::{
         EventField, IOAction, IOSnafu, VentError, MalformedCSVSnafu, ParseBoolSnafu,
         ParseTimeSnafu, PersonField, SqlxAction, SqlxSnafu, TryingToGetFromCSV, WhatToParse,
@@ -11,7 +14,10 @@ use crate::{
 use axum::{
     extract::{Multipart, State},
     response::{IntoResponse, Redirect},
+    routing::{get, post},
+    Router,
 };
+use axum_login::{login_required, permission_required};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use csv_async::{AsyncReaderBuilder, AsyncWriterBuilder};
 use futures::stream::StreamExt;
@@ -25,16 +31,17 @@ pub async fn get_import_export_csv(
     auth: Auth,
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
+    let aa = get_auth_object(auth).await?;
+
     compile_with_newtitle(
         "www/csv.liquid",
-        liquid::object!({ "auth": get_auth_object(auth) }),
+        liquid::object!({ "auth": aa }),
         &state.settings.brand.instance_name,
         Some("Import/Export".to_string()),
     )
     .await
 }
 
-#[instrument(level = "debug", skip(multipart, state))]
 #[axum::debug_handler]
 pub async fn post_import_people_from_csv(
     State(state): State<VentState>,
@@ -54,7 +61,7 @@ pub async fn post_import_people_from_csv(
         .into_records();
 
     let existing_forms: HashMap<String, i32> = sqlx::query!("SELECT id, form FROM people")
-        .fetch_all(&mut state.get_connection().await?)
+        .fetch_all(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingPeople,
@@ -64,7 +71,7 @@ pub async fn post_import_people_from_csv(
         .collect();
     let existing_first_names: HashMap<String, i32> =
         sqlx::query!("SELECT id, first_name FROM people")
-            .fetch_all(&mut state.get_connection().await?)
+            .fetch_all(&mut *state.get_connection().await?)
             .await
             .context(SqlxSnafu {
                 action: SqlxAction::FindingPeople,
@@ -73,7 +80,7 @@ pub async fn post_import_people_from_csv(
             .map(|r| (r.first_name, r.id))
             .collect();
     let existing_surnames: HashMap<String, i32> = sqlx::query!("SELECT id, surname FROM people")
-        .fetch_all(&mut state.get_connection().await?)
+        .fetch_all(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::FindingPeople,
@@ -147,7 +154,7 @@ pub async fn post_import_people_from_csv(
                 username,
                 needs_to_update
             )
-            .execute(&mut state.get_connection().await?)
+            .execute(&mut *state.get_connection().await?)
             .await
             .context(SqlxSnafu {
                 action: SqlxAction::UpdatingPerson(username.to_string().into()),
@@ -166,7 +173,7 @@ pub async fn post_import_people_from_csv(
                     username,
                     was_first_entry
                 )
-                .execute(&mut state.get_connection().await?)
+                .execute(&mut *state.get_connection().await?)
                 .await.context(SqlxSnafu { action: SqlxAction::AddingPerson })?;
         }
     }
@@ -232,7 +239,7 @@ VALUES ($1, $2, $3, $4)"#,
             location,
             teacher
         )
-        .execute(&mut state.get_connection().await?)
+        .execute(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
             action: SqlxAction::AddingEvent,
@@ -275,7 +282,7 @@ pub async fn export_events_to_csv(
         SmolEvent,
         r#"SELECT event_name, date, location, teacher, other_info FROM events"#
     )
-    .fetch_all(&mut state.get_connection().await?)
+    .fetch_all(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
         action: SqlxAction::FindingAllEvents,
@@ -337,7 +344,7 @@ pub async fn export_people_to_csv(
         SmolPerson,
         r#"SELECT first_name, surname, form, permissions as "permissions: _", username, was_first_entry FROM people"#
     )
-    .fetch_all(&mut state.get_connection().await?)
+    .fetch_all(&mut *state.get_connection().await?)
     .await.context(SqlxSnafu { action: SqlxAction::FindingPeople })?
     {
         asw.write_record(&[
@@ -357,4 +364,19 @@ pub async fn export_people_to_csv(
     drop(asw);
 
     serve_static_file("public/people.csv").await
+}
+
+pub fn router() -> Router<VentState> {
+    Router::new()
+        .route("/import_people_from_csv", post(post_import_people_from_csv))
+        .route("/import_events_from_csv", post(post_import_events_from_csv))
+        .route_layer(permission_required!(
+            VentAuthBackend,
+            login_url = "/login",
+            PermissionsTarget::ImportCSV
+        ))
+        .route("/csv", get(get_import_export_csv))
+        .route("/csv_people", get(export_people_to_csv))
+        .route("/csv_events", get(export_events_to_csv))
+        .route_layer(login_required!(VentAuthBackend, login_url = "/login"))
 }
