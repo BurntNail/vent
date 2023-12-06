@@ -11,3 +11,6 @@ devenv.local.nix
 uploads/*
 *.json
 config/
+
+public/*.png
+public/*.ico
