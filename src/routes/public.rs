@@ -131,5 +131,6 @@ pub fn router() -> Router<VentState> {
         .route("/512x512.png", get(get_512))
         .route("/256x256.png", get(get_256))
         .route("/people_example.csv", get(get_people_csv_example))
+        .route("/events_example.csv", get(get_events_csv_example))
         .route("/robots.txt", get(get_robots_txt))
 }
