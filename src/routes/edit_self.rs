@@ -1,14 +1,12 @@
 use crate::{
-    error::{VentError, SqlxAction, SqlxSnafu},
+    error::{SqlxAction, SqlxSnafu, VentError},
     state::VentState,
 };
-use axum::{extract::State, response::{IntoResponse}, Router, Json};
-use axum::routing::post;
+use axum::{extract::State, response::IntoResponse, routing::post, Json, Router};
 use bcrypt::{hash, DEFAULT_COST};
 use http::StatusCode;
 use serde::Deserialize;
 use snafu::ResultExt;
-
 
 #[derive(Deserialize)]
 pub struct LoginDetails {
@@ -44,6 +42,5 @@ WHERE id=$2
 }
 
 pub fn router() -> Router<VentState> {
-    Router::new()
-        .route("/edit_password", post(post_edit_password))
+    Router::new().route("/edit_password", post(post_edit_password))
 }

@@ -1,7 +1,7 @@
 use crate::{
     error::{
-        FileIdentifier, HeadersSnafu, HttpAction, HttpSnafu, IOAction, IOSnafu, VentError,
-        SerdeJsonAction, SerdeJsonSnafu, UnknownMIMESnafu,
+        CommonHeaders, FileIdentifier, HeadersSnafu, HttpAction, HttpSnafu, IOAction, IOSnafu,
+        SerdeJsonAction, SerdeJsonSnafu, UnknownMIMESnafu, VentError,
     },
     state::VentState,
 };
@@ -21,7 +21,6 @@ use tokio::{
     fs::{read_to_string, File},
     io::{AsyncRead, AsyncReadExt},
 };
-use crate::error::CommonHeaders;
 
 pub async fn serve_static_file(
     path: impl Into<PathBuf> + Debug,
@@ -105,8 +104,6 @@ pub async fn get_log() -> Result<Json<Vec<Value>>, VentError> {
 //     };
 // }
 
-
 pub fn router() -> Router<VentState> {
-    Router::new()
-        .route("/logs", get(get_log))
+    Router::new().route("/logs", get(get_log))
 }

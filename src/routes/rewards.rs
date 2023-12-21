@@ -1,12 +1,17 @@
-use axum::{extract::{State}, response::{IntoResponse}, routing::{get, post}, Router, Json};
+use axum::{
+    extract::State,
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
+use http::StatusCode;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 use std::collections::HashMap;
-use http::StatusCode;
 
 use crate::{
-    error::{VentError, SqlxAction, SqlxSnafu},
+    error::{SqlxAction, SqlxSnafu, VentError},
     state::VentState,
 };
 
@@ -27,13 +32,11 @@ struct PersonWithRewards {
 #[derive(Serialize, Debug)]
 struct Rewards {
     to_be_awarded: Vec<PersonWithRewards>,
-    already_awarded: Vec<PersonWithRewards>
+    already_awarded: Vec<PersonWithRewards>,
 }
 
 #[axum::debug_handler]
-pub async fn get_rewards(
-    State(state): State<VentState>,
-) -> Result<impl IntoResponse, VentError> {
+pub async fn get_rewards(State(state): State<VentState>) -> Result<impl IntoResponse, VentError> {
     let general_awards = sqlx::query_as!(Reward, "SELECT * FROM rewards")
         .fetch_all(&mut *state.get_connection().await?)
         .await
@@ -81,7 +84,6 @@ pub async fn get_rewards(
         });
     }
 
-
     let mut already_awarded_hm = HashMap::new();
 
     for record in sqlx::query!("SELECT * FROM rewards_received")
@@ -97,9 +99,15 @@ pub async fn get_rewards(
             .push(general_awards_by_id[&record.reward_id].clone());
     }
 
-    let already_awarded = already_awarded_hm.into_iter().map(|(id, awards)| PersonWithRewards { id, awards }).collect();
+    let already_awarded = already_awarded_hm
+        .into_iter()
+        .map(|(id, awards)| PersonWithRewards { id, awards })
+        .collect();
 
-    Ok(Json(Rewards { to_be_awarded, already_awarded }))
+    Ok(Json(Rewards {
+        to_be_awarded,
+        already_awarded,
+    }))
 }
 
 #[derive(Deserialize)]

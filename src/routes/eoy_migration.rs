@@ -1,18 +1,20 @@
 use crate::{
-    error::{VentError, SqlxAction, SqlxSnafu},
+    error::{SqlxAction, SqlxSnafu, VentError},
     state::VentState,
 };
-use axum::{extract::State, response::{IntoResponse}, routing::post, Router, Json};
-use axum::routing::get;
+use axum::{
+    extract::State,
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
 use http::StatusCode;
 use itertools::Itertools;
 use serde::Deserialize;
 use snafu::ResultExt;
 
 #[axum::debug_handler]
-async fn get_form_names(
-    State(state): State<VentState>,
-) -> Result<impl IntoResponse, VentError> {
+async fn get_form_names(State(state): State<VentState>) -> Result<impl IntoResponse, VentError> {
     debug!("Getting all forms");
 
     let forms: Vec<String> = sqlx::query!(r#"SELECT form FROM people"#)
@@ -61,9 +63,6 @@ WHERE form = $1
 
 pub fn router() -> Router<VentState> {
     Router::new()
-        .route(
-            "/form_names",
-            get(get_form_names)
-        )
+        .route("/form_names", get(get_form_names))
         .route("/migrate_form_name", post(post_mass_change_form_name))
 }

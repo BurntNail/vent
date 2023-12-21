@@ -1,4 +1,4 @@
-use axum::{http::StatusCode, Json, response::{IntoResponse}};
+use axum::{http::StatusCode, response::IntoResponse, Json};
 use http::Uri;
 use image::ImageFormat;
 use snafu::Snafu;
@@ -10,7 +10,7 @@ use std::{
 
 #[derive(Copy, Clone, Debug)]
 pub enum CommonHeaders {
-    ContentType
+    ContentType,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -77,7 +77,6 @@ pub enum ConvertingWhatToString {
 pub enum SerdeJsonAction {
     ParsingLogFile,
 }
-
 
 #[derive(Copy, Clone, Debug)]
 pub enum ThreadReason {
@@ -271,7 +270,6 @@ pub enum VentError {
     #[snafu(display("Missing Cloudflare IP in headers"))]
     MissingCFIP,
 }
-
 
 #[axum::debug_handler]
 pub async fn not_found_fallback() -> StatusCode {

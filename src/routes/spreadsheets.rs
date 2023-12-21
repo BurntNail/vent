@@ -1,5 +1,5 @@
 use crate::{
-    error::{JoinSnafu, VentError, SqlxAction, SqlxSnafu, ThreadReason},
+    error::{JoinSnafu, SqlxAction, SqlxSnafu, ThreadReason, VentError},
     routes::public::serve_static_file,
     state::VentState,
 };

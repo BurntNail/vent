@@ -1,7 +1,7 @@
+use crate::routes::PermissionsRole;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use crate::routes::PermissionsRole;
 
 //get everything `id, first_name, surname, username, form, hashed_password, permissions as "permissions: _", was_first_entry `
 //https://github.com/launchbadge/sqlx/issues/1004

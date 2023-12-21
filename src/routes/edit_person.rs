@@ -1,12 +1,16 @@
 use crate::{
-    error::{VentError, SqlxAction, SqlxSnafu},
-    routes::{FormPerson},
-    state::{VentState},
+    error::{SqlxAction, SqlxSnafu, VentError},
+    routes::FormPerson,
+    state::VentState,
 };
-use axum::{extract::{Path, State}, response::{IntoResponse}, routing::{post}, Router, Json};
+use axum::{
+    extract::{Path, State},
+    response::IntoResponse,
+    routing::post,
+    Json, Router,
+};
 use http::StatusCode;
 use snafu::ResultExt;
-
 
 #[axum::debug_handler]
 async fn post_edit_person(
@@ -46,7 +50,7 @@ WHERE id=$1
 #[axum::debug_handler]
 async fn post_reset_password(
     State(state): State<VentState>,
-    Json(id): Json<i32>
+    Json(id): Json<i32>,
 ) -> Result<impl IntoResponse, VentError> {
     debug!("Logging out.");
 

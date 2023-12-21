@@ -1,39 +1,46 @@
 use crate::{
     error::{
         ConvertingWhatToString, DatabaseIDMethod, IOAction, IOSnafu, ImageAction, ImageSnafu,
-        JoinSnafu, VentError, MissingExtensionSnafu, NoImageExtensionSnafu, SqlxAction, SqlxSnafu,
-        ThreadReason, ToStrSnafu, UnknownMIMESnafu,
+        JoinSnafu, MissingExtensionSnafu, NoImageExtensionSnafu, SqlxAction, SqlxSnafu,
+        ThreadReason, ToStrSnafu, UnknownMIMESnafu, VentError,
     },
     routes::public::{serve_read, serve_static_file},
     state::VentState,
 };
 use async_zip::{tokio::write::ZipFileWriter, Compression, ZipEntryBuilder};
-use axum::{extract::{Path, State}, response::{IntoResponse}, routing::{get, post}, Router, Json};
+use axum::{
+    extract::{Path, State},
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
+use http::StatusCode;
 use new_mime_guess::MimeGuess;
 use rand::{random, thread_rng, Rng};
+use serde::Deserialize;
 use snafu::{OptionExt, ResultExt};
 use std::{ffi::OsStr, path::PathBuf};
-use http::StatusCode;
-use serde::Deserialize;
 use tokio::{
     fs::File,
     io::{AsyncReadExt, AsyncWriteExt},
 };
 use walkdir::WalkDir;
 
-
-
 #[derive(Deserialize)]
 struct PhotoUpload {
     pub event_id: i32,
     pub user_id: i32,
-    pub imgs: Vec<Vec<u8>>
+    pub imgs: Vec<Vec<u8>>,
 }
 
 #[axum::debug_handler]
 async fn post_add_photo(
     State(state): State<VentState>,
-    Json(PhotoUpload { event_id, user_id, imgs }): Json<PhotoUpload>
+    Json(PhotoUpload {
+        event_id,
+        user_id,
+        imgs,
+    }): Json<PhotoUpload>,
 ) -> Result<impl IntoResponse, VentError> {
     debug!("Zeroing old zip file");
     sqlx::query!(

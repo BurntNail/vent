@@ -5,12 +5,11 @@
 //! It serves a simple form, and handles post requests to add that event to the DB.
 
 use crate::{
-    error::{VentError, ParseTimeSnafu, SqlxAction, SqlxSnafu},
+    error::{ParseTimeSnafu, SqlxAction, SqlxSnafu, VentError},
     routes::FormEvent,
     state::VentState,
 };
-use axum::{extract::State, response::{IntoResponse}, Router, Json};
-use axum::routing::post;
+use axum::{extract::State, response::IntoResponse, routing::post, Json, Router};
 use chrono::NaiveDateTime;
 use snafu::ResultExt;
 
@@ -57,9 +56,5 @@ RETURNING id
 }
 
 pub fn router() -> Router<VentState> {
-    Router::new()
-        .route(
-            "/add_event",
-            post(post_add_event),
-        )
+    Router::new().route("/add_event", post(post_add_event))
 }

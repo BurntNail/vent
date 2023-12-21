@@ -1,17 +1,19 @@
 use crate::{
-    error::{IOAction, IOSnafu, VentError, ParseTimeSnafu, SqlxAction, SqlxSnafu},
+    error::{IOAction, IOSnafu, ParseTimeSnafu, SqlxAction, SqlxSnafu, VentError},
     routes::FormEvent,
-    state::{
-        VentState,
-    },
+    state::VentState,
 };
-use axum::{extract::{Path, State}, response::{IntoResponse}, routing::{get, post}, Router, Json};
-use chrono::{NaiveDateTime};
-use serde::{Deserialize};
-use snafu::ResultExt;
+use axum::{
+    extract::{Path, State},
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
+use chrono::NaiveDateTime;
 use http::StatusCode;
+use serde::Deserialize;
+use snafu::ResultExt;
 use tokio::fs::remove_file;
-
 
 #[axum::debug_handler]
 async fn post_update_event(
@@ -84,18 +86,17 @@ async fn get_remove_participant_from_event(
     State(state): State<VentState>,
     Json(Removal { relation_id }): Json<Removal>,
 ) -> Result<impl IntoResponse, VentError> {
-
-        sqlx::query!(
-            r#"
+    sqlx::query!(
+        r#"
     DELETE FROM participant_events WHERE relation_id = $1 
     "#,
-            relation_id
-        )
-        .execute(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::RemovingPrefectOrPrefectFromEventByRI { relation_id },
-        })?;
+        relation_id
+    )
+    .execute(&mut *state.get_connection().await?)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::RemovingPrefectOrPrefectFromEventByRI { relation_id },
+    })?;
 
     Ok(StatusCode::OK)
 }

@@ -16,8 +16,8 @@ use crate::{
     error::not_found_fallback,
     routes::{
         add_event, add_people_to_event, add_person, calendar::get_calendar_feed, edit_person,
-        edit_self, eoy_migration, images, public, rewards,
-        show_all, spreadsheets::get_spreadsheet, update_events,
+        edit_self, eoy_migration, images, public, rewards, show_all, spreadsheets::get_spreadsheet,
+        update_events,
     },
     state::VentState,
 };

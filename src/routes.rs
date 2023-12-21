@@ -36,7 +36,7 @@ pub struct FormPerson {
 }
 
 #[derive(
-sqlx::Type, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Serialize, Deserialize, Debug,
+    sqlx::Type, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Serialize, Deserialize, Debug,
 )]
 #[sqlx(type_name = "user_role", rename_all = "lowercase")]
 pub enum PermissionsRole {

@@ -15,7 +15,7 @@ use tokio::{
 
 use crate::{
     cfg::Settings,
-    error::{ChannelReason, VentError, SendSnafu, SqlxAction, SqlxSnafu},
+    error::{ChannelReason, SendSnafu, SqlxAction, SqlxSnafu, VentError},
     routes::calendar::update_calendar_thread,
     state::{
         db::VentDatabase,

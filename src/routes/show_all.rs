@@ -1,27 +1,45 @@
-use std::hint::unreachable_unchecked;
 use crate::{
-    error::{VentError, SqlxAction, SqlxSnafu},
+    error::{SqlxAction, SqlxSnafu, VentError},
     state::VentState,
 };
-use axum::{extract::State, response::{IntoResponse}, routing::{get, post}, Router, Json};
+use axum::{
+    extract::State,
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
 use chrono::NaiveDateTime;
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
+use std::hint::unreachable_unchecked;
 
-
-async fn get_all_event_ids (State(state): State<VentState>) -> Result<impl IntoResponse, VentError> {
-    let ids: Vec<i32> = sqlx::query!("SELECT id from events").fetch_all(&mut *state.get_connection().await?).await.context(SqlxSnafu {
-        action: SqlxAction::FindingAllEvents,
-    })?.into_iter().map(|x| x.id).collect();
+async fn get_all_event_ids(State(state): State<VentState>) -> Result<impl IntoResponse, VentError> {
+    let ids: Vec<i32> = sqlx::query!("SELECT id from events")
+        .fetch_all(&mut *state.get_connection().await?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingAllEvents,
+        })?
+        .into_iter()
+        .map(|x| x.id)
+        .collect();
 
     Ok(Json(ids))
 }
 
-async fn get_all_person_ids(State(state): State<VentState>) -> Result<impl IntoResponse, VentError> {
-    let ids: Vec<i32> = sqlx::query!("SELECT id from people").fetch_all(&mut *state.get_connection().await?).await.context(SqlxSnafu {
-        action: SqlxAction::FindingAllEvents,
-    })?.into_iter().map(|x| x.id).collect();
+async fn get_all_person_ids(
+    State(state): State<VentState>,
+) -> Result<impl IntoResponse, VentError> {
+    let ids: Vec<i32> = sqlx::query!("SELECT id from people")
+        .fetch_all(&mut *state.get_connection().await?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingAllEvents,
+        })?
+        .into_iter()
+        .map(|x| x.id)
+        .collect();
 
     Ok(Json(ids))
 }
@@ -30,7 +48,7 @@ async fn get_all_person_ids(State(state): State<VentState>) -> Result<impl IntoR
 pub struct ParticipantEventRelation {
     pub participant_id: i32,
     pub event_id: i32,
-    pub is_verified: bool
+    pub is_verified: bool,
 }
 
 #[derive(Serialize, Debug)]
@@ -40,10 +58,13 @@ pub struct SmolPerson {
     pub form: String,
     pub id: i32,
     pub pts: usize,
-    pub events: Vec<ParticipantEventRelation>
+    pub events: Vec<ParticipantEventRelation>,
 }
 
-async fn get_person (State(state): State<VentState>, Json(id): Json<i32>) -> Result<impl IntoResponse, VentError> {
+async fn get_person(
+    State(state): State<VentState>,
+    Json(id): Json<i32>,
+) -> Result<impl IntoResponse, VentError> {
     let person = sqlx::query!(
         r#"
 SELECT first_name, surname, form, id, (SELECT COUNT(participant_id) FROM participant_events WHERE participant_id = $1 AND is_verified = true) as pts
@@ -63,9 +84,7 @@ WHERE id = $1
     let pts = {
         let pts = person.pts.unwrap_or_default();
         if pts < 0 {
-            unsafe {
-                unreachable_unchecked()
-            }
+            unsafe { unreachable_unchecked() }
         }
         pts as usize
     };
@@ -76,7 +95,7 @@ WHERE id = $1
         form: person.form,
         id,
         pts,
-        events
+        events,
     }))
 }
 
@@ -93,7 +112,10 @@ pub struct SmolEvent {
     pub photos: Vec<i32>,
 }
 
-async fn get_event (State(state): State<VentState>, Json(id): Json<i32>) -> Result<impl IntoResponse, VentError> {
+async fn get_event(
+    State(state): State<VentState>,
+    Json(id): Json<i32>,
+) -> Result<impl IntoResponse, VentError> {
     let event = sqlx::query!(
         r#"
 SELECT event_name, date, location, teacher, other_info, id
@@ -102,15 +124,43 @@ WHERE id = $1
         "#,
         id
     )
-        .fetch_one(&mut *state.get_connection().await?)
+    .fetch_one(&mut *state.get_connection().await?)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingEvent(id),
+    })?;
+
+    let participants = sqlx::query_as!(
+        ParticipantEventRelation,
+        "SELECT participant_id, event_id, is_verified FROM participant_events WHERE event_id = $1",
+        id
+    )
+    .fetch_all(&mut *state.get_connection().await?)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingParticipantsOrPrefectsAtEvents { event_id: Some(id) },
+    })?;
+    let prefects: Vec<i32> = sqlx::query!(
+        "SELECT prefect_id FROM prefect_events WHERE event_id = $1",
+        id
+    )
+    .fetch_all(&mut *state.get_connection().await?)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingParticipantsOrPrefectsAtEvents { event_id: Some(id) },
+    })?
+    .into_iter()
+    .map(|x| x.prefect_id)
+    .collect();
+    let photos: Vec<i32> = sqlx::query!("SELECT id FROM photos WHERE event_id = $1", id)
+        .fetch_all(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
-            action: SqlxAction::FindingEvent(id),
-        })?;
-
-    let participants = sqlx::query_as!(ParticipantEventRelation, "SELECT participant_id, event_id, is_verified FROM participant_events WHERE event_id = $1", id).fetch_all(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::FindingParticipantsOrPrefectsAtEvents {event_id: Some(id)} })?;
-    let prefects: Vec<i32> = sqlx::query!("SELECT prefect_id FROM prefect_events WHERE event_id = $1", id).fetch_all(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::FindingParticipantsOrPrefectsAtEvents {event_id: Some(id)} })?.into_iter().map(|x| x.prefect_id).collect();
-    let photos: Vec<i32> = sqlx::query!("SELECT id FROM photos WHERE event_id = $1", id).fetch_all(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::FindingPhotos(id.into()) })?.into_iter().map(|x| x.id).collect();
+            action: SqlxAction::FindingPhotos(id.into()),
+        })?
+        .into_iter()
+        .map(|x| x.id)
+        .collect();
 
     Ok(Json(SmolEvent {
         id,
@@ -121,10 +171,9 @@ WHERE id = $1
         other_info: event.other_info,
         participants,
         prefects,
-        photos
+        photos,
     }))
 }
-
 
 #[derive(Deserialize)]
 struct RemovePerson {

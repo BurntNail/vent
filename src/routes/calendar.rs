@@ -1,7 +1,7 @@
 //! Module that publishes an iCalendar file in a GET method
 
 use crate::{
-    error::{IOAction, IOSnafu, VentError, SqlxAction, SqlxSnafu},
+    error::{IOAction, IOSnafu, SqlxAction, SqlxSnafu, VentError},
     routes::public::serve_static_file,
     state::{db_objects::DbEvent, VentState},
 };

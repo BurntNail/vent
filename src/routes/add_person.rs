@@ -1,11 +1,11 @@
 //! Module that deals with adding a person - publishes a `GET` method with a form, and a `POST` method that deals with the form.
 
 use crate::{
-    error::{VentError, SqlxAction, SqlxSnafu},
+    error::{SqlxAction, SqlxSnafu, VentError},
     routes::FormPerson,
     state::VentState,
 };
-use axum::{extract::State, response::{IntoResponse}, routing::post, Router, Json};
+use axum::{extract::State, response::IntoResponse, routing::post, Json, Router};
 use http::StatusCode;
 use snafu::ResultExt;
 
@@ -43,6 +43,5 @@ VALUES($1, $2, $3, $4, $5);
 }
 
 pub fn router() -> Router<VentState> {
-    Router::new()
-        .route("/add_person", post(post_add_person))
+    Router::new().route("/add_person", post(post_add_person))
 }

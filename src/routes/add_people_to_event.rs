@@ -1,10 +1,10 @@
 //! Module that publishes 2 `POST` methods that deal with adding prefects and participants to events based off of path parameters. This is a fair bit easier than an invisible form.
 
 use crate::{
-    error::{VentError, SqlxAction, SqlxSnafu},
+    error::{SqlxAction, SqlxSnafu, VentError},
     state::VentState,
 };
-use axum::{extract::State, response::IntoResponse, routing::post, Router, Json};
+use axum::{extract::State, response::IntoResponse, routing::post, Json, Router};
 use http::StatusCode;
 use serde::Deserialize;
 use snafu::ResultExt;
