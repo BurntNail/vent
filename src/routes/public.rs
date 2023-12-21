@@ -1,5 +1,4 @@
 use crate::{
-    auth::{backend::VentAuthBackend, cloudflare_turnstile::CommonHeaders, PermissionsTarget},
     error::{
         FileIdentifier, HeadersSnafu, HttpAction, HttpSnafu, IOAction, IOSnafu, VentError,
         SerdeJsonAction, SerdeJsonSnafu, UnknownMIMESnafu,
@@ -13,7 +12,6 @@ use axum::{
     routing::get,
     Router,
 };
-use axum_login::permission_required;
 use http::{HeaderValue, Response};
 use new_mime_guess::{from_path, Mime};
 use serde_json::{from_str, Value};
@@ -23,6 +21,7 @@ use tokio::{
     fs::{read_to_string, File},
     io::{AsyncRead, AsyncReadExt},
 };
+use crate::error::CommonHeaders;
 
 pub async fn serve_static_file(
     path: impl Into<PathBuf> + Debug,
@@ -106,31 +105,8 @@ macro_rules! get_x {
     };
 }
 
-get_x!(get_favicon, "public/favicon.ico");
-get_x!(get_manifest, "public/manifest.json");
-get_x!(get_sw, "public/sw.js");
-get_x!(get_offline, "public/offline.html");
-get_x!(get_512, "public/512x512.png");
-get_x!(get_256, "public/256x256.png");
-get_x!(get_people_csv_example, "public/people_example.csv");
-get_x!(get_events_csv_example, "public/events_example.csv");
-get_x!(get_robots_txt, "public/robots.txt");
 
 pub fn router() -> Router<VentState> {
     Router::new()
         .route("/logs", get(get_log))
-        .route_layer(permission_required!(
-            VentAuthBackend,
-            login_url = "/login",
-            PermissionsTarget::DevAccess
-        ))
-        .route("/favicon.ico", get(get_favicon))
-        .route("/manifest.json", get(get_manifest))
-        .route("/sw.js", get(get_sw))
-        .route("/offline.html", get(get_offline))
-        .route("/512x512.png", get(get_512))
-        .route("/256x256.png", get(get_256))
-        .route("/people_example.csv", get(get_people_csv_example))
-        .route("/events_example.csv", get(get_events_csv_example))
-        .route("/robots.txt", get(get_robots_txt))
 }

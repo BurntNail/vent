@@ -1,84 +1,49 @@
 use crate::{
-    auth::{
-        backend::{Auth, VentAuthBackend},
-        get_auth_object,
-    },
     error::{VentError, SqlxAction, SqlxSnafu},
-    liquid_utils::compile_with_newtitle,
     state::VentState,
 };
-use axum::{
-    extract::State,
-    response::{IntoResponse, Redirect},
-    routing::get,
-    Form, Router,
-};
-use axum_login::login_required;
+use axum::{extract::State, response::{IntoResponse, Redirect}, routing::get, Form, Router, Json};
+use axum::routing::post;
 use bcrypt::{hash, DEFAULT_COST};
+use http::StatusCode;
 use serde::Deserialize;
 use snafu::ResultExt;
 
-#[axum::debug_handler]
-pub async fn get_edit_user(
-    auth: Auth,
-    State(state): State<VentState>,
-) -> Result<impl IntoResponse, VentError> {
-    let aa = get_auth_object(auth).await?;
-    compile_with_newtitle(
-        "www/edit_self.liquid",
-        liquid::object!({"auth": aa}),
-        &state.settings.brand.instance_name,
-        Some("Edit Profile".into()),
-    )
-    .await
-}
 
 #[derive(Deserialize)]
 pub struct LoginDetails {
-    pub first_name: String,
-    pub surname: String,
+    pub id: i32,
     pub unhashed_password: String,
 }
 #[axum::debug_handler]
-pub async fn post_edit_user(
-    auth: Auth,
+pub async fn post_edit_password(
     State(state): State<VentState>,
-    Form(LoginDetails {
-        first_name,
-        surname,
+    Json(LoginDetails {
+        id,
         unhashed_password,
-    }): Form<LoginDetails>,
+    }): Json<LoginDetails>,
 ) -> Result<impl IntoResponse, VentError> {
-    let current_id = auth.user.unwrap().id;
-
-    debug!(%current_id, "Hashing password");
-
     let hashed = hash(&unhashed_password, DEFAULT_COST)?;
-
-    debug!("Updating in DB");
 
     sqlx::query!(
         r#"
 UPDATE people
-SET first_name=$1, surname = $2, hashed_password=$3
-WHERE id=$4;
+SET hashed_password=$1
+WHERE id=$2
         "#,
-        first_name,
-        surname,
         hashed,
-        current_id
+        id
     )
     .execute(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
-        action: SqlxAction::UpdatingPerson(current_id.into()),
+        action: SqlxAction::UpdatingPerson(id.into()),
     })?;
 
-    Ok(Redirect::to("/"))
+    Ok(StatusCode::OK)
 }
 
 pub fn router() -> Router<VentState> {
     Router::new()
-        .route("/edit_user", get(get_edit_user).post(post_edit_user))
-        .route_layer(login_required!(VentAuthBackend, login_url = "/login"))
+        .route("/edit_password", post(post_edit_password))
 }

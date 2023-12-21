@@ -1,26 +1,16 @@
 use crate::{
-    auth::{
-        backend::{Auth, VentAuthBackend},
-        get_auth_object, PermissionsTarget,
-    },
     error::{VentError, SqlxAction, SqlxSnafu},
-    liquid_utils::compile_with_newtitle,
     state::VentState,
 };
-use axum::{
-    extract::State,
-    response::{IntoResponse, Redirect},
-    routing::post,
-    Form, Router,
-};
-use axum_login::permission_required;
+use axum::{extract::State, response::{IntoResponse, Redirect}, routing::post, Form, Router, Json};
+use axum::routing::get;
+use http::StatusCode;
 use itertools::Itertools;
 use serde::Deserialize;
 use snafu::ResultExt;
 
 #[axum::debug_handler]
-async fn get_eoy_migration(
-    auth: Auth,
+async fn get_form_names(
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
     debug!("Getting all forms");
@@ -36,20 +26,7 @@ async fn get_eoy_migration(
         .unique()
         .collect();
 
-    debug!("Compiling");
-
-    let aa = get_auth_object(auth).await?;
-
-    compile_with_newtitle(
-        "www/eoy_migration.liquid",
-        liquid::object!({
-            "auth": aa,
-            "forms": forms
-        }),
-        &state.settings.brand.instance_name,
-        Some("Migrating Forms".into()),
-    )
-    .await
+    Ok(Json(forms))
 }
 
 #[derive(Deserialize)]
@@ -59,9 +36,9 @@ struct FormNameChange {
 }
 
 #[axum::debug_handler]
-async fn post_eoy_migration(
+async fn post_mass_change_form_name(
     State(state): State<VentState>,
-    Form(FormNameChange { old_name, new_name }): Form<FormNameChange>,
+    Json(FormNameChange { old_name, new_name }): Json<FormNameChange>,
 ) -> Result<impl IntoResponse, VentError> {
     debug!("Sending DB query");
     sqlx::query!(
@@ -79,18 +56,14 @@ WHERE form = $1
         action: SqlxAction::UpdatingForms { old_name, new_name },
     })?;
 
-    Ok(Redirect::to("/eoy_migration"))
+    Ok(StatusCode::OK)
 }
 
 pub fn router() -> Router<VentState> {
     Router::new()
         .route(
-            "/eoy_migration",
-            post(post_eoy_migration).get(get_eoy_migration),
+            "/form_names",
+            get(get_form_names)
         )
-        .route_layer(permission_required!(
-            VentAuthBackend,
-            login_url = "/login",
-            PermissionsTarget::EditPeople
-        ))
+        .route("/migrate_form_name", post(post_mass_change_form_name))
 }

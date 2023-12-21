@@ -1,26 +1,16 @@
-use axum::{
-    extract::{Form, State},
-    response::{IntoResponse, Redirect},
-    routing::{get, post},
-    Router,
-};
-use axum_login::{login_required, permission_required};
+use axum::{extract::{Form, State}, response::{IntoResponse, Redirect}, routing::{get, post}, Router, Json};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 use std::collections::HashMap;
+use http::StatusCode;
 
 use crate::{
-    auth::{
-        backend::{Auth, VentAuthBackend},
-        get_auth_object, PermissionsTarget,
-    },
     error::{VentError, SqlxAction, SqlxSnafu},
-    liquid_utils::compile_with_newtitle,
     state::VentState,
 };
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct Reward {
     pub name: String,
     pub first_entry_pts: i32,
@@ -28,22 +18,22 @@ pub struct Reward {
     pub id: i32,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+struct PersonWithRewards {
+    pub id: i32,
+    pub awards: Vec<Reward>,
+}
+
+#[derive(Serialize, Debug)]
+struct Rewards {
+    to_be_awarded: Vec<PersonWithRewards>,
+    already_awarded: Vec<PersonWithRewards>
+}
+
 #[axum::debug_handler]
 pub async fn get_rewards(
-    auth: Auth,
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
-    ///NB: these are rewards TO BE RECEIVED
-    #[derive(Serialize, Deserialize)]
-    struct Person {
-        pub first_name: String,
-        pub surname: String,
-        pub form: String,
-        pub id: i32,
-        pub awards: Vec<Reward>,
-        pub n_awards: usize,
-    }
-
     let general_awards = sqlx::query_as!(Reward, "SELECT * FROM rewards")
         .fetch_all(&mut *state.get_connection().await?)
         .await
@@ -59,7 +49,7 @@ pub async fn get_rewards(
     let mut to_be_awarded = vec![];
 
     for record in sqlx::query!(r#"
-    SELECT first_name, surname, form, id, was_first_entry, (select count(*) from participant_events pe where pe.participant_id = id and pe.is_verified = true) as no_events
+    SELECT   was_first_entry, id, (select count(*) from participant_events pe where pe.participant_id = id and pe.is_verified = true) as no_events
     FROM people
     "#).fetch_all(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::FindingPeople })? {
         let already_got_award_ids = sqlx::query!("SELECT reward_id FROM rewards_received WHERE person_id = $1", record.id).fetch_all(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(record.id.into())) })?.into_iter().map(|x| x.reward_id).collect_vec();
@@ -85,19 +75,12 @@ pub async fn get_rewards(
             continue;
         }
 
-        to_be_awarded.push(Person {
-            first_name: record.first_name,
-            surname: record.surname,
-            form: record.form,
+        to_be_awarded.push(PersonWithRewards {
             id: record.id,
-            n_awards: to_be_received.len(),
             awards: to_be_received
         });
     }
 
-    to_be_awarded.sort_by_cached_key(|x| x.surname.clone());
-    to_be_awarded.sort_by_cached_key(|x| x.form.clone());
-    to_be_awarded.sort_by_cached_key(|x| x.awards.clone());
 
     let mut already_awarded_hm = HashMap::new();
 
@@ -125,29 +108,13 @@ pub async fn get_rewards(
         .context(SqlxSnafu {
             action: SqlxAction::FindingPerson(person_id.into()),
         })?;
-        already_awarded.push(Person {
-            first_name: record.first_name,
-            surname: record.surname,
-            form: record.form,
+        already_awarded.push(PersonWithRewards {
             id: person_id,
-            n_awards: awards.len(),
             awards,
         });
     }
 
-    already_awarded.sort_by_cached_key(|x| x.surname.clone());
-    already_awarded.sort_by_cached_key(|x| x.form.clone());
-    already_awarded.sort_by_cached_key(|x| x.awards.clone());
-
-    let aa = get_auth_object(auth).await?;
-
-    compile_with_newtitle(
-        "www/rewards.liquid",
-        liquid::object!({ "tba": to_be_awarded, "aa": already_awarded, "auth": aa }),
-        &state.settings.brand.instance_name,
-        Some("Rewards".into()),
-    )
-    .await
+    Ok(Json(Rewards { to_be_awarded, already_awarded }))
 }
 
 #[derive(Deserialize)]
@@ -159,10 +126,10 @@ pub struct AddReward {
 #[axum::debug_handler]
 pub async fn post_add_reward(
     State(state): State<VentState>,
-    Form(AddReward {
+    Json(AddReward {
         reward_id,
         person_id,
-    }): Form<AddReward>,
+    }): Json<AddReward>,
 ) -> Result<impl IntoResponse, VentError> {
     sqlx::query!(
         "INSERT INTO rewards_received (reward_id, person_id) VALUES ($1, $2)",
@@ -175,17 +142,11 @@ pub async fn post_add_reward(
         action: SqlxAction::AddingReward,
     })?;
 
-    Ok(Redirect::to("/add_reward"))
+    Ok(StatusCode::OK)
 }
 
 pub fn router() -> Router<VentState> {
     Router::new()
         .route("/add_reward", post(post_add_reward))
-        .route_layer(permission_required!(
-            VentAuthBackend,
-            login_url = "/login",
-            PermissionsTarget::AddRewards
-        ))
-        .route("/add_reward", get(get_rewards))
-        .route_layer(login_required!(VentAuthBackend, login_url = "/login"))
+        .route("/get_rewards", get(get_rewards))
 }

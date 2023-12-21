@@ -14,7 +14,6 @@ use tokio::{
 };
 
 use crate::{
-    auth::add_password::get_email_to_be_sent_for_reset_password,
     cfg::Settings,
     error::{ChannelReason, VentError, SendSnafu, SqlxAction, SqlxSnafu},
     routes::calendar::update_calendar_thread,
@@ -60,10 +59,10 @@ impl VentState {
     }
 
     pub async fn reset_password(&self, user_id: i32) -> Result<(), VentError> {
-        let email =
-            get_email_to_be_sent_for_reset_password(self.get_connection().await?, user_id).await?;
-
-        self.mail_sender.send(email).expect("error sending email");
+        // let email =
+        //     get_email_to_be_sent_for_reset_password(self.get_connection().await?, user_id).await?;
+        //
+        // self.mail_sender.send(email).expect("error sending email");
 
         Ok(())
     }

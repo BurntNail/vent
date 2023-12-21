@@ -1,51 +1,24 @@
 //! Module that deals with adding a person - publishes a `GET` method with a form, and a `POST` method that deals with the form.
 
 use crate::{
-    auth::{
-        backend::{Auth, VentAuthBackend},
-        get_auth_object, PermissionsTarget,
-    },
     error::{VentError, SqlxAction, SqlxSnafu},
-    liquid_utils::compile_with_newtitle,
     routes::FormPerson,
     state::VentState,
 };
-use axum::{
-    extract::State,
-    response::{IntoResponse, Redirect},
-    routing::get,
-    Form, Router,
-};
-use axum_login::permission_required;
+use axum::{extract::State, response::{IntoResponse}, routing::post, Router, Json};
+use http::StatusCode;
 use snafu::ResultExt;
-
-///`GET` function to display the add person form
-#[axum::debug_handler]
-async fn get_add_person(
-    auth: Auth,
-    State(state): State<VentState>,
-) -> Result<impl IntoResponse, VentError> {
-    let aa = get_auth_object(auth).await?;
-
-    compile_with_newtitle(
-        "www/add_person.liquid",
-        liquid::object!({"auth": aa}),
-        &state.settings.brand.instance_name,
-        Some("New Person".into()),
-    )
-    .await
-}
 
 #[axum::debug_handler]
 async fn post_add_person(
     State(state): State<VentState>,
-    Form(FormPerson {
+    Json(FormPerson {
         first_name,
         surname,
         username,
         form,
         permissions,
-    }): Form<FormPerson>,
+    }): Json<FormPerson>,
 ) -> Result<impl IntoResponse, VentError> {
     info!("Inserting new person into DB");
     sqlx::query!(
@@ -66,15 +39,10 @@ VALUES($1, $2, $3, $4, $5);
         action: SqlxAction::AddingPerson,
     })?;
 
-    Ok(Redirect::to("/add_person"))
+    Ok(StatusCode::OK)
 }
 
 pub fn router() -> Router<VentState> {
     Router::new()
-        .route("/add_person", get(get_add_person).post(post_add_person))
-        .route_layer(permission_required!(
-            VentAuthBackend,
-            login_url = "/login",
-            PermissionsTarget::EditPeople
-        ))
+        .route("/add_person", post(post_add_person))
 }

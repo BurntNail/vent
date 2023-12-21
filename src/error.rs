@@ -1,8 +1,4 @@
-use crate::auth::{backend::VentAuthBackend, cloudflare_turnstile::CommonHeaders};
-use axum::{
-    http::StatusCode,
-    response::{Html, IntoResponse},
-};
+use axum::{http::StatusCode, Json, response::{IntoResponse}};
 use http::Uri;
 use image::ImageFormat;
 use snafu::Snafu;
@@ -11,32 +7,36 @@ use std::{
     fmt::{Debug, Display, Formatter},
     path::PathBuf,
 };
+use serde::Serialize;
 use tower_sessions::session::Id;
 
-pub type ALError = axum_login::Error<VentAuthBackend>;
+#[derive(Copy, Clone, Debug)]
+pub enum CommonHeaders {
+    ContentType
+}
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum HttpAction {
     BuildingResponse,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum LoginFailureReason {
     PasswordIsNotSet,
     IncorrectPassword,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum ChannelReason {
     SendUpdateCalMessage,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum LettreAction {
     BuildMessage,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum WhatToParse {
     PartOfAPerson(PersonField),
 }
@@ -47,7 +47,7 @@ impl From<PersonField> for WhatToParse {
     }
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum PersonField {
     FirstName,
     Surname,
@@ -57,7 +57,7 @@ pub enum PersonField {
     WasFirstEntry,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum EventField {
     Location,
     Teacher,
@@ -66,7 +66,7 @@ pub enum EventField {
     Time,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum TryingToGetFromCSV {
     Person(PersonField),
     Event(EventField),
@@ -83,7 +83,7 @@ impl From<EventField> for TryingToGetFromCSV {
     }
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum ImageAction {
     GuessingFormat,
 }
@@ -122,7 +122,7 @@ pub enum IOAction {
     FlushingFile,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum ReqwestAction {
     CloudflareTurntile,
     RErrorForStatus(Option<reqwest::StatusCode>),
@@ -137,28 +137,28 @@ pub enum ConvertingWhatToString {
     // Header(CommonHeaders),
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum SerdeJsonAction {
     CloudflareTurnstileResponse,
     ParsingLogFile,
     SessionSerde,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LiquidAction {
     BuildingCompiler,
     Parsing { text: String },
     Rendering,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum ThreadReason {
     LiquidCompiler,
     FindingExistingFilesWithWalkDir,
     BuildSpreadsheet,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DatabaseIDMethod {
     Id(i32),
     Username(String),
@@ -180,7 +180,7 @@ impl From<String> for DatabaseIDMethod {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SqlxAction {
     //TODO: possible refactor to 2 enums - action (eg. find, update), objects involved (eg. event, person)
     FindingPerson(DatabaseIDMethod),
@@ -379,41 +379,10 @@ pub enum VentError {
     LoginFailure { reason: LoginFailureReason },
 }
 
-impl From<ALError> for VentError {
-    fn from(src: ALError) -> Self {
-        match src {
-            ALError::Session(source) => VentError::TowerSessions { source },
-            ALError::Backend(be) => be,
-        }
-    }
-}
-
-#[allow(clippy::needless_pass_by_value)]
-pub fn get_error_page(error_code: StatusCode, content: VentError) -> (StatusCode, Html<String>) {
-    error!(
-        ?content,
-        ?error_code,
-        "Dealing with Error page: {content:#?}"
-    );
-
-    (
-        error_code,
-        Html(format!(
-            include_str!("../www/server_error.html"),
-            error = content,
-            code = error_code
-        )),
-    )
-}
 
 #[axum::debug_handler]
-pub async fn not_found_fallback(uri: Uri) -> (StatusCode, Html<String>) {
-    get_error_page(
-        StatusCode::NOT_FOUND,
-        VentError::PageNotFound {
-            was_looking_for: uri,
-        },
-    )
+pub async fn not_found_fallback() -> StatusCode {
+    StatusCode::NOT_FOUND
 }
 
 impl IntoResponse for VentError {
@@ -437,6 +406,6 @@ impl IntoResponse for VentError {
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
-        get_error_page(code, self).into_response()
+        (code, Json(self.to_string())).into_response()
     }
 }

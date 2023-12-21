@@ -1,5 +1,4 @@
 use crate::{
-    auth::backend::{Auth, VentAuthBackend},
     error::{
         ConvertingWhatToString, DatabaseIDMethod, IOAction, IOSnafu, ImageAction, ImageSnafu,
         JoinSnafu, VentError, MissingExtensionSnafu, NoImageExtensionSnafu, SqlxAction, SqlxSnafu,
@@ -9,29 +8,32 @@ use crate::{
     state::VentState,
 };
 use async_zip::{tokio::write::ZipFileWriter, Compression, ZipEntryBuilder};
-use axum::{
-    extract::{Multipart, Path, State},
-    response::{IntoResponse, Redirect},
-    routing::{get, post},
-    Router,
-};
-use axum_login::login_required;
+use axum::{extract::{Multipart, Path, State}, response::{IntoResponse, Redirect}, routing::{get, post}, Router, Json};
 use new_mime_guess::MimeGuess;
 use rand::{random, thread_rng, Rng};
 use snafu::{OptionExt, ResultExt};
 use std::{ffi::OsStr, path::PathBuf};
+use http::StatusCode;
+use serde::Deserialize;
 use tokio::{
     fs::File,
     io::{AsyncReadExt, AsyncWriteExt},
 };
 use walkdir::WalkDir;
 
+
+
+#[derive(Deserialize)]
+struct PhotoUpload {
+    pub event_id: i32,
+    pub user_id: i32,
+    pub imgs: Vec<Vec<u8>>
+}
+
 #[axum::debug_handler]
 async fn post_add_photo(
-    auth: Auth,
-    Path(event_id): Path<i32>,
     State(state): State<VentState>,
-    mut multipart: Multipart,
+    Json(PhotoUpload { event_id, user_id, imgs }): Json<PhotoUpload>
 ) -> Result<impl IntoResponse, VentError> {
     debug!("Zeroing old zip file");
     sqlx::query!(
@@ -47,12 +49,7 @@ WHERE id = $1"#,
         action: SqlxAction::UpdatingEvent(event_id),
     })?;
 
-    let user_id = auth.user.unwrap().id;
-
-    while let Some(field) = multipart.next_field().await? {
-        debug!("Getting bytes");
-        let data = field.bytes().await?;
-
+    for data in imgs {
         debug!(data_len = %data.len(), "Getting format/ext");
 
         let format = image::guess_format(&data).context(ImageSnafu {
@@ -113,7 +110,7 @@ VALUES($1, $2, $3)"#,
         })?;
     }
 
-    Ok(Redirect::to(&format!("/update_event/{event_id}")))
+    Ok(StatusCode::OK)
 }
 
 #[axum::debug_handler]
@@ -297,5 +294,4 @@ pub fn router() -> Router<VentState> {
         .route("/add_image/:id", post(post_add_photo))
         .route("/get_all_imgs/:event_id", get(get_all_images))
         .route("/uploads/:img", get(serve_image))
-        .route_layer(login_required!(VentAuthBackend, login_url = "/login"))
 }

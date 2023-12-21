@@ -1,22 +1,11 @@
 //! Module that publishes 2 `POST` methods that deal with adding prefects and participants to events based off of path parameters. This is a fair bit easier than an invisible form.
 
 use crate::{
-    auth::{
-        backend::{Auth, VentAuthBackend},
-        PermissionsRole, PermissionsTarget,
-    },
     error::{VentError, SqlxAction, SqlxSnafu},
     state::VentState,
 };
-use axum::{
-    extract::State,
-    response::{IntoResponse, Redirect},
-    routing::post,
-    Router,
-};
-use axum_extra::extract::Form;
-use axum_login::{login_required, permission_required};
-use chrono::Utc;
+use axum::{extract::State, response::IntoResponse, routing::post, Router, Json};
+use http::StatusCode;
 use serde::Deserialize;
 use snafu::ResultExt;
 
@@ -28,12 +17,12 @@ pub struct AddPerson {
 
 ///`POST` method that adds a prefect to an event
 #[axum::debug_handler]
-async fn post_add_prefect_to_event(
+async fn post_add_prefects_to_event(
     State(state): State<VentState>,
-    Form(AddPerson {
+    Json(AddPerson {
         event_id,
         person_ids,
-    }): Form<AddPerson>,
+    }): Json<AddPerson>,
 ) -> Result<impl IntoResponse, VentError> {
     for prefect_id in person_ids {
         if sqlx::query!(
@@ -77,21 +66,18 @@ async fn post_add_prefect_to_event(
         }
     }
 
-    Ok(Redirect::to(&format!("/update_event/{event_id}"))) //redirect back to the update event page
+    Ok(StatusCode::OK)
 }
 
 ///`POST` method that adds a participant
 #[axum::debug_handler]
-async fn post_add_participant_to_event(
-    auth: Auth,
+async fn post_add_participants_to_event(
     State(state): State<VentState>,
-    Form(AddPerson {
+    Json(AddPerson {
         event_id,
         person_ids,
-    }): Form<AddPerson>,
+    }): Json<AddPerson>,
 ) -> Result<impl IntoResponse, VentError> {
-    let current_user = auth.user.expect("need to be logged in to add participants");
-
     let event_date = sqlx::query!("SELECT date FROM events WHERE id = $1", event_id)
         .fetch_one(&mut *state.get_connection().await?)
         .await
@@ -99,13 +85,6 @@ async fn post_add_participant_to_event(
             action: SqlxAction::FindingEvent(event_id),
         })?
         .date;
-
-    if event_date < (Utc::now() + chrono::Duration::hours(1)).naive_local()
-        && current_user.permissions < PermissionsRole::Prefect
-    {
-        warn!("Student {person_ids:?} tried to add to {event_id}, but event out of date.");
-        return Ok(Redirect::to(&format!("/update_event/{event_id}")));
-    }
 
     for participant_id in person_ids {
         if sqlx::query!(
@@ -127,13 +106,6 @@ async fn post_add_participant_to_event(
         .is_none()
         //if we can't find anything assoiated with this participant and this event
         {
-            if current_user.permissions < PermissionsRole::Prefect
-                && current_user.id != participant_id
-            {
-                warn!(?participant_id, perp=?current_user.id, "Participant did POST magic to get other participant, but failed.");
-                continue;
-            }
-
             debug!(%participant_id, %event_id, "Adding participant to event");
             //then we add the participant to the event
             sqlx::query!(
@@ -160,17 +132,11 @@ async fn post_add_participant_to_event(
 
     state.update_events()?;
 
-    Ok(Redirect::to(&format!("/update_event/{event_id}"))) //then back to the update event page
+    Ok(StatusCode::OK)
 }
 
 pub fn router() -> Router<VentState> {
     Router::new()
-        .route("/add_prefect", post(post_add_prefect_to_event))
-        .route_layer(permission_required!(
-            VentAuthBackend,
-            login_url = "/login",
-            PermissionsTarget::EditPrefectsOnEvents
-        ))
-        .route("/add_participant", post(post_add_participant_to_event))
-        .route_layer(login_required!(VentAuthBackend)) //TODO: actually use `PermissionsTarget::AddRmSelfToEvent`
+        .route("/add_prefect", post(post_add_prefects_to_event))
+        .route("/add_participant", post(post_add_participants_to_event))
 }

@@ -6,16 +6,13 @@ pub mod edit_person;
 pub mod edit_self;
 pub mod eoy_migration;
 pub mod images;
-pub mod import_export;
-pub mod index;
 pub mod public;
 pub mod rewards;
 pub mod show_all;
 pub mod spreadsheets;
 pub mod update_events;
 
-use crate::auth::PermissionsRole;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 ///Struct to hold the event that comes back from the [`add_event`] form
 ///
@@ -36,4 +33,15 @@ pub struct FormPerson {
     pub username: String,
     pub form: Option<String>,
     pub permissions: PermissionsRole,
+}
+
+#[derive(
+sqlx::Type, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Serialize, Deserialize, Debug,
+)]
+#[sqlx(type_name = "user_role", rename_all = "lowercase")]
+pub enum PermissionsRole {
+    Participant,
+    Prefect,
+    Admin,
+    Dev,
 }
