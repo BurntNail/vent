@@ -40,10 +40,8 @@ tokio-util = { version = "0.7", features = ["io"] }
 config = "0.13"
 url = { version = "2.5", features = ["serde"] }
 snafu = "0.7.5"
-strum = { version = "0.25.0", features = ["derive"] }
-change-case = "0.2.0"
-time = "0.3.30"
-tower-sessions = { version = "0.7"}
+time = "0.3"
+tower-sessions = { version = "0.8"}
 hyper-util = "0.1"
 hyper = "1.0"
 http-body = "1.0"
