@@ -7,8 +7,6 @@ use std::{
     fmt::{Debug, Display, Formatter},
     path::PathBuf,
 };
-use serde::Serialize;
-use tower_sessions::session::Id;
 
 #[derive(Copy, Clone, Debug)]
 pub enum CommonHeaders {
@@ -21,12 +19,6 @@ pub enum HttpAction {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum LoginFailureReason {
-    PasswordIsNotSet,
-    IncorrectPassword,
-}
-
-#[derive(Copy, Clone, Debug)]
 pub enum ChannelReason {
     SendUpdateCalMessage,
 }
@@ -34,53 +26,6 @@ pub enum ChannelReason {
 #[derive(Copy, Clone, Debug)]
 pub enum LettreAction {
     BuildMessage,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum WhatToParse {
-    PartOfAPerson(PersonField),
-}
-
-impl From<PersonField> for WhatToParse {
-    fn from(value: PersonField) -> Self {
-        Self::PartOfAPerson(value)
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum PersonField {
-    FirstName,
-    Surname,
-    Form,
-    IsPrefect,
-    Username,
-    WasFirstEntry,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum EventField {
-    Location,
-    Teacher,
-    Date,
-    Name,
-    Time,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum TryingToGetFromCSV {
-    Person(PersonField),
-    Event(EventField),
-}
-
-impl From<PersonField> for TryingToGetFromCSV {
-    fn from(value: PersonField) -> Self {
-        Self::Person(value)
-    }
-}
-impl From<EventField> for TryingToGetFromCSV {
-    fn from(value: EventField) -> Self {
-        Self::Event(value)
-    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -119,15 +64,6 @@ pub enum IOAction {
     DeletingFile(FileIdentifier),
     ReadingAndOpening(FileIdentifier),
     WritingToFile,
-    FlushingFile,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum ReqwestAction {
-    CloudflareTurntile,
-    RErrorForStatus(Option<reqwest::StatusCode>),
-    // HErrorForStatus(Option<http::StatusCode>),
-    ConvertToJson(SerdeJsonAction),
 }
 
 #[derive(Debug)]
@@ -139,21 +75,12 @@ pub enum ConvertingWhatToString {
 
 #[derive(Copy, Clone, Debug)]
 pub enum SerdeJsonAction {
-    CloudflareTurnstileResponse,
     ParsingLogFile,
-    SessionSerde,
 }
 
-#[derive(Debug, Clone)]
-pub enum LiquidAction {
-    BuildingCompiler,
-    Parsing { text: String },
-    Rendering,
-}
 
 #[derive(Copy, Clone, Debug)]
 pub enum ThreadReason {
-    LiquidCompiler,
     FindingExistingFilesWithWalkDir,
     BuildSpreadsheet,
 }
@@ -224,18 +151,10 @@ pub enum SqlxAction {
     RemovingPrefectOrPrefectFromEventByRI {
         relation_id: i32,
     },
-    FindingParticipantOrPrefectByRI {
-        relation_id: i32,
-    },
 
     FindingPhotos(DatabaseIDMethod),
     RemovingPhoto(i32),
     AddingPhotos,
-
-    DeletingOldSessions,
-    RemovingSession(Id),
-    AddingSession,
-    FindingSession(Id),
 
     AcquiringConnection,
 
@@ -263,11 +182,6 @@ pub enum VentError {
         source: sqlx::Error,
         action: SqlxAction,
     },
-    #[snafu(display("Liquid Error: {source:?} caused by {attempt:?}"))]
-    Liquid {
-        source: liquid::Error,
-        attempt: LiquidAction,
-    },
     #[snafu(display("IO Error: {source:?} doing {action:?}"))]
     IO {
         source: std::io::Error,
@@ -277,16 +191,6 @@ pub enum VentError {
     Join {
         source: tokio::task::JoinError,
         title: ThreadReason,
-    },
-    #[snafu(display("Error Parsing Integer: {source:?} trying to get a {what_to_convert_to:?}"))]
-    ParseInt {
-        source: std::num::ParseIntError,
-        what_to_convert_to: WhatToParse,
-    },
-    #[snafu(display("Error Parsing Bool: {source:?} trying to convert for {trying_to_parse:?}"))]
-    ParseBool {
-        source: std::str::ParseBoolError,
-        trying_to_parse: WhatToParse,
     },
     #[snafu(display("Error Parsing {original:?} - {source:?}"))]
     ParseTime {
@@ -321,11 +225,6 @@ pub enum VentError {
     HeaderToStr {
         source: http::header::ToStrError,
         header: CommonHeaders,
-    },
-    #[snafu(display("Error reqwest-ing: {source:?} whilst trying to {action:?}"))]
-    Reqwest {
-        source: reqwest::Error,
-        action: ReqwestAction,
     },
     #[snafu(display("Error parsing email address: {source:?}"), context(false))]
     LettreAddress {
@@ -369,14 +268,8 @@ pub enum VentError {
     MissingExtension { was_looking_for: PathBuf },
     #[snafu(display("Unknown MIME Type for File: {path:?}"))]
     UnknownMIME { path: PathBuf },
-    #[snafu(display("CSV incorrect format - trying to get {was_trying_to_get:?}"))]
-    MalformedCSV {
-        was_trying_to_get: TryingToGetFromCSV,
-    },
     #[snafu(display("Missing Cloudflare IP in headers"))]
     MissingCFIP,
-    #[snafu(display("Failure to login due to {reason:?}"))]
-    LoginFailure { reason: LoginFailureReason },
 }
 
 
@@ -392,16 +285,12 @@ impl IntoResponse for VentError {
                 source: _,
                 action: trying_to_do,
             } if !matches!(trying_to_do, SqlxAction::AcquiringConnection) => StatusCode::NOT_FOUND,
-            VentError::ParseInt { .. }
-            | VentError::ParseBool { .. }
-            | VentError::ParseTime { .. }
+            VentError::ParseTime { .. }
             | VentError::Headers { .. }
             | VentError::Multipart { .. }
             | VentError::Image { .. }
             | VentError::NoImageExtension { .. }
-            | VentError::MalformedCSV { .. }
-            | VentError::MissingCFIP
-            | VentError::LoginFailure { .. } => StatusCode::BAD_REQUEST,
+            | VentError::MissingCFIP => StatusCode::BAD_REQUEST,
             VentError::PageNotFound { .. } => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };

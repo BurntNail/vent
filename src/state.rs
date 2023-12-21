@@ -58,7 +58,7 @@ impl VentState {
         })
     }
 
-    pub async fn reset_password(&self, user_id: i32) -> Result<(), VentError> {
+    pub async fn reset_password(&self, _user_id: i32) -> Result<(), VentError> {
         // let email =
         //     get_email_to_be_sent_for_reset_password(self.get_connection().await?, user_id).await?;
         //

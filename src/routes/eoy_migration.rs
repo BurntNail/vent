@@ -2,7 +2,7 @@ use crate::{
     error::{VentError, SqlxAction, SqlxSnafu},
     state::VentState,
 };
-use axum::{extract::State, response::{IntoResponse, Redirect}, routing::post, Form, Router, Json};
+use axum::{extract::State, response::{IntoResponse}, routing::post, Router, Json};
 use axum::routing::get;
 use http::StatusCode;
 use itertools::Itertools;

@@ -96,14 +96,14 @@ pub async fn get_log() -> Result<Json<Vec<Value>>, VentError> {
     Ok(Json(items))
 }
 
-macro_rules! get_x {
-    ($func_name:ident, $path:expr) => {
-        #[axum::debug_handler]
-        pub async fn $func_name() -> Result<impl IntoResponse, VentError> {
-            serve_static_file($path).await
-        }
-    };
-}
+// macro_rules! get_x {
+//     ($func_name:ident, $path:expr) => {
+//         #[axum::debug_handler]
+//         pub async fn $func_name() -> Result<impl IntoResponse, VentError> {
+//             serve_static_file($path).await
+//         }
+//     };
+// }
 
 
 pub fn router() -> Router<VentState> {

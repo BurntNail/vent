@@ -1,4 +1,4 @@
-use axum::{extract::{Form, State}, response::{IntoResponse, Redirect}, routing::{get, post}, Router, Json};
+use axum::{extract::{State}, response::{IntoResponse}, routing::{get, post}, Router, Json};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
@@ -97,22 +97,7 @@ pub async fn get_rewards(
             .push(general_awards_by_id[&record.reward_id].clone());
     }
 
-    let mut already_awarded = vec![];
-    for (person_id, awards) in already_awarded_hm {
-        let record = sqlx::query!(
-            "SELECT first_name, surname, form FROM people WHERE id = $1",
-            person_id
-        )
-        .fetch_one(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::FindingPerson(person_id.into()),
-        })?;
-        already_awarded.push(PersonWithRewards {
-            id: person_id,
-            awards,
-        });
-    }
+    let already_awarded = already_awarded_hm.into_iter().map(|(id, awards)| PersonWithRewards { id, awards }).collect();
 
     Ok(Json(Rewards { to_be_awarded, already_awarded }))
 }

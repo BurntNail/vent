@@ -5,10 +5,9 @@ use crate::{
         VentState,
     },
 };
-use axum::{extract::{Path, State}, response::{IntoResponse, Redirect}, routing::{get, post}, Router, Json};
-use axum_extra::extract::Form;
-use chrono::{NaiveDateTime, Utc};
-use serde::{Deserialize, Serialize};
+use axum::{extract::{Path, State}, response::{IntoResponse}, routing::{get, post}, Router, Json};
+use chrono::{NaiveDateTime};
+use serde::{Deserialize};
 use snafu::ResultExt;
 use http::StatusCode;
 use tokio::fs::remove_file;
@@ -64,10 +63,9 @@ async fn post_remove_prefect_from_event(
     State(state): State<VentState>,
     Json(Removal { relation_id }): Json<Removal>,
 ) -> Result<impl IntoResponse, VentError> {
-    let id = sqlx::query!(
+    sqlx::query!(
         r#"
 DELETE FROM prefect_events WHERE relation_id = $1 
-RETURNING event_id
 "#,
         relation_id
     )
@@ -75,8 +73,7 @@ RETURNING event_id
     .await
     .context(SqlxSnafu {
         action: SqlxAction::RemovingPrefectOrPrefectFromEventByRI { relation_id },
-    })?
-    .event_id;
+    })?;
 
     state.update_events()?;
 
@@ -87,15 +84,6 @@ async fn get_remove_participant_from_event(
     State(state): State<VentState>,
     Json(Removal { relation_id }): Json<Removal>,
 ) -> Result<impl IntoResponse, VentError> {
-    let event_details = sqlx::query!(
-        "SELECT * FROM participant_events WHERE relation_id = $1",
-        relation_id
-    )
-    .fetch_one(&mut *state.get_connection().await?)
-    .await
-    .context(SqlxSnafu {
-        action: SqlxAction::FindingParticipantOrPrefectByRI { relation_id },
-    })?;
 
         sqlx::query!(
             r#"

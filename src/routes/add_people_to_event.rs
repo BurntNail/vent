@@ -78,14 +78,6 @@ async fn post_add_participants_to_event(
         person_ids,
     }): Json<AddPerson>,
 ) -> Result<impl IntoResponse, VentError> {
-    let event_date = sqlx::query!("SELECT date FROM events WHERE id = $1", event_id)
-        .fetch_one(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::FindingEvent(event_id),
-        })?
-        .date;
-
     for participant_id in person_ids {
         if sqlx::query!(
             r#"

@@ -22,28 +22,23 @@ use crate::{
     state::VentState,
 };
 use axum::{
-    error_handling::HandleErrorLayer,
     extract::{DefaultBodyLimit, Request},
     response::IntoResponse,
     routing::get,
-    BoxError, Router,
+    Router,
 };
 use http::StatusCode;
 use hyper::{body::Incoming, service::service_fn};
 use hyper_util::rt::TokioIo;
 use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr};
-use time::Duration;
 use tokio::{net::TcpListener, signal, sync::watch};
-use tower::{limit::ConcurrencyLimitLayer, Service, ServiceBuilder};
+use tower::{limit::ConcurrencyLimitLayer, Service};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, EnvFilter, Registry};
 
 #[macro_use]
 extern crate tracing;
-
-#[macro_use]
-extern crate async_trait;
 
 // https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs
 async fn shutdown_signal(state: VentState) {

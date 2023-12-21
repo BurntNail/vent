@@ -8,7 +8,7 @@ use crate::{
     state::VentState,
 };
 use async_zip::{tokio::write::ZipFileWriter, Compression, ZipEntryBuilder};
-use axum::{extract::{Multipart, Path, State}, response::{IntoResponse, Redirect}, routing::{get, post}, Router, Json};
+use axum::{extract::{Path, State}, response::{IntoResponse}, routing::{get, post}, Router, Json};
 use new_mime_guess::MimeGuess;
 use rand::{random, thread_rng, Rng};
 use snafu::{OptionExt, ResultExt};
