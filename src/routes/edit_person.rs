@@ -52,8 +52,6 @@ async fn post_reset_password(
     State(state): State<VentState>,
     Json(id): Json<i32>,
 ) -> Result<impl IntoResponse, VentError> {
-    debug!("Logging out.");
-
     debug!("Sending password reset");
     state.reset_password(id).await?;
     Ok(StatusCode::OK)

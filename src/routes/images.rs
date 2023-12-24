@@ -296,9 +296,15 @@ WHERE id = $2"#,
     serve_static_file(file_name).await
 }
 
+async fn get_photo_path (Path(photo_id): Path<i32>, State(state): State<VentState>) -> Result<impl IntoResponse, VentError> {
+    let path = sqlx::query!("SELECT path FROM photos WHERE id = $1", photo_id).fetch_one(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::FindingPhotos(photo_id.into()) })?.path;
+    Ok(Json(path))
+}
+
 pub fn router() -> Router<VentState> {
     Router::new()
         .route("/add_image/:id", post(post_add_photo))
         .route("/get_all_imgs/:event_id", get(get_all_images))
         .route("/uploads/:img", get(serve_image))
+        .route("/photo_path/:img", get(get_photo_path))
 }

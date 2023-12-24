@@ -57,24 +57,25 @@ WHERE id=$1
 
 #[derive(Deserialize)]
 struct Removal {
-    relation_id: i32,
+    person_id: i32,
+    event_id: i32
 }
 
 #[axum::debug_handler]
 async fn post_remove_prefect_from_event(
     State(state): State<VentState>,
-    Json(Removal { relation_id }): Json<Removal>,
+    Json(Removal { person_id, event_id }): Json<Removal>,
 ) -> Result<impl IntoResponse, VentError> {
     sqlx::query!(
         r#"
-DELETE FROM prefect_events WHERE relation_id = $1 
+DELETE FROM prefect_events WHERE prefect_id = $1 AND event_id = $2
 "#,
-        relation_id
+        person_id, event_id
     )
     .fetch_one(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
-        action: SqlxAction::RemovingPrefectOrPrefectFromEventByRI { relation_id },
+        action: SqlxAction::UpdatingParticipantOrPrefect { person: person_id.into(), event_id },
     })?;
 
     state.update_events()?;
@@ -84,18 +85,18 @@ DELETE FROM prefect_events WHERE relation_id = $1
 #[axum::debug_handler]
 async fn get_remove_participant_from_event(
     State(state): State<VentState>,
-    Json(Removal { relation_id }): Json<Removal>,
+    Json(Removal { person_id, event_id }): Json<Removal>,
 ) -> Result<impl IntoResponse, VentError> {
     sqlx::query!(
         r#"
-    DELETE FROM participant_events WHERE relation_id = $1 
+    DELETE FROM participant_events WHERE participant_id = $1 AND event_id = $2
     "#,
-        relation_id
+        person_id, event_id
     )
     .execute(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
-        action: SqlxAction::RemovingPrefectOrPrefectFromEventByRI { relation_id },
+        action: SqlxAction::UpdatingParticipantOrPrefect { person: person_id.into(), event_id },
     })?;
 
     Ok(StatusCode::OK)

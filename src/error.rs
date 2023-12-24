@@ -147,10 +147,6 @@ pub enum SqlxAction {
         event_id: i32,
     },
 
-    RemovingPrefectOrPrefectFromEventByRI {
-        relation_id: i32,
-    },
-
     FindingPhotos(DatabaseIDMethod),
     RemovingPhoto(i32),
     AddingPhotos,

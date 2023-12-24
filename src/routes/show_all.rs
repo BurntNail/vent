@@ -13,6 +13,7 @@ use http::StatusCode;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 use std::hint::unreachable_unchecked;
+use axum::extract::Path;
 
 async fn get_all_event_ids(State(state): State<VentState>) -> Result<impl IntoResponse, VentError> {
     let ids: Vec<i32> = sqlx::query!("SELECT id from events")
@@ -63,7 +64,7 @@ pub struct SmolPerson {
 
 async fn get_person(
     State(state): State<VentState>,
-    Json(id): Json<i32>,
+    Path(id): Path<i32>,
 ) -> Result<impl IntoResponse, VentError> {
     let person = sqlx::query!(
         r#"
@@ -114,7 +115,7 @@ pub struct SmolEvent {
 
 async fn get_event(
     State(state): State<VentState>,
-    Json(id): Json<i32>,
+    Path(id): Path<i32>,
 ) -> Result<impl IntoResponse, VentError> {
     let event = sqlx::query!(
         r#"
@@ -241,6 +242,6 @@ pub fn router() -> Router<VentState> {
         .route("/remove_event", post(post_remove_event))
         .route("/get_all_events", get(get_all_event_ids))
         .route("/get_all_people", get(get_all_person_ids))
-        .route("/get_person", get(get_person))
-        .route("/get_event", get(get_event))
+        .route("/get_person/:id", get(get_person))
+        .route("/get_event/:id", get(get_event))
 }

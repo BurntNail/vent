@@ -8,6 +8,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use axum::extract::Query;
 use http::StatusCode;
 use itertools::Itertools;
 use serde::Deserialize;
@@ -40,7 +41,7 @@ struct FormNameChange {
 #[axum::debug_handler]
 async fn post_mass_change_form_name(
     State(state): State<VentState>,
-    Json(FormNameChange { old_name, new_name }): Json<FormNameChange>,
+    Query(FormNameChange { old_name, new_name }): Query<FormNameChange>,
 ) -> Result<impl IntoResponse, VentError> {
     debug!("Sending DB query");
     sqlx::query!(
