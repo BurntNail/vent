@@ -43,7 +43,7 @@ url = { version = "2.5", features = ["serde"] }
 snafu = "0.7.5"
 strum = { version = "0.25.0", features = ["derive"] }
 change-case = "0.2.0"
-time = "0.3.31"
+time = "0.3.34"
 tower-sessions = { version = "0.8"}
 hyper-util = "0.1"
 hyper = "1.1"
