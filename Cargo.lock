@@ -365,17 +365,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bstr"
-version = "1.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "542f33a8835a0884b006a0c3df3dadd99c0c3f296ed26c2fdc8028e01ad6230c"
-dependencies = [
- "memchr",
- "regex-automata 0.4.3",
- "serde",
-]
-
-[[package]]
 name = "bumpalo"
 version = "3.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -657,11 +646,10 @@ dependencies = [
 
 [[package]]
 name = "csv-async"
-version = "1.2.6"
+version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71933d3f2d0481d5111cb2817b15b6961961458ec58adf8008194e6c850046f4"
+checksum = "d37fe5b0d07f4a8260ce1e9a81413e88f459af0f2dfc55c15e96868a2f99c0f0"
 dependencies = [
- "bstr",
  "cfg-if",
  "csv-core",
  "futures",

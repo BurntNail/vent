@@ -22,7 +22,7 @@ walkdir = "2.4"
 image = "0.24"
 rand = "0.8"
 async_zip = { version = "0.0.16", features = ["tokio", "tokio-fs", "deflate"] }
-csv-async = { version = "1.2", features = ["tokio"] }
+csv-async = { version = "1.3", features = ["tokio"] }
 tower-http = { version = "0.5", features = ["trace"] }
 rust_xlsxwriter = {version = "0.61", features = ["chrono"]}
 axum-login = "0.11"
