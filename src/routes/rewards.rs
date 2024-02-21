@@ -180,12 +180,10 @@ pub async fn post_add_reward(
 
 pub fn router() -> Router<VentState> {
     Router::new()
-        .route("/add_reward", post(post_add_reward))
+        .route("/add_reward", get(get_rewards).post(post_add_reward))
         .route_layer(permission_required!(
             VentAuthBackend,
             login_url = "/login",
             PermissionsTarget::AddRewards
         ))
-        .route("/add_reward", get(get_rewards))
-        .route_layer(login_required!(VentAuthBackend, login_url = "/login"))
 }

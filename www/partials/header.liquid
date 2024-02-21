@@ -55,9 +55,11 @@
               <li class="nav-item">
                 <a class="nav-link" href="/show_all">See All</a>
               </li>
+              {% if auth.permissions["add_rewards"] %}
               <li class="nav-item">
                 <a class="nav-link" href="/add_reward">See Rewards</a>
               </li>
+              {% endif %}
 
               {% if auth.permissions["export_csv"] %}
               <li class="nav-item dropdown">
