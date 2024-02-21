@@ -46,6 +46,6 @@ change-case = "0.2.0"
 time = "0.3.31"
 tower-sessions = { version = "0.8"}
 hyper-util = "0.1"
-hyper = "1.1"
+hyper = "1.2"
 http-body = "1.0"
 http-body-util = "0.1"
