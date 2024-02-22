@@ -51,7 +51,7 @@ impl Settings {
             builder
                 .add_source(File::from(PathBuf::from(file_name)))
                 .build()
-                .and_then(|config| config.try_deserialize::<Settings>())
+                .and_then(Config::try_deserialize)
         })
         .await
         .expect("unable to join spawn_blocking thread")

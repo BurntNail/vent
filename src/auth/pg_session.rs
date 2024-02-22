@@ -1,9 +1,11 @@
-use crate::error::{VentError, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu};
+use crate::error::{ComponentRangeSnafu, SerdeJsonAction, SerdeJsonSnafu, SqlxAction, SqlxSnafu};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde_json::from_slice;
 use snafu::ResultExt;
 use sqlx::{Pool, Postgres};
-use tower_sessions::{session::Id, ExpiredDeletion, Session, SessionStore};
+use time::{OffsetDateTime};
+use tower_sessions::{session::Id, ExpiredDeletion, SessionStore, session_store::Error as SSError};
+use tower_sessions::session::Record;
 
 #[derive(Clone, Debug)]
 pub struct PostgresStore {
@@ -18,27 +20,25 @@ impl PostgresStore {
 
 #[async_trait]
 impl ExpiredDeletion for PostgresStore {
-    async fn delete_expired(&self) -> Result<(), Self::Error> {
+    async fn delete_expired(&self) -> Result<(), SSError> {
         sqlx::query!("DELETE FROM public.sessions where expiry_date < (now())")
             .execute(&self.pool)
             .await
-            .map(|_| ())
             .context(SqlxSnafu {
                 action: SqlxAction::DeletingOldSessions,
-            })
+            })?;
+        Ok(())
     }
 }
 
 #[async_trait]
 impl SessionStore for PostgresStore {
-    type Error = VentError;
-
-    async fn save(&self, session: &Session) -> Result<(), Self::Error> {
-        let session_data = serde_json::to_vec(&session).context(SerdeJsonSnafu {
+    async fn save(&self, session: &Record) -> Result<(), SSError> {
+        let session_data = serde_json::to_vec(&session.data).context(SerdeJsonSnafu {
             action: SerdeJsonAction::SessionSerde,
         })?;
-        let session_id = &session.id().to_string();
-        let session_expiry = session.expiry_date();
+        let session_id = &session.id.to_string();
+        let session_expiry = session.expiry_date;
         let session_expiry = NaiveDateTime::new(
             NaiveDate::from_ymd_opt(
                 session_expiry.year(),
@@ -70,15 +70,18 @@ impl SessionStore for PostgresStore {
         )
         .execute(&self.pool)
         .await
-        .map(|_| ())
         .context(SqlxSnafu {
             action: SqlxAction::AddingSession,
-        })
+        })?;
+
+        Ok(())
     }
 
-    async fn load(&self, id: &Id) -> Result<Option<Session>, Self::Error> {
+    async fn load(&self, id: &Id) -> Result<Option<Record>, SSError> {
+        let id = *id;
+        
         let session_id = id.to_string();
-        let json = sqlx::query!(
+        let rec = sqlx::query!(
             "SELECT * FROM sessions WHERE id = $1 and expiry_date > now()",
             session_id
         )
@@ -87,29 +90,32 @@ impl SessionStore for PostgresStore {
         })?)
         .await
         .context(SqlxSnafu {
-            action: SqlxAction::FindingSession(*id),
+            action: SqlxAction::FindingSession(id),
         })?;
 
-        Ok(if let Some(json) = json {
-            let fv = from_slice::<Session>(&json.data).context(SerdeJsonSnafu {
+        Ok(if let Some(rec) = rec {
+            let expiry_date = OffsetDateTime::from_unix_timestamp(rec.expiry_date.timestamp()).context(ComponentRangeSnafu { naive: rec.expiry_date })?;
+
+            let data = from_slice(&rec.data).context(SerdeJsonSnafu {
                 action: SerdeJsonAction::SessionSerde,
             })?;
-            Some(fv)
+            Some(Record { id, data, expiry_date })
         } else {
             None
         })
     }
 
-    async fn delete(&self, session_id: &Id) -> Result<(), Self::Error> {
+    async fn delete(&self, session_id: &Id) -> Result<(), SSError> {
         sqlx::query!(
             "DELETE FROM public.sessions WHERE id = $1",
             session_id.to_string()
         )
         .execute(&self.pool)
         .await
-        .map(|_| ())
         .context(SqlxSnafu {
             action: SqlxAction::RemovingSession(*session_id),
-        })
+        })?;
+
+        Ok(())
     }
 }

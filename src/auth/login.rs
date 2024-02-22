@@ -137,7 +137,7 @@ pub async fn post_login(
 
 #[axum::debug_handler]
 pub async fn get_logout(mut auth: Auth) -> Result<impl IntoResponse, VentError> {
-    auth.logout()?;
+    auth.logout().await?;
     Ok(Redirect::to("/"))
 }
 

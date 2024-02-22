@@ -1,3 +1,5 @@
+#![allow(clippy::match_same_arms)]
+
 pub mod add_password;
 pub mod backend;
 pub mod cloudflare_turnstile;
@@ -26,7 +28,7 @@ pub enum PermissionsRole {
 
 impl PermissionsRole {
     pub fn can(self) -> HashSet<PermissionsTarget> {
-        PermissionsTarget::iter().filter(|x| x.can(&self)).collect()
+        PermissionsTarget::iter().filter(|x| x.can(self)).collect()
     }
 }
 
@@ -48,21 +50,21 @@ pub enum PermissionsTarget {
 }
 
 impl PermissionsTarget {
-    pub fn can(&self, role: &PermissionsRole) -> bool {
+    pub fn can(self, role: PermissionsRole) -> bool {
         match self {
-            PermissionsTarget::DevAccess => role >= &PermissionsRole::Dev,
-            PermissionsTarget::ImportCSV => role >= &PermissionsRole::Admin,
-            PermissionsTarget::RunMigrations => role >= &PermissionsRole::Admin,
-            PermissionsTarget::EditPeople => role >= &PermissionsRole::Admin,
-            PermissionsTarget::AddRewards => role >= &PermissionsRole::Admin,
-            PermissionsTarget::EditEvents => role >= &PermissionsRole::Prefect,
-            PermissionsTarget::ViewPhotoAdders => role >= &PermissionsRole::Prefect,
-            PermissionsTarget::EditPrefectsOnEvents => role >= &PermissionsRole::Prefect,
-            PermissionsTarget::EditParticipantsOnEvents => role >= &PermissionsRole::Prefect,
-            PermissionsTarget::VerifyEvents => role >= &PermissionsRole::Prefect,
-            PermissionsTarget::AddRmSelfToEvent => role >= &PermissionsRole::Participant,
-            PermissionsTarget::SeePhotos => role >= &PermissionsRole::Participant,
-            PermissionsTarget::AddPhotos => role >= &PermissionsRole::Participant,
+            PermissionsTarget::DevAccess => role >= PermissionsRole::Dev,
+            PermissionsTarget::ImportCSV => role >= PermissionsRole::Admin,
+            PermissionsTarget::RunMigrations => role >= PermissionsRole::Admin,
+            PermissionsTarget::EditPeople => role >= PermissionsRole::Admin,
+            PermissionsTarget::AddRewards => role >= PermissionsRole::Admin,
+            PermissionsTarget::EditEvents => role >= PermissionsRole::Prefect,
+            PermissionsTarget::ViewPhotoAdders => role >= PermissionsRole::Prefect,
+            PermissionsTarget::EditPrefectsOnEvents => role >= PermissionsRole::Prefect,
+            PermissionsTarget::EditParticipantsOnEvents => role >= PermissionsRole::Prefect,
+            PermissionsTarget::VerifyEvents => role >= PermissionsRole::Prefect,
+            PermissionsTarget::AddRmSelfToEvent => role >= PermissionsRole::Participant,
+            PermissionsTarget::SeePhotos => role >= PermissionsRole::Participant,
+            PermissionsTarget::AddPhotos => role >= PermissionsRole::Participant,
         }
     }
 }

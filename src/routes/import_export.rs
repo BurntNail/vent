@@ -25,6 +25,7 @@ use serde::Deserialize;
 use snafu::{OptionExt, ResultExt};
 use std::collections::HashMap;
 use tokio::fs::File;
+use crate::error::EncodeStep;
 
 #[axum::debug_handler]
 pub async fn get_import_export_csv(
@@ -110,6 +111,7 @@ pub async fn post_import_people_from_csv(
             .parse()
             .context(ParseBoolSnafu {
                 trying_to_parse: WhatToParse::PartOfAPerson(PersonField::IsPrefect),
+                how_got_in: EncodeStep::Decode,
             })?;
         let username = record.get(4).context(MalformedCSVSnafu {
             was_trying_to_get: PersonField::Username,
@@ -122,6 +124,7 @@ pub async fn post_import_people_from_csv(
             .parse()
             .context(ParseBoolSnafu {
                 trying_to_parse: WhatToParse::PartOfAPerson(PersonField::WasFirstEntry),
+                how_got_in: EncodeStep::Decode,
             })?;
 
         debug!("Checking if needs to be updated rather than created");
@@ -212,6 +215,7 @@ pub async fn post_import_events_from_csv(
             })?;
             NaiveDate::parse_from_str(str, "%A %d %B %Y").context(ParseTimeSnafu {
                 original: str.to_string(),
+                how_got_in: EncodeStep::Decode,
             })?
         };
         let name = record.get(1).context(MalformedCSVSnafu {
@@ -224,6 +228,7 @@ pub async fn post_import_events_from_csv(
 
             NaiveTime::parse_from_str(str, "%R").context(ParseTimeSnafu {
                 original: str.to_string(),
+                how_got_in: EncodeStep::Decode,
             })?
         };
         let date_time = NaiveDateTime::new(date, time);
