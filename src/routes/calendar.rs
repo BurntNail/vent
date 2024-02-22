@@ -129,7 +129,7 @@ Prefects Attending: {prefects}"#
                 return;
             }
 
-            if let Ok(_) = update_rx.try_recv() {
+            if let Ok(()) = update_rx.try_recv() {
                 match pool.acquire().await {
                     Ok(conn) => {
                         if let Err(e) = update_events(conn).await {

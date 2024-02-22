@@ -24,6 +24,7 @@ use axum_extra::extract::Form;
 use axum_login::permission_required;
 use chrono::NaiveDateTime;
 use snafu::ResultExt;
+use crate::error::EncodeStep;
 
 ///`GET` method for the `add_event` form - just compiles and returns the liquid `www/add_event.liquid`
 #[axum::debug_handler]
@@ -55,7 +56,7 @@ async fn post_add_event_form(
     }): Form<FormEvent>,
 ) -> Result<impl IntoResponse, VentError> {
     let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M")
-        .context(ParseTimeSnafu { original: date })?;
+        .context(ParseTimeSnafu { original: date, how_got_in: EncodeStep::Encode })?;
 
     debug!("Fetching ID for update event");
 

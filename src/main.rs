@@ -2,7 +2,9 @@
 #![allow(
     clippy::module_name_repetitions,
     clippy::items_after_statements,
-    clippy::cast_possible_truncation
+    clippy::cast_possible_truncation,
+clippy::cast_lossless, clippy::cast_sign_loss,
+clippy::too_many_lines
 )]
 
 mod auth;
@@ -26,11 +28,10 @@ use crate::{
     state::VentState,
 };
 use axum::{
-    error_handling::HandleErrorLayer,
     extract::{DefaultBodyLimit, Request},
     response::IntoResponse,
     routing::get,
-    BoxError, Router,
+    Router,
 };
 use axum_login::{
     tower_sessions::{Expiry, SessionManagerLayer},
@@ -44,7 +45,7 @@ use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr};
 use time::Duration;
 use tokio::{net::TcpListener, signal, sync::watch};
-use tower::{limit::ConcurrencyLimitLayer, Service, ServiceBuilder};
+use tower::{limit::ConcurrencyLimitLayer, Service};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, EnvFilter, Registry};
 
@@ -74,8 +75,8 @@ async fn shutdown_signal(state: VentState) {
     let terminate = std::future::pending::<()>();
 
     tokio::select! {
-        _ = ctrl_c => {},
-        _ = terminate => {},
+        () = ctrl_c => {},
+        () = terminate => {},
     }
 
     state.send_stop_notices();
@@ -115,15 +116,8 @@ async fn main() {
 
     let state = VentState::new(pool).await;
 
-    let auth_service = ServiceBuilder::new()
-        .layer(HandleErrorLayer::new(|e: BoxError| async move {
-            error!(?e, "Error in handling errors layer!");
-            StatusCode::BAD_REQUEST
-        }))
-        .layer(
-            AuthManagerLayerBuilder::new(VentAuthBackend::new(state.clone()), session_layer)
-                .build(),
-        );
+    let auth_layer = AuthManagerLayerBuilder::new(VentAuthBackend::new(state.clone()), session_layer)
+        .build();
 
     let router = Router::new()
         .route("/healthcheck", get(healthcheck))
@@ -148,7 +142,7 @@ async fn main() {
         .fallback(not_found_fallback)
         .layer(TraceLayer::new_for_http())
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think
-        .layer(auth_service)
+        .layer(auth_layer)
         .layer(ConcurrencyLimitLayer::new(512)) //limit to 512 inflight reqs
         .with_state(state.clone());
 
@@ -171,7 +165,7 @@ async fn serve(app: Router, listener: TcpListener, state: VentState) {
             result = listener.accept() => {
                 result.unwrap()
             },
-            _ = shutdown_signal(state.clone()) => {
+            () = shutdown_signal(state.clone()) => {
                 break;
             }
         };
@@ -195,22 +189,22 @@ async fn serve(app: Router, listener: TcpListener, state: VentState) {
                 tokio::select! {
                     result = conn.as_mut() => {
                         if let Err(err) = result {
-                            error!(?err, "Failed to serve connection :(")
+                            error!(?err, "Failed to serve connection :(");
                         }
                         break;
                     },
-                    _ = shutdown_signal(state.clone()) => {
+                    () = shutdown_signal(state.clone()) => {
                         conn.as_mut().graceful_shutdown();
                     }
                 }
             }
 
-            drop(close_rx)
+            drop(close_rx);
         });
     }
 
     drop(close_rx);
     drop(listener);
 
-    close_tx.closed().await
+    close_tx.closed().await;
 }

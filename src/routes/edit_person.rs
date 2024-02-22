@@ -174,8 +174,8 @@ async fn post_reset_password(
 ) -> Result<impl IntoResponse, VentError> {
     debug!("Logging out.");
 
-    if auth.user.as_ref().map(|x| x.id == id).unwrap_or(false) {
-        auth.logout()?;
+    if auth.user.as_ref().is_some_and(|x| x.id == id) {
+        auth.logout().await?;
     }
 
     debug!("Sending password reset");
