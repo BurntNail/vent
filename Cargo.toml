@@ -26,7 +26,7 @@ sqlx = { version = "0.7", features = [
   "chrono",
   "json",
 ] }
-tokio = { version = "1.36", features = ["full"] }
+tokio = { version = "1.37", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 walkdir = "2.4"
