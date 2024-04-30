@@ -1,12 +1,13 @@
 //! Module that publishes an iCalendar file in a GET method
 
 use crate::{
-    error::{IOAction, IOSnafu, VentError, SqlxAction, SqlxSnafu},
+    error::{IOAction, IOSnafu, SqlxAction, SqlxSnafu, VentError},
     routes::public::serve_static_file,
     state::{db_objects::DbEvent, VentState},
 };
 use axum::{extract::State, response::IntoResponse};
-use icalendar::{Calendar, Component, Event, EventLike};
+
+use icalendar::{Calendar, CalendarDateTime, Component, Event, EventLike};
 use snafu::ResultExt;
 use sqlx::{pool::PoolConnection, Pool, Postgres};
 use std::{collections::HashMap, time::Duration};
@@ -95,7 +96,10 @@ pub fn update_calendar_thread(
             calendar.push(
                 Event::new()
                     .summary(&event_name)
-                    .starts((date, chrono_tz::Europe::London))
+                    .starts(CalendarDateTime::WithTimezone {
+                        date_time: date,
+                        tzid: String::from("Europe/London"),
+                    })
                     .ends(date + chrono::Duration::minutes(45))
                     .location(&location)
                     .description(&format!(
@@ -123,6 +127,15 @@ Prefects Attending: {prefects}"#
     }
 
     tokio::spawn(async move {
+        match pool.acquire().await {
+            Ok(conn) => {
+                if let Err(e) = update_events(conn).await {
+                    error!(?e, "Error updating calendar!!!");
+                }
+            }
+            Err(e) => error!(?e, "Error getting connection to update calendar"),
+        }
+
         loop {
             if !matches!(stop_rx.try_recv(), Err(TryRecvError::Empty)) {
                 info!("Old sessions thread stopping");
@@ -140,7 +153,7 @@ Prefects Attending: {prefects}"#
                 }
             }
 
-            tokio::time::sleep(Duration::from_secs(60 * 10)).await; //check every 10m
+            tokio::time::sleep(Duration::from_secs(10 * 60)).await; //check every 10m
         }
     });
 
