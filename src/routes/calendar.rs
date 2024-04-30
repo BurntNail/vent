@@ -33,10 +33,14 @@ pub async fn get_calendar_feed(
 pub fn update_calendar_thread(
     pool: Pool<Postgres>,
     mut stop_rx: BroadcastReceiver<()>,
+    tzid: String,
 ) -> UnboundedSender<()> {
     let (update_tx, mut update_rx) = unbounded_channel();
 
-    async fn update_events(mut conn: PoolConnection<Postgres>) -> Result<(), VentError> {
+    async fn update_events(
+        mut conn: PoolConnection<Postgres>,
+        tzid: String,
+    ) -> Result<(), VentError> {
         let mut prefect_events: HashMap<i32, Vec<String>> = HashMap::new();
 
         let prefects = sqlx::query!(
@@ -98,7 +102,7 @@ pub fn update_calendar_thread(
                     .summary(&event_name)
                     .starts(CalendarDateTime::WithTimezone {
                         date_time: date,
-                        tzid: String::from("Europe/London"),
+                        tzid: tzid.clone(),
                     })
                     .ends(date + chrono::Duration::minutes(45))
                     .location(&location)
@@ -129,7 +133,7 @@ Prefects Attending: {prefects}"#
     tokio::spawn(async move {
         match pool.acquire().await {
             Ok(conn) => {
-                if let Err(e) = update_events(conn).await {
+                if let Err(e) = update_events(conn, tzid.clone()).await {
                     error!(?e, "Error updating calendar!!!");
                 }
             }
@@ -145,7 +149,7 @@ Prefects Attending: {prefects}"#
             if let Ok(()) = update_rx.try_recv() {
                 match pool.acquire().await {
                     Ok(conn) => {
-                        if let Err(e) = update_events(conn).await {
+                        if let Err(e) = update_events(conn, tzid.clone()).await {
                             error!(?e, "Error updating calendar!!!");
                         }
                     }

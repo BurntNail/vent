@@ -22,6 +22,7 @@ pub struct Settings {
     pub niche: NicheSettings,
     pub brand: BrandSettings,
     pub mail: MailSettings,
+    pub timezone_id: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -45,7 +46,8 @@ impl Settings {
         let builder = Config::builder()
             .set_default("date_time_format", "%c")?
             .set_default("instance_name", "House Events Manager")?
-            .set_default("tech_support", "https://google.com")?;
+            .set_default("tech_support", "https://google.com")?
+            .set_default("timezone_id", "Europe/London")?;
 
         spawn_blocking(move || {
             builder

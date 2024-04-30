@@ -14,7 +14,7 @@ participants were manually added to a separate spreadsheet, and photos were inco
 This project requires:
 
 - `cargo` and the other rust build tools like a valid `C++` compiler
-- [`sqlx-cli`](https://lib.rs/crates/sqlx-cli) installed via `cargo` - this is used for postgres migrations. This project currently uses version 0.6.3.
+- [`sqlx-cli`](https://lib.rs/crates/sqlx-cli) installed via `cargo` - this is used for postgres migrations. This project currently uses the latest version.
 - `devenv` or `docker compose` - this is used for the postgres server. `docker` is reccomended, and can be installed through [the docs](https://docs.docker.com/engine/install/ubuntu/).
 - `libssl-dev` - this is used for the axum server
 - `clang` - this is used for the spreadsheet export
@@ -51,17 +51,18 @@ all supported) that follows the following schema:
 niche: {
     date_time_format: String,
     tech_support: Url,
-}
+},
 brand: {
     instance_name: String,
     domain: String,
-}
+},
 mail: {
     username: String,
     password: String,
     smtp: String,
     username_domain: String,
-}
+},
+timezone_id: String
 ```
 
 | Name                     | Use                                                                                                                               | Example Contents                                    |
@@ -74,6 +75,7 @@ mail: {
 | `mail.password`          | This is the password for the mail account.                                                                                        | `aaaaaaaaaaaaaaab`                                  |
 | `mail.smtp`              | This is the SMTP server for the mail account.                                                                                     | `smtp.zoho.eu`                                      |
 | `mail.username_domain`   | This is the domain that users are registered under to send emails to.                                                             | `gmail.com`                                         |
+| `timezone_id`            | This is the [TZID](https://www.unicode.org/cldr/charts/43/supplemental/zone_tzid.html) for the calendar events.                   | `Europe/London`                                     |
 
 ### Setup
 
