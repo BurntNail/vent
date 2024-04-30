@@ -1,10 +1,10 @@
 use axum::{
     extract::{Form, State},
     response::{IntoResponse, Redirect},
-    routing::{get, post},
+    routing::{get},
     Router,
 };
-use axum_login::{login_required, permission_required};
+use axum_login::{permission_required};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
