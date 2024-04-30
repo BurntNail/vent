@@ -1,10 +1,10 @@
 use axum::{
     extract::{Form, State},
     response::{IntoResponse, Redirect},
-    routing::{get},
+    routing::get,
     Router,
 };
-use axum_login::{permission_required};
+use axum_login::permission_required;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
@@ -15,7 +15,7 @@ use crate::{
         backend::{Auth, VentAuthBackend},
         get_auth_object, PermissionsTarget,
     },
-    error::{VentError, SqlxAction, SqlxSnafu},
+    error::{SqlxAction, SqlxSnafu, VentError},
     liquid_utils::compile_with_newtitle,
     state::VentState,
 };

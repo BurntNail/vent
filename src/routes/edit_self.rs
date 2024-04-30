@@ -3,7 +3,7 @@ use crate::{
         backend::{Auth, VentAuthBackend},
         get_auth_object,
     },
-    error::{VentError, SqlxAction, SqlxSnafu},
+    error::{SqlxAction, SqlxSnafu, VentError},
     liquid_utils::compile_with_newtitle,
     state::VentState,
 };

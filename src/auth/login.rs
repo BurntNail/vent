@@ -4,7 +4,7 @@ use crate::{
         cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP},
         get_auth_object,
     },
-    error::{ALError, VentError, LoginFailureReason},
+    error::{ALError, LoginFailureReason, VentError},
     liquid_utils::compile,
     state::VentState,
 };

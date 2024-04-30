@@ -3,7 +3,7 @@ use crate::{
         backend::{Auth, VentAuthBackend},
         get_auth_object, PermissionsRole, PermissionsTarget,
     },
-    error::{IOAction, IOSnafu, VentError, ParseTimeSnafu, SqlxAction, SqlxSnafu},
+    error::{EncodeStep, IOAction, IOSnafu, ParseTimeSnafu, SqlxAction, SqlxSnafu, VentError},
     liquid_utils::compile_with_newtitle,
     routes::FormEvent,
     state::{
@@ -24,7 +24,6 @@ use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 use std::collections::HashMap;
 use tokio::fs::remove_file;
-use crate::error::EncodeStep;
 
 #[allow(clippy::too_many_lines)]
 #[axum::debug_handler]
@@ -355,7 +354,7 @@ async fn post_update_event(
 ) -> Result<impl IntoResponse, VentError> {
     let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M").context(ParseTimeSnafu {
         original: date.clone(),
-        how_got_in: EncodeStep::Decode
+        how_got_in: EncodeStep::Decode,
     })?;
 
     sqlx::query!(

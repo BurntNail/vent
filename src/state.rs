@@ -16,7 +16,7 @@ use tokio::{
 use crate::{
     auth::add_password::get_email_to_be_sent_for_reset_password,
     cfg::Settings,
-    error::{ChannelReason, VentError, SendSnafu, SqlxAction, SqlxSnafu},
+    error::{ChannelReason, SendSnafu, SqlxAction, SqlxSnafu, VentError},
     routes::calendar::update_calendar_thread,
     state::{
         db::VentDatabase,
@@ -39,8 +39,11 @@ impl VentState {
         let (stop_senders_tx, stop_senders_rx1) = broadcast_channel(2);
 
         let mail_sender = email_sender_thread(settings.clone(), stop_senders_rx1);
-        let update_calendar_sender =
-            update_calendar_thread(postgres.clone(), stop_senders_tx.subscribe());
+        let update_calendar_sender = update_calendar_thread(
+            postgres.clone(),
+            stop_senders_tx.subscribe(),
+            settings.timezone_id.clone(),
+        );
 
         let database = VentDatabase::new(postgres);
 

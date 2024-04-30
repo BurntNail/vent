@@ -2,8 +2,8 @@ use crate::{
     auth::backend::{Auth, VentAuthBackend},
     error::{
         ConvertingWhatToString, DatabaseIDMethod, IOAction, IOSnafu, ImageAction, ImageSnafu,
-        JoinSnafu, VentError, MissingExtensionSnafu, NoImageExtensionSnafu, SqlxAction, SqlxSnafu,
-        ThreadReason, ToStrSnafu, UnknownMIMESnafu,
+        JoinSnafu, MissingExtensionSnafu, NoImageExtensionSnafu, SqlxAction, SqlxSnafu,
+        ThreadReason, ToStrSnafu, UnknownMIMESnafu, VentError,
     },
     routes::public::{serve_read, serve_static_file},
     state::VentState,

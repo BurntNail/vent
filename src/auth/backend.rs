@@ -1,6 +1,6 @@
 use crate::{
     auth::{login::LoginCreds, PermissionsTarget},
-    error::{VentError, LoginFailureReason, SqlxAction, SqlxSnafu},
+    error::{LoginFailureReason, SqlxAction, SqlxSnafu, VentError},
     state::{
         db_objects::{AuthorisationBackendPerson, DbPerson},
         VentState,

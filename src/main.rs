@@ -3,8 +3,9 @@
     clippy::module_name_repetitions,
     clippy::items_after_statements,
     clippy::cast_possible_truncation,
-clippy::cast_lossless, clippy::cast_sign_loss,
-clippy::too_many_lines
+    clippy::cast_lossless,
+    clippy::cast_sign_loss,
+    clippy::too_many_lines
 )]
 
 mod auth;
@@ -116,8 +117,8 @@ async fn main() {
 
     let state = VentState::new(pool).await;
 
-    let auth_layer = AuthManagerLayerBuilder::new(VentAuthBackend::new(state.clone()), session_layer)
-        .build();
+    let auth_layer =
+        AuthManagerLayerBuilder::new(VentAuthBackend::new(state.clone()), session_layer).build();
 
     let router = Router::new()
         .route("/healthcheck", get(healthcheck))

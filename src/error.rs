@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
     response::{Html, IntoResponse},
 };
+use chrono::NaiveDateTime;
 use http::Uri;
 use image::ImageFormat;
 use snafu::Snafu;
@@ -11,7 +12,6 @@ use std::{
     fmt::{Debug, Display, Formatter},
     path::PathBuf,
 };
-use chrono::NaiveDateTime;
 use tower_sessions::session::Id;
 
 pub type ALError = axum_login::Error<VentAuthBackend>;
@@ -40,7 +40,7 @@ pub enum LettreAction {
 #[derive(Debug)]
 pub enum WhatToParse {
     PartOfAPerson(PersonField),
-    IdForRecord
+    IdForRecord,
 }
 
 impl From<PersonField> for WhatToParse {
@@ -248,7 +248,8 @@ pub enum SqlxAction {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum EncodeStep {
-    Encode, Decode
+    Encode,
+    Decode,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -295,7 +296,7 @@ pub enum VentError {
     ParseBool {
         source: std::str::ParseBoolError,
         trying_to_parse: WhatToParse,
-        how_got_in: EncodeStep
+        how_got_in: EncodeStep,
     },
     #[snafu(display("Error Parsing {original:?} - {source:?}"))]
     ParseTime {
@@ -376,7 +377,7 @@ pub enum VentError {
     #[snafu(display("Error with time components out of range"))]
     ComponentRange {
         source: time::error::ComponentRange,
-        naive: NaiveDateTime
+        naive: NaiveDateTime,
     },
 
     // internal errors
@@ -459,13 +460,17 @@ impl IntoResponse for VentError {
 impl From<VentError> for tower_sessions::session_store::Error {
     fn from(value: VentError) -> Self {
         match &value {
-            VentError::ParseInt {how_got_in, .. } | VentError::ParseBool {how_got_in, .. } | VentError::ParseTime {how_got_in, .. } => {
-                match *how_got_in {
-                    EncodeStep::Encode => tower_sessions::session_store::Error::Encode(value.to_string()),
-                    EncodeStep::Decode => tower_sessions::session_store::Error::Decode(value.to_string()),
+            VentError::ParseInt { how_got_in, .. }
+            | VentError::ParseBool { how_got_in, .. }
+            | VentError::ParseTime { how_got_in, .. } => match *how_got_in {
+                EncodeStep::Encode => {
+                    tower_sessions::session_store::Error::Encode(value.to_string())
+                }
+                EncodeStep::Decode => {
+                    tower_sessions::session_store::Error::Decode(value.to_string())
                 }
             },
-            _ => tower_sessions::session_store::Error::Backend(value.to_string())
+            _ => tower_sessions::session_store::Error::Backend(value.to_string()),
         }
     }
 }

@@ -12,7 +12,7 @@ use std::{
     fmt::{Debug, Display, Formatter},
 };
 
-use crate::error::{HeaderToStrSnafu, VentError, ReqwestAction, ReqwestSnafu, SerdeJsonAction};
+use crate::error::{HeaderToStrSnafu, ReqwestAction, ReqwestSnafu, SerdeJsonAction, VentError};
 
 static CFT_SECRETKEY: Lazy<String> =
     Lazy::new(|| var("CFT_SECRETKEY").expect("missing environment variable `CFT_SECRETKEY`"));

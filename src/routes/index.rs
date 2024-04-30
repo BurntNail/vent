@@ -4,7 +4,7 @@ use snafu::ResultExt;
 
 use crate::{
     auth::{backend::Auth, get_auth_object},
-    error::{VentError, SqlxAction, SqlxSnafu},
+    error::{SqlxAction, SqlxSnafu, VentError},
     liquid_utils::{compile, CustomFormat},
     state::{db_objects::DbEvent, VentState},
 };

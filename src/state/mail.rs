@@ -1,6 +1,6 @@
 use crate::{
     cfg::Settings,
-    error::{VentError, LettreAction, LettreEmailSnafu},
+    error::{LettreAction, LettreEmailSnafu, VentError},
 };
 use lettre::{
     transport::smtp::authentication::Credentials, AsyncSmtpTransport, AsyncTransport, Message,

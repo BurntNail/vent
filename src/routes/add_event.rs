@@ -9,7 +9,7 @@ use crate::{
         backend::{Auth, VentAuthBackend},
         get_auth_object, PermissionsTarget,
     },
-    error::{VentError, ParseTimeSnafu, SqlxAction, SqlxSnafu},
+    error::{EncodeStep, ParseTimeSnafu, SqlxAction, SqlxSnafu, VentError},
     liquid_utils::compile_with_newtitle,
     routes::FormEvent,
     state::VentState,
@@ -24,7 +24,6 @@ use axum_extra::extract::Form;
 use axum_login::permission_required;
 use chrono::NaiveDateTime;
 use snafu::ResultExt;
-use crate::error::EncodeStep;
 
 ///`GET` method for the `add_event` form - just compiles and returns the liquid `www/add_event.liquid`
 #[axum::debug_handler]
@@ -55,8 +54,10 @@ async fn post_add_event_form(
         info,
     }): Form<FormEvent>,
 ) -> Result<impl IntoResponse, VentError> {
-    let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M")
-        .context(ParseTimeSnafu { original: date, how_got_in: EncodeStep::Encode })?;
+    let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M").context(ParseTimeSnafu {
+        original: date,
+        how_got_in: EncodeStep::Encode,
+    })?;
 
     debug!("Fetching ID for update event");
 

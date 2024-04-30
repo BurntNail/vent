@@ -5,7 +5,7 @@ use crate::{
         backend::{Auth, VentAuthBackend},
         get_auth_object, PermissionsTarget,
     },
-    error::{VentError, SqlxAction, SqlxSnafu},
+    error::{SqlxAction, SqlxSnafu, VentError},
     liquid_utils::compile_with_newtitle,
     routes::FormPerson,
     state::VentState,

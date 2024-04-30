@@ -3,7 +3,7 @@ use crate::{
         backend::{Auth, VentAuthBackend},
         get_auth_object, PermissionsRole, PermissionsTarget,
     },
-    error::{VentError, SqlxAction, SqlxSnafu},
+    error::{SqlxAction, SqlxSnafu, VentError},
     liquid_utils::{compile_with_newtitle, CustomFormat},
     routes::{rewards::Reward, FormPerson},
     state::{db_objects::DbPerson, VentState},

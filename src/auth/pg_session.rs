@@ -3,9 +3,12 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde_json::from_slice;
 use snafu::ResultExt;
 use sqlx::{Pool, Postgres};
-use time::{OffsetDateTime};
-use tower_sessions::{session::Id, ExpiredDeletion, SessionStore, session_store::Error as SSError};
-use tower_sessions::session::Record;
+use time::OffsetDateTime;
+use tower_sessions::{
+    session::{Id, Record},
+    session_store::Error as SSError,
+    ExpiredDeletion, SessionStore,
+};
 
 #[derive(Clone, Debug)]
 pub struct PostgresStore {
@@ -33,6 +36,28 @@ impl ExpiredDeletion for PostgresStore {
 
 #[async_trait]
 impl SessionStore for PostgresStore {
+    async fn create(&self, session: &mut Record) -> Result<(), SSError> {
+        let mut session_id = session.id;
+
+        while sqlx::query!(
+            "SELECT * FROM public.sessions WHERE id = $1",
+            session_id.to_string()
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::AddingSession,
+        })?
+        .is_some()
+        {
+            session_id = Id::default();
+        }
+
+        session.id = session_id;
+
+        self.save(session).await
+    }
+
     async fn save(&self, session: &Record) -> Result<(), SSError> {
         let session_data = serde_json::to_vec(&session.data).context(SerdeJsonSnafu {
             action: SerdeJsonAction::SessionSerde,
@@ -79,7 +104,7 @@ impl SessionStore for PostgresStore {
 
     async fn load(&self, id: &Id) -> Result<Option<Record>, SSError> {
         let id = *id;
-        
+
         let session_id = id.to_string();
         let rec = sqlx::query!(
             "SELECT * FROM sessions WHERE id = $1 and expiry_date > now()",
@@ -94,12 +119,20 @@ impl SessionStore for PostgresStore {
         })?;
 
         Ok(if let Some(rec) = rec {
-            let expiry_date = OffsetDateTime::from_unix_timestamp(rec.expiry_date.timestamp()).context(ComponentRangeSnafu { naive: rec.expiry_date })?;
+            let expiry_date =
+                OffsetDateTime::from_unix_timestamp(rec.expiry_date.and_utc().timestamp())
+                    .context(ComponentRangeSnafu {
+                        naive: rec.expiry_date,
+                    })?;
 
             let data = from_slice(&rec.data).context(SerdeJsonSnafu {
                 action: SerdeJsonAction::SessionSerde,
             })?;
-            Some(Record { id, data, expiry_date })
+            Some(Record {
+                id,
+                data,
+                expiry_date,
+            })
         } else {
             None
         })

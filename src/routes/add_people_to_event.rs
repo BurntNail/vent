@@ -5,7 +5,7 @@ use crate::{
         backend::{Auth, VentAuthBackend},
         PermissionsRole, PermissionsTarget,
     },
-    error::{VentError, SqlxAction, SqlxSnafu},
+    error::{SqlxAction, SqlxSnafu, VentError},
     state::VentState,
 };
 use axum::{
