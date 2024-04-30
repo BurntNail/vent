@@ -29,7 +29,7 @@ sqlx = { version = "0.7", features = [
 tokio = { version = "1.36", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-walkdir = "2.4"
+walkdir = "2.5"
 image = "0.25"
 rand = "0.8"
 async_zip = { version = "0.0.17", features = ["tokio", "tokio-fs", "deflate"] }
