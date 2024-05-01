@@ -34,7 +34,7 @@ pub async fn get_login(
     let aa = get_auth_object(auth).await?;
     compile(
         "www/login.liquid",
-        liquid::object!({ "auth": aa }),
+        liquid::object!({ "auth": aa, "tech_support_person": state.settings.tech_support_person.clone() }),
         &state.settings.brand.instance_name,
     )
     .await

@@ -23,6 +23,7 @@ pub struct Settings {
     pub brand: BrandSettings,
     pub mail: MailSettings,
     pub timezone_id: String,
+    pub tech_support_person: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]

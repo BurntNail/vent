@@ -76,6 +76,7 @@ timezone_id: String
 | `mail.smtp`              | This is the SMTP server for the mail account.                                                                                     | `smtp.zoho.eu`                                      |
 | `mail.username_domain`   | This is the domain that users are registered under to send emails to.                                                             | `gmail.com`                                         |
 | `timezone_id`            | This is the [TZID](https://www.unicode.org/cldr/charts/43/supplemental/zone_tzid.html) for the calendar events.                   | `Europe/London`                                     |
+| `tech_support_person`    | This is the name of the person to contact for password resets and will be listed on the login page.                               | `Alice Bartholomew (Alice.B@domain.com)`            |
 
 ### Setup
 
