@@ -16,7 +16,7 @@ axum-extra = { version = "0.9", features = ["form"] }
 chrono = { version = "0.4", features = ["rkyv", "serde", "clock"] }
 chrono-tz = "0.9"
 icalendar = { version = "0.16", features = ["chrono-tz"] }
-dotenvy = "0.15"
+dotenvy = "0.15.7"
 liquid = "0.26"
 serde = "1.0"
 sqlx = { version = "0.7", features = [
