@@ -164,7 +164,7 @@ INNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.i
         r#"
 SELECT id, first_name, surname, username, form, hashed_password, permissions as "permissions: _", was_first_entry
 FROM people p
-WHERE p.permissions != 'participant'
+WHERE p.permissions != 'participant' AND p.form != 'Gone'
 "#
     )
     .fetch_all(&mut *state.get_connection().await?)
