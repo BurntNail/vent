@@ -1,12 +1,9 @@
 use crate::{
-    auth::backend::{Auth, VentAuthBackend},
-    error::{
+    auth::backend::{Auth, VentAuthBackend}, error::{
         ConvertingWhatToString, DatabaseIDMethod, IOAction, IOSnafu, ImageAction, ImageSnafu,
         JoinSnafu, MissingExtensionSnafu, NoImageExtensionSnafu, SqlxAction, SqlxSnafu,
         ThreadReason, ToStrSnafu, UnknownMIMESnafu, VentError,
-    },
-    routes::public::{serve_read, serve_static_file},
-    state::VentState,
+    }, image_format::ImageFormat, routes::public::{serve_read, serve_static_file}, state::VentState
 };
 use async_zip::{tokio::write::ZipFileWriter, Compression, ZipEntryBuilder};
 use axum::{
@@ -16,7 +13,6 @@ use axum::{
     Router,
 };
 use axum_login::login_required;
-use new_mime_guess::MimeGuess;
 use rand::{random, thread_rng, Rng};
 use snafu::{OptionExt, ResultExt};
 use std::{ffi::OsStr, path::PathBuf};
@@ -55,7 +51,7 @@ WHERE id = $1"#,
 
         debug!(data_len = %data.len(), "Getting format/ext");
 
-        let format = image::guess_format(&data).context(ImageSnafu {
+        let format = ImageFormat::guess_format(&data).context(ImageSnafu {
             action: ImageAction::GuessingFormat,
         })?;
         let ext = format
@@ -128,6 +124,7 @@ async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoResponse, 
     let ext = ext.to_str().context(ToStrSnafu {
         what: ConvertingWhatToString::PathBuffer(path.clone()),
     })?;
+    let ext = ImageFormat::from_extension(ext).context(UnknownMIMESnafu {path})?;
 
     debug!("Getting body");
 
@@ -137,9 +134,7 @@ async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoResponse, 
     })?;
 
     serve_read(
-        MimeGuess::from_ext(ext)
-            .first()
-            .context(UnknownMIMESnafu { path })?,
+        ext.to_mime_type(),
         file,
         IOAction::ReadingFile(short_path.into()),
     )

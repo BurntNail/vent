@@ -15,7 +15,7 @@ use axum::{
 };
 use axum_login::permission_required;
 use http::{HeaderValue, Response};
-use new_mime_guess::{from_path, Mime};
+use new_mime_guess::{from_path};
 use serde_json::{from_str, Value};
 use snafu::{OptionExt, ResultExt};
 use std::{fmt::Debug, path::PathBuf};
@@ -37,11 +37,11 @@ pub async fn serve_static_file(
         .first()
         .context(UnknownMIMESnafu { path: path.clone() })?;
 
-    serve_read(mime, file, IOAction::ReadingFile(path.clone().into())).await
+    serve_read(mime.essence_str(), file, IOAction::ReadingFile(path.clone().into())).await
 }
 
 pub async fn serve_read(
-    mime: Mime,
+    mime: &str,
     mut reader: impl AsyncRead + Unpin,
     io_action_for_errors: IOAction,
 ) -> Result<impl IntoResponse, VentError> {
@@ -66,7 +66,7 @@ pub async fn serve_read(
     let rsp = Response::builder()
         .header(
             header::CONTENT_TYPE,
-            HeaderValue::try_from(mime.essence_str()).context(HeadersSnafu {
+            HeaderValue::try_from(mime).context(HeadersSnafu {
                 which_header: CommonHeaders::ContentType,
             })?,
         )

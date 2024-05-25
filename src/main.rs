@@ -14,6 +14,7 @@ mod error;
 mod liquid_utils;
 mod routes;
 mod state;
+mod image_format;
 
 pub use http;
 

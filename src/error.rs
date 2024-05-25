@@ -1,11 +1,10 @@
-use crate::auth::{backend::VentAuthBackend, cloudflare_turnstile::CommonHeaders};
+use crate::{auth::{backend::VentAuthBackend, cloudflare_turnstile::CommonHeaders}, image_format::ImageFormat};
 use axum::{
     http::StatusCode,
     response::{Html, IntoResponse},
 };
 use chrono::NaiveDateTime;
 use http::Uri;
-use image::ImageFormat;
 use snafu::Snafu;
 use std::{
     ffi::OsString,
@@ -313,9 +312,8 @@ pub enum VentError {
     Multipart {
         source: axum::extract::multipart::MultipartError,
     },
-    #[snafu(display("Invalid Image: {source:?}"))]
+    #[snafu(display("Invalid Image"))]
     Image {
-        source: image::error::ImageError,
         action: ImageAction,
     },
     #[snafu(display("Missing Image Extension: {extension:?}"))]

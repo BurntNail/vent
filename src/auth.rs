@@ -8,7 +8,7 @@ pub mod pg_session;
 
 use crate::{auth::backend::Auth, error::VentError};
 use axum_login::AuthzBackend;
-use change_case::snake_case;
+use heck::AsSnakeCase;
 use itertools::Itertools;
 use liquid::{model::Value, Object};
 use serde::{Deserialize, Serialize};
@@ -70,7 +70,10 @@ impl PermissionsTarget {
 }
 
 pub async fn get_auth_object(auth: Auth) -> Result<Object, VentError> {
-    let iter = PermissionsTarget::iter().map(|x| (x, snake_case(x.into()).parse().unwrap()));
+    let iter = PermissionsTarget::iter().map(|x| {
+        let pre_snake_case: &'static str = x.into();
+        (x, AsSnakeCase(pre_snake_case).to_string().parse().expect("unable to convert string to kstring"))
+    });
 
     match &auth.user {
         Some(x) => {
