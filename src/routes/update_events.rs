@@ -201,6 +201,7 @@ WHERE p.permissions != 'participant' AND p.form != 'Gone'
         r#"
 SELECT id, first_name, surname, username, form, hashed_password, permissions as "permissions: _", was_first_entry
 FROM people p
+WHERE p.form != 'Gone'
 "#
     )
     .fetch_all(&mut *state.get_connection().await?)
