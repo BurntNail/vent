@@ -115,6 +115,7 @@ get_x!(get_256, "public/256x256.png");
 get_x!(get_people_csv_example, "public/people_example.csv");
 get_x!(get_events_csv_example, "public/events_example.csv");
 get_x!(get_robots_txt, "public/robots.txt");
+get_x!(get_buttons, "public/purple.css");
 
 pub fn router() -> Router<VentState> {
     Router::new()
@@ -133,4 +134,5 @@ pub fn router() -> Router<VentState> {
         .route("/people_example.csv", get(get_people_csv_example))
         .route("/events_example.csv", get(get_events_csv_example))
         .route("/robots.txt", get(get_robots_txt))
+        .route("/purple.css", get(get_buttons))
 }
