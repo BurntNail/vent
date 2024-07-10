@@ -3,7 +3,7 @@ use crate::{
         backend::{Auth, VentAuthBackend},
         get_auth_object, PermissionsRole, PermissionsTarget,
     },
-    error::{SqlxAction, SqlxSnafu, VentError},
+    error::{SqlxAction, SqlxSnafu, VentError, DatabaseIDMethod},
     liquid_utils::{compile_with_newtitle, CustomFormat},
     routes::{rewards::Reward, FormPerson},
     state::{db_objects::DbPerson, VentState},
@@ -25,7 +25,7 @@ async fn get_edit_person(
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
     #[derive(Serialize)]
-    pub struct SmolPerson {
+    struct SmolPerson {
         pub id: i32,
         pub permissions: PermissionsRole,
         pub first_name: String,
@@ -48,6 +48,7 @@ FROM people WHERE id = $1
     )
         .fetch_one(&mut *state.get_connection().await?)
         .await.context(SqlxSnafu { action: SqlxAction::FindingPerson(id.into()) })?;
+
     let person = SmolPerson {
         id: person.id,
         permissions: person.permissions,
@@ -89,13 +90,19 @@ ON pe.event_id = e.id AND pe.prefect_id = $1
     })
     .collect::<Vec<_>>();
 
+    #[derive(Serialize)]
+    struct Photo {
+        event_name: String,
+        path: String,
+    }
+
     debug!("Getting events participated");
 
-    let events_participated = sqlx::query!(
+    let events_participated_records = sqlx::query!(
         r#"
-SELECT date, event_name, is_verified, id FROM events e
+SELECT date, event_name, id FROM events e
 INNER JOIN participant_events pe
-ON pe.event_id = e.id AND pe.participant_id = $1"#,
+ON pe.event_id = e.id AND pe.participant_id = $1 AND pe.is_verified"#,
         person.id
     )
     .fetch_all(&mut *state.get_connection().await?)
@@ -104,23 +111,39 @@ ON pe.event_id = e.id AND pe.participant_id = $1"#,
         action: SqlxAction::FindingEventsOnPeople {
             person: person.id.into(),
         },
-    })?
-    .into_iter()
-    .filter(|r| r.is_verified) //TODO: work out way to get this into the SQL query
-    .map(|r| Event {
-        name: r.event_name,
-        date: r.date.to_env_string(&state.settings.niche.date_time_format),
-        id: r.id,
-    })
-    .collect::<Vec<_>>();
+    })?;
 
+    let mut events_participated = vec![];
+    let mut photos = vec![];
+
+    for record in events_participated_records {
+        let name = record.event_name;
+        let date = record.date.to_env_string(&state.settings.niche.date_time_format);
+        let id = record.id;
+
+        for rec in sqlx::query!("SELECT path FROM photos WHERE event_id = $1", id).fetch_all(&mut *state.get_connection().await?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingPhotos(DatabaseIDMethod::Id(id))
+        })? {
+            photos.push(Photo {
+                path: rec.path,
+                event_name: name.clone()
+            });
+        }
+
+        events_participated.push(Event {
+            name, date, id
+        });
+    }
+    
     let rewards = sqlx::query_as!(Reward, "select name, first_entry_pts, second_entry_pts, id FROM rewards_received rr inner join rewards r on r.id = rr.reward_id and rr.person_id = $1", person.id).fetch_all(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::FindingPerson(person.id.into()) })?;
 
     debug!("Compiling");
 
     let aa = get_auth_object(auth).await?;
 
-    compile_with_newtitle("www/edit_person.liquid", liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "rewards": rewards,  "auth": aa }), &state.settings.brand.instance_name, Some(format!("Edit {} {}", person.first_name, person.surname))).await
+    compile_with_newtitle("www/edit_person.liquid", liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "rewards": rewards,  "auth": aa, "imgs": photos, "n_imgs": photos.len() }), &state.settings.brand.instance_name, Some(format!("Edit {} {}", person.first_name, person.surname))).await
 }
 
 #[axum::debug_handler]

@@ -14,7 +14,6 @@ axum = { version = "0.7", features = [
 ] }
 axum-extra = { version = "0.9", features = ["form"] }
 chrono = { version = "0.4", features = ["rkyv", "serde", "clock"] }
-chrono-tz = "0.9"
 icalendar = { version = "0.16", features = ["chrono-tz"] }
 dotenvy = "0.15"
 liquid = "0.26"
@@ -26,16 +25,15 @@ sqlx = { version = "0.7", features = [
   "chrono",
   "json",
 ] }
-tokio = { version = "1.37", features = ["full"] }
+tokio = { version = "1.37", features = ["rt", "rt-multi-thread", "time", "macros", "sync", "signal"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 walkdir = "2.5"
-image = "0.25"
 rand = "0.8"
 async_zip = { version = "0.0.17", features = ["tokio", "tokio-fs", "deflate"] }
 csv-async = { version = "1.3", features = ["tokio"] }
 tower-http = { version = "0.5", features = ["trace"] }
-rust_xlsxwriter = { version = "0.64", features = ["chrono"] }
+rust_xlsxwriter = { version = "0.65", features = ["chrono"] }
 axum-login = "0.15"
 bcrypt = "0.15"
 once_cell = "1.19"
@@ -43,7 +41,7 @@ new_mime_guess = { version = "4.0", default-features = false }
 reqwest = { version = "0.12", features = ["json"] }
 async-trait = "0.1"
 http = "1.1"
-itertools = "0.12"
+itertools = "0.13"
 lettre = { version = "0.11", features = [
   "tokio1",
   "tokio1-rustls-tls",
@@ -57,13 +55,12 @@ serde_json = "1.0"
 tower = { version = "0.4", features = ["limit"] }
 tokio-util = { version = "0.7", features = ["io"] }
 config = "0.14"
-url = { version = "2.5", features = ["serde"] }
 snafu = "0.8"
 strum = { version = "0.26", features = ["derive"] }
-change-case = "0.2"
 time = "0.3"
 tower-sessions = { version = "0.12" }
 hyper-util = "0.1"
 hyper = "1.3"
 http-body = "1.0"
 http-body-util = "0.1"
+heck = "0.5.0"

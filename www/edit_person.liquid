@@ -277,4 +277,59 @@
 
 <br>
 
+<div class="card">
+  <div class="card-body">
+    <h2 class="card-title">Possible event photos</h2>
+
+    {% if auth.permissions["see_photos"] %}
+      {% if n_imgs == 0 %}
+        <p>No Images yet</p>
+      {% else %}
+        <div id="imagesCarousel" class="carousel slide carousel-fade">
+          <div class="carousel-inner">
+            {% for img in imgs %}
+              {% if forloop.first %}
+                {% assign class = "carousel-item active" %}
+              {% else %}
+                {% assign class = "carousel-item" %}
+              {% endif %}
+              <div class="{{class}}">
+                <img
+                        src="/{{img.path}}"
+                        class="d-block w-100 h-100"
+                        alt="Photo of people playing sports">
+              </div>
+            {% endfor %}
+          </div>
+
+          {% if n_imgs > 1 %}
+            <button
+                    class="carousel-control-prev"
+                    type="button"
+                    data-bs-target="#imagesCarousel"
+                    data-bs-slide="prev">
+              <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Previous</span>
+            </button>
+            <button
+                    class="carousel-control-next"
+                    type="button"
+                    data-bs-target="#imagesCarousel"
+                    data-bs-slide="next">
+              <span class="carousel-control-next-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Next</span>
+            </button>
+          {% endif %}
+        </div>
+
+        <br>
+      {% endif %}
+  </div>
+</div>
+{% else %}
+<p class="warning">You must log in to view images.</p>
+{% endif %}
+
+<br>
+
 {% include "partials/footer.liquid" %}

@@ -3,7 +3,6 @@ use dotenvy::var;
 use serde::Deserialize;
 use std::path::PathBuf;
 use tokio::task::spawn_blocking;
-use url::Url;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct BrandSettings {
@@ -14,7 +13,7 @@ pub struct BrandSettings {
 #[derive(Debug, Deserialize, Clone)]
 pub struct NicheSettings {
     pub date_time_format: String,
-    pub tech_support: Url,
+    pub tech_support: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
