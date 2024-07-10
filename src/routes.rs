@@ -10,7 +10,8 @@ pub mod import_export;
 pub mod index;
 pub mod public;
 pub mod rewards;
-pub mod show_all;
+pub mod show_people;
+pub mod show_events;
 pub mod spreadsheets;
 pub mod update_events;
 

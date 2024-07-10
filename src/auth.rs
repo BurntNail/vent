@@ -36,6 +36,7 @@ impl PermissionsRole {
 pub enum PermissionsTarget {
     DevAccess,
     ImportCSV,
+    ExportCSV,
     RunMigrations,
     EditPeople,
     AddRewards,
@@ -47,6 +48,7 @@ pub enum PermissionsTarget {
     AddRmSelfToEvent,
     SeePhotos,
     AddPhotos,
+    SeePeople
 }
 
 impl PermissionsTarget {
@@ -54,6 +56,7 @@ impl PermissionsTarget {
         match self {
             PermissionsTarget::DevAccess => role >= PermissionsRole::Dev,
             PermissionsTarget::ImportCSV => role >= PermissionsRole::Admin,
+            PermissionsTarget::ExportCSV => role >= PermissionsRole::Admin,
             PermissionsTarget::RunMigrations => role >= PermissionsRole::Admin,
             PermissionsTarget::EditPeople => role >= PermissionsRole::Admin,
             PermissionsTarget::AddRewards => role >= PermissionsRole::Admin,
@@ -63,8 +66,9 @@ impl PermissionsTarget {
             PermissionsTarget::EditParticipantsOnEvents => role >= PermissionsRole::Prefect,
             PermissionsTarget::VerifyEvents => role >= PermissionsRole::Prefect,
             PermissionsTarget::AddRmSelfToEvent => role >= PermissionsRole::Participant,
-            PermissionsTarget::SeePhotos => role >= PermissionsRole::Participant,
-            PermissionsTarget::AddPhotos => role >= PermissionsRole::Participant,
+            PermissionsTarget::SeePhotos => role >= PermissionsRole::Prefect,
+            PermissionsTarget::AddPhotos => role >= PermissionsRole::Prefect,
+            PermissionsTarget::SeePeople => role >= PermissionsRole::Prefect
         }
     }
 }
