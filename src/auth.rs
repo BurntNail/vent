@@ -66,7 +66,7 @@ impl PermissionsTarget {
             PermissionsTarget::EditParticipantsOnEvents => role >= PermissionsRole::Prefect,
             PermissionsTarget::VerifyEvents => role >= PermissionsRole::Prefect,
             PermissionsTarget::AddRmSelfToEvent => role >= PermissionsRole::Participant,
-            PermissionsTarget::SeePhotos => role >= PermissionsRole::Prefect,
+            PermissionsTarget::SeePhotos => role >= PermissionsRole::Participant,
             PermissionsTarget::AddPhotos => role >= PermissionsRole::Prefect,
             PermissionsTarget::SeePeople => role >= PermissionsRole::Prefect
         }
