@@ -52,47 +52,10 @@ impl<'a> From<(SmolDbEvent, &'a str)> for SmolFormattedDbEvent {
 }
 
 #[axum::debug_handler]
-async fn get_show_all(
+async fn get_(
     auth: Auth,
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
-    #[derive(Serialize)]
-    pub struct SmolPerson {
-        pub first_name: String,
-        pub surname: String,
-        pub form: String,
-        pub id: i32,
-        pub pts: usize,
-    }
-
-    debug!("Gettinng people");
-
-    let mut people = sqlx::query!(
-        r#"
-SELECT first_name, surname, form, id
-FROM people p
-        "#
-    )
-    .fetch_all(&mut *state.get_connection().await?)
-    .await
-    .context(SqlxSnafu {
-        action: SqlxAction::FindingPeople,
-    })?;
-    people.sort_by_key(|x| x.surname.clone());
-    people.sort_by_key(|x| x.form.clone());
-
-    let mut new_people = vec![];
-    for person in people {
-        let pts = sqlx::query!("SELECT COUNT(participant_id) FROM participant_events WHERE participant_id = $1 AND is_verified = true", person.id).fetch_one(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(person.id.into())) })?.count.unwrap_or(0) as usize;
-        new_people.push(SmolPerson {
-            first_name: person.first_name,
-            surname: person.surname,
-            form: person.form,
-            id: person.id,
-            pts,
-        });
-    }
-
     trace!("Getting events");
 
     let events: Vec<SmolFormattedDbEvent> = sqlx::query_as!(
@@ -119,12 +82,12 @@ ORDER BY e.date DESC
     let aa = get_auth_object(auth).await?;
 
     compile_with_newtitle(
-        "www/show_all.liquid",
-        liquid::object!({ "people": new_people, "events": events, "auth": aa }),
+        "www/show_events.liquid",
+        liquid::object!({ "events": events, "auth": aa }),
         &state.settings.brand.instance_name,
-        Some("All People/Events".into()),
+        Some("All Events".into()),
     )
-    .await
+        .await
 }
 
 #[derive(Deserialize)]
@@ -151,14 +114,14 @@ WHERE id=$1
             "#,
             person_id
         )
-        .execute(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::RemovingPerson(person_id.into()),
-        })?;
+            .execute(&mut *state.get_connection().await?)
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::RemovingPerson(person_id.into()),
+            })?;
     }
 
-    Ok(Redirect::to("/show_all"))
+    Ok(Redirect::to("/show_events"))
 }
 
 #[axum::debug_handler]
@@ -175,29 +138,23 @@ async fn post_remove_event(
             "#,
             event_id
         )
-        .execute(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::RemovingEvent(event_id),
-        })?;
+            .execute(&mut *state.get_connection().await?)
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::RemovingEvent(event_id),
+            })?;
     }
 
-    Ok(Redirect::to("/show_all"))
+    Ok(Redirect::to("/show_events"))
 }
 
 pub fn router() -> Router<VentState> {
     Router::new()
-        .route("/remove_person", post(post_remove_person))
-        .route_layer(permission_required!(
-            VentAuthBackend,
-            login_url = "/login",
-            PermissionsTarget::EditPeople
-        ))
         .route("/remove_event", post(post_remove_event))
         .route_layer(permission_required!(
             VentAuthBackend,
             login_url = "/login",
             PermissionsTarget::EditEvents
         ))
-        .route("/show_all", get(get_show_all))
+        .route("/show_events", get(get_))
 }

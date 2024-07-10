@@ -1,0 +1,51 @@
+{% include "partials/header.liquid" %}
+
+
+    <h2 id="AllEvents">Events</h2>
+    <table class="table">
+        <thead>
+        <tr>
+            <th scope="col">
+                Name
+            </th>
+            <th scope="col">
+                Date
+            </th>
+            {% if auth.permissions["edit_events"] %}
+                <th scope="col">
+                    Remove
+                </th>
+            {% endif %}
+            <th scope="col">
+                View/Edit
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for event in events %}
+            <tr>
+                <td>{{ event.event_name }}
+                </td>
+                <td>
+                    {{ event.date }}
+                </td>
+                {% if auth.permissions["edit_events"] %}
+                    <td>
+                        <form method="POST" action="/remove_event">
+                            <input
+                                    type="hidden"
+                                    name="event_id"
+                                    value="{{ event.id }}">
+                            <button type="submit" class="btn btn-danger">Remove Event.</button>
+                        </form>
+                    </td>
+                {% endif %}
+                <td>
+                    <a href="/update_event/{{ event.id }}" class="btn btn-secondary">View{% if auth.permissions["edit_events"] %}/Edit{% endif %} Event.</a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+{% include "partials/footer.liquid" %}

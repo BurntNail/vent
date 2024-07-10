@@ -79,12 +79,13 @@
                 {% endunless %}>
       </div>
 
+      {% if auth.permissions["edit_events"] %}
       <button
               type="submit"
-              class="btn btn-primary"
-      {% unless auth.permissions["edit_events"] %}
-        disabled
-              {% endunless %}>Update Event.</button>
+              class="btn btn-primary">
+        Update Event.</button>
+      {% endif %}
+
     </form>
 
     {% if auth.permissions["edit_events"] %}

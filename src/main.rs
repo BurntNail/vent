@@ -25,7 +25,7 @@ use crate::{
     routes::{
         add_event, add_people_to_event, add_person, calendar::get_calendar_feed, edit_person,
         edit_self, eoy_migration, images, import_export, index::get_index, public, rewards,
-        show_all, spreadsheets::get_spreadsheet, update_events,
+        show_people, show_events, spreadsheets::get_spreadsheet, update_events,
     },
     state::VentState,
 };
@@ -139,7 +139,8 @@ async fn main() {
         .merge(edit_person::router())
         .merge(eoy_migration::router())
         .merge(images::router())
-        .merge(show_all::router())
+        .merge(show_people::router())
+        .merge(show_events::router())
         .merge(update_events::router())
         .fallback(not_found_fallback)
         .layer(TraceLayer::new_for_http())

@@ -1,0 +1,58 @@
+{% include "partials/header.liquid" %}
+
+
+{% if auth.is_logged_in %}
+    <h2>People</h2>
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th scope="col">
+                Name
+            </th>
+            <th scope="col">
+                Pts
+            </th>
+            <th scope="col">
+                Form
+            </th>
+            <th scope="col">
+                View/Edit
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        {% assign prev_form = "" %}
+        {% for person in people %}
+            {% if prev_form != person.form %}
+                {% assign prev_form = person.form %}
+                <tr>
+                    <td colspan="4" id="{{ person.form }}">
+                        <h3>
+                            <a class="link-secondary" href="/show_people#{{ person.form }}">{{ person.form }}</a>
+                        </h3>
+                    </td>
+                </tr>
+            {% endif %}
+            <tr>
+                {% assign sn_array = person.surname | split: "" %}
+                <td>{{ person.first_name }} {{ sn_array[1] }}
+                </td>
+                <td>
+                    {{ person.pts }}
+                </td>
+                <td>
+                    {{ person.form }}
+                </td>
+                <td>
+                    <a href="/edit_person/{{ person.id }}" class="btn btn-secondary">View{% if auth.permissions["edit_people"] %}/Edit{% endif %} Person.</a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <br><br>
+
+{% endif %}
+
+{% include "partials/footer.liquid" %}

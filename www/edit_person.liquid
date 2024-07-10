@@ -100,85 +100,86 @@
                 </div>
             </div>
 
+            {% if can_edit %}
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input
+                                class="form-check-input"
+                                type="radio"
+                                name="permissions"
+                                id="participant"
+                                value="Participant"
+                                {% if person.permissions == "Participant" %}
+                                    checked
+                                {% endif %}
+                        {% unless can_edit %}
+                            disabled
+                                {% endunless %}>
+                        <label class="form-check-label" for="participant">
+                            Participant
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input
+                                class="form-check-input"
+                                type="radio"
+                                name="permissions"
+                                id="prefect"
+                                value="Prefect"
+                                {% if person.permissions == "Prefect" %}
+                                    checked
+                                {% endif %}
+                        {% unless can_edit %}
+                            disabled
+                                {% endunless %}>
+                        <label class="form-check-label" for="prefect">
+                            Prefect
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input
+                                class="form-check-input"
+                                type="radio"
+                                name="permissions"
+                                id="admin"
+                                value="Admin"
+                                {% if person.permissions == "Admin" %}
+                                    checked
+                                {% endif %}
+                        {% unless can_edit %}
+                            disabled
+                                {% endunless %}>
+                        <label class="form-check-label" for="admin">
+                            Admin
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input
+                                class="form-check-input"
+                                type="radio"
+                                name="permissions"
+                                id="dev"
+                                value="Dev"
+                                {% if person.permissions == "Dev" %}
+                                    checked
+                                {% endif %}
+                        {% unless can_edit %}
+                            disabled
+                                {% endunless %}>
+                        <label class="form-check-label" for="dev">
+                            Developer
+                        </label>
+                    </div>
+                </div>
 
-            <div class="mb-3">
-                <div class="form-check">
-                    <input
-                            class="form-check-input"
-                            type="radio"
-                            name="permissions"
-                            id="participant"
-                            value="Participant"
-                            {% if person.permissions == "Participant" %}
-                                checked
-                            {% endif %}
-                    {% unless can_edit %}
-                        disabled
-                            {% endunless %}>
-                    <label class="form-check-label" for="participant">
-                        Participant
-                    </label>
-                </div>
-                <div class="form-check">
-                    <input
-                            class="form-check-input"
-                            type="radio"
-                            name="permissions"
-                            id="prefect"
-                            value="Prefect"
-                            {% if person.permissions == "Prefect" %}
-                                checked
-                            {% endif %}
-                    {% unless can_edit %}
-                        disabled
-                            {% endunless %}>
-                    <label class="form-check-label" for="prefect">
-                        Prefect
-                    </label>
-                </div>
-                <div class="form-check">
-                    <input
-                            class="form-check-input"
-                            type="radio"
-                            name="permissions"
-                            id="admin"
-                            value="Admin"
-                            {% if person.permissions == "Admin" %}
-                                checked
-                            {% endif %}
-                    {% unless can_edit %}
-                        disabled
-                            {% endunless %}>
-                    <label class="form-check-label" for="admin">
-                        Admin
-                    </label>
-                </div>
-                <div class="form-check">
-                    <input
-                            class="form-check-input"
-                            type="radio"
-                            name="permissions"
-                            id="dev"
-                            value="Dev"
-                            {% if person.permissions == "Dev" %}
-                                checked
-                            {% endif %}
-                    {% unless can_edit %}
-                        disabled
-                            {% endunless %}>
-                    <label class="form-check-label" for="dev">
-                        Developer
-                    </label>
-                </div>
-            </div>
-
-            <button
-                    type="submit"
-                    class="btn btn-primary"
-            {% unless can_edit %}
-                disabled
-                    {% endunless %}>Edit person.
-            </button>
+                <button
+                        type="submit"
+                        class="btn btn-primary"
+                {% unless can_edit %}
+                    disabled
+                        {% endunless %}>Edit person.
+                </button>
+            {% endif %}
         </form>
     </div>
 </div>

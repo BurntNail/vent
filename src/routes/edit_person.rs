@@ -200,17 +200,27 @@ async fn post_reset_password(
 
     debug!("Sending password reset");
     state.reset_password(id).await?;
-    Ok(Redirect::to("/show_all"))
+    Ok(Redirect::to("/"))
 }
 
 pub fn router() -> Router<VentState> {
     Router::new()
         .route("/edit_person/:id", post(post_edit_person))
+        .route_layer(permission_required!(
+            VentAuthBackend,
+            login_url = "/login",
+            PermissionsTarget::SeePeople
+        ))
         .route("/reset_password", post(post_reset_password))
         .route_layer(permission_required!(
             VentAuthBackend,
-            login_url = "/url",
+            login_url = "/login",
             PermissionsTarget::EditPeople
         ))
         .route("/edit_person/:id", get(get_edit_person))
+        .route_layer(permission_required!(
+            VentAuthBackend,
+            login_url = "/login",
+            PermissionsTarget::SeePeople
+        ))
 }
