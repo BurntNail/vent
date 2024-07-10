@@ -218,4 +218,9 @@ pub fn router() -> Router<VentState> {
             PermissionsTarget::EditPeople
         ))
         .route("/edit_person/:id", get(get_edit_person))
+        .route_layer(permission_required!(
+            VentAuthBackend,
+            login_url = "/login",
+            PermissionsTarget::SeePeople
+        ))
 }
