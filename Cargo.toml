@@ -33,7 +33,7 @@ rand = "0.8"
 async_zip = { version = "0.0.17", features = ["tokio", "tokio-fs", "deflate"] }
 csv-async = { version = "1.3", features = ["tokio"] }
 tower-http = { version = "0.5", features = ["trace"] }
-rust_xlsxwriter = { version = "0.65", features = ["chrono"] }
+rust_xlsxwriter = { version = "0.70", features = ["chrono"] }
 axum-login = "0.15"
 bcrypt = "0.15"
 once_cell = "1.19"
