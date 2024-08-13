@@ -154,6 +154,15 @@ WHERE p.form != 'Gone'
         has_added_by: bool,
     }
 
+    let staff_member_username = sqlx::query!(
+        r#"
+SELECT username FROM people WHERE id = $1
+        "#,
+        staff_member_id
+    )
+        .fetch_one(&mut *state.get_connection().await?)
+        .await.context(SqlxSnafu { action: SqlxAction::FindingPerson(staff_member_id.unwrap().into()) })?.username;
+
     debug!("Compiling");
     let aa = get_auth_object(auth).await?;
 
@@ -163,7 +172,7 @@ WHERE p.form != 'Gone'
             liquid::object!({
                 "id": bonus_point_id,
                 "date": naive_date.date().format("%Y-%m-%d").to_string(),
-                "staff_member": staff_member_id,
+                "staff_member": staff_member_username,
                 "quantity": num_points,
                 "reason": reason,
             }),
