@@ -162,7 +162,7 @@ WHERE p.form != 'Gone'
         liquid::object!({"bonus_point":
             liquid::object!({
                 "id": bonus_point_id,
-                "date": naive_date.format(&state.settings.niche.date_time_format).to_string(),
+                "date": naive_date.date().format("%Y-%m-%d").to_string(),
                 "staff_member": staff_member_id,
                 "quantity": num_points,
                 "reason": reason,

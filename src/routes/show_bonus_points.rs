@@ -48,7 +48,7 @@ async fn get_show_bonus_points(
             bonus_point_id: row.id,
             reason: row.reason,
             num_points: row.num_points,
-            date: row.point_date.format(&state.settings.niche.date_time_format).to_string(),
+            date: row.point_date.date().format("%d/%m/%Y").to_string(),
             staff_member_username: row.username
         }
     }).collect();
