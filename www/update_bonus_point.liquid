@@ -5,7 +5,7 @@
 <br/>
 <div class="card">
     <div class="card-body">
-        <form method="POST">
+        <form method="POST" action="/update_bonus_point/{{ bonus_point.id }}">
             <div class="input-group mb-3">
                 <label class="input-group-text" for="staff_member">Staff Member:
                 </label>
@@ -17,10 +17,11 @@
                         value="{{ bonus_point.staff_member }}"
                         required
                         disabled/>
+                <!-- This input must be of value 0 to work around a common type for inserting and updating -->
                 <input
                         type="hidden"
                         name="user_id"
-                        value="{{ bonus_point.staff_member }}"/>
+                        value="0"/>
             </div>
             <div class="input-group mb-3">
                 <label class="input-group-text" for="date">Date:
