@@ -59,14 +59,36 @@ pub async fn get_rewards(
     let mut to_be_awarded = vec![];
 
     for record in sqlx::query!(r#"
-    SELECT first_name, surname, form, id, was_first_entry, (select count(*) from participant_events pe where pe.participant_id = id and pe.is_verified = true) as no_events
+    SELECT first_name, surname, form, id, was_first_entry,
+           (SELECT COUNT(*) FROM participant_events pe WHERE pe.participant_id = id AND pe.is_verified = true) AS no_events,
+           (SELECT COALESCE(SUM(bonus_points.num_points), 0)
+            FROM participant_bonus_points
+            INNER JOIN bonus_points ON participant_bonus_points.bonus_point_id = bonus_points.id
+            WHERE participant_bonus_points.participant_id = id) AS total_bonus_points
     FROM people
-    "#).fetch_all(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::FindingPeople })? {
-        let already_got_award_ids = sqlx::query!("SELECT reward_id FROM rewards_received WHERE person_id = $1", record.id).fetch_all(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(record.id.into())) })?.into_iter().map(|x| x.reward_id).collect_vec();
+    "#).fetch_all(&mut *state.get_connection().await?)
+        .await
+        .context(SqlxSnafu { action: SqlxAction::FindingPeople })?
+    {
+        // Fetch the already received awards for this person
+        let already_got_award_ids = sqlx::query!(
+        "SELECT reward_id FROM rewards_received WHERE person_id = $1",
+        record.id
+    ).fetch_all(&mut *state.get_connection().await?)
+            .await
+            .context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(record.id.into())) })?
+            .into_iter()
+            .map(|x| x.reward_id)
+            .collect_vec();
 
+        // Check if they already have all general awards
         if already_got_award_ids.len() == general_awards.len() {
             continue;
         }
+
+        // Calculate the total number of events and bonus points
+        let no_events = record.no_events.unwrap_or_default() as i32;
+        let total_points = no_events + record.total_bonus_points.unwrap_or_default() as i32;
 
         let mut to_be_received = vec![];
         for award in &general_awards {
@@ -76,22 +98,25 @@ pub async fn get_rewards(
                 award.second_entry_pts
             };
 
-            if !already_got_award_ids.contains(&award.id) && (record.no_events.unwrap_or_default() as i32) >= threshold {
+            // Check if the person qualifies for this award
+            if !already_got_award_ids.contains(&award.id) && total_points >= threshold {
                 to_be_received.push(award.clone());
             }
         }
 
+        // If no new awards, skip
         if to_be_received.is_empty() {
             continue;
         }
 
+        // Collect information for the person to be awarded
         to_be_awarded.push(Person {
             first_name: record.first_name,
             surname: record.surname,
             form: record.form,
             id: record.id,
             n_awards: to_be_received.len(),
-            awards: to_be_received
+            awards: to_be_received,
         });
     }
 
