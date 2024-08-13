@@ -1,30 +1,31 @@
 {% include "partials/header.liquid" %}
 
-<h1>Edit {{ auth.user.first_name }} {{ auth.user.surname }}
+<h1>{{ auth.user.first_name }} {{ auth.user.surname }}
 </h1>
 
 <div class="card">
     <div class="card-body">
+        <h2>Edit Profile</h2>
         <form action="/edit_user" method="POST">
             <div class="input-group mb-3">
                 <span class="input-group-text" id="first_name">First Name</span>
                 <input
                         type="text"
                         class="form-control"
-                        placeholder="First Name"
                         aria-label="First Name"
                         aria-describedby="first_name"
                         name="first_name"
+                        value="{{ auth.user.first_name }}"
                         required>
 
                 <span class="input-group-text" id="surname">Surname</span>
                 <input
                         type="text"
                         class="form-control"
-                        placeholder="Surname"
                         aria-label="Surname"
                         aria-describedby="surname"
                         name="surname"
+                        value="{{ auth.user.surname }}"
                         required>
 
             </div>
@@ -39,9 +40,122 @@
                         name="unhashed_password"
                         required>
             </div>
-
             <button type="submit" class="btn btn-primary">Edit!</button>
         </form>
+    </div>
+</div>
+<br/>
+<div class="row">
+    {% if person.is_prefect %}
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title">Events Supervised</h2>
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <td>Event</td>
+                            <td>Date</td>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for event in supervised %}
+                            <tr>
+                                <td>
+                                    <a href="/update_event/{{ event.id }}">{{ event.name }}</a>
+                                </td>
+                                <td>{{ event.date }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">Events Attended</h2>
+                <b>House Points: {{ pts }}</b>
+                <br>
+                <b>Events Attended: {{ event_pts }}</b>
+                <br>
+
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <td>Event</td>
+                        <td>Date</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for event in participated %}
+                        <tr>
+                            <td>
+                                <a href="/update_event/{{ event.id }}">{{ event.name }}</a>
+                            </td>
+                            <td>{{ event.date }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">Bonus Points</h2>
+                <b>House Points: {{ pts }}</b>
+                <br>
+                <b>Bonus Points: {{ bonus_pts }}</b>
+                <br>
+
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <td>Reason</td>
+                        <td>Points</td>
+                        <td>Awarded By</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for point in bonus_points %}
+                        <tr>
+                            <td>
+                            {% if auth.permissions["see_bonus_points"] %}
+                                <a href="/update_bonus_point/{{ point.bonus_point_id }}">
+                                    {% endif %}
+                                    {{ point.reason }}
+                                    {% if auth.permissions["see_bonus_points"] %}
+                                </a>
+                                {% endif %}
+                            </td>
+                            <td>{{ point.num_points }}</td>
+                            <td>{{ point.staff_username }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<br>
+
+<div class="card">
+    <div class="card-body">
+        <h2 class="card-title">Rewards Received</h2>
+
+        <ul class="list-group list-group-flush">
+            {% for reward in rewards %}
+                <li class="list-group-item">{{ reward.name }}</li>
+            {% endfor %}
+            {% if rewards.size == 0 %}
+                <li class="list-group-item">No rewards achieved</li>
+            {% endif %}
+        </ul>
     </div>
 </div>
 

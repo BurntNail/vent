@@ -48,7 +48,9 @@ pub enum PermissionsTarget {
     AddRmSelfToEvent,
     SeePhotos,
     AddPhotos,
-    SeePeople
+    SeePeople,
+    GiveBonusPoints,
+    SeeBonusPoints
 }
 
 impl PermissionsTarget {
@@ -68,7 +70,9 @@ impl PermissionsTarget {
             PermissionsTarget::AddRmSelfToEvent => role >= PermissionsRole::Participant,
             PermissionsTarget::SeePhotos => role >= PermissionsRole::Participant,
             PermissionsTarget::AddPhotos => role >= PermissionsRole::Prefect,
-            PermissionsTarget::SeePeople => role >= PermissionsRole::Prefect
+            PermissionsTarget::SeePeople => role >= PermissionsRole::Prefect,
+            PermissionsTarget::GiveBonusPoints => role >= PermissionsRole::Admin,
+            PermissionsTarget::SeeBonusPoints => role >= PermissionsRole::Participant
         }
     }
 }

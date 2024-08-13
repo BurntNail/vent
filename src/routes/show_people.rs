@@ -1,12 +1,7 @@
-use crate::{
-    auth::{
-        backend::{Auth, VentAuthBackend},
-        get_auth_object, PermissionsTarget,
-    },
-    error::{SqlxAction, SqlxSnafu, VentError},
-    liquid_utils::{compile_with_newtitle, CustomFormat},
-    state::VentState,
-};
+use crate::{auth::{
+    backend::{Auth, VentAuthBackend},
+    get_auth_object, PermissionsTarget,
+}, error::{SqlxAction, SqlxSnafu, VentError}, liquid_utils::{compile_with_newtitle, CustomFormat}, state::VentState};
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
@@ -41,17 +36,33 @@ SELECT first_name, surname, form, id
 FROM people p
         "#
     )
-    .fetch_all(&mut *state.get_connection().await?)
-    .await
-    .context(SqlxSnafu {
-        action: SqlxAction::FindingPeople,
-    })?;
+        .fetch_all(&mut *state.get_connection().await?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingPeople,
+        })?;
     people.sort_by_key(|x| x.surname.clone());
     people.sort_by_key(|x| x.form.clone());
 
     let mut new_people = vec![];
     for person in people {
-        let pts = sqlx::query!("SELECT COUNT(participant_id) FROM participant_events WHERE participant_id = $1 AND is_verified = true", person.id).fetch_one(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(person.id.into())) })?.count.unwrap_or(0) as usize;
+        let event_pts = sqlx::query!("SELECT COUNT(participant_id) FROM participant_events WHERE participant_id = $1 AND is_verified = true", person.id).fetch_one(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(person.id.into())) })?.count.unwrap_or(0) as usize;
+
+        #[derive(Serialize)]
+        struct BonusPointCount {
+            num_points: i32
+        }
+        let bonus_points_vec: Vec<BonusPointCount> = sqlx::query!("SELECT bonus_points.num_points FROM participant_bonus_points INNER JOIN bonus_points ON participant_bonus_points.bonus_point_id = bonus_points.id WHERE participant_id = $1;", person.id).fetch_all(&mut *state.get_connection().await?)
+            .await
+            .context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(person.id.into())) })?
+            .into_iter().map(|row| {
+            BonusPointCount {
+                num_points: row.num_points,
+            }
+        }).collect();
+        let bonus_pts = bonus_points_vec.iter().map(|bp| bp.num_points).sum::<i32>() as usize;
+        let pts = event_pts + bonus_pts;
+
         new_people.push(SmolPerson {
             first_name: person.first_name,
             surname: person.surname,
@@ -60,7 +71,6 @@ FROM people p
             pts,
         });
     }
-
     trace!("Compiling");
 
     let aa = get_auth_object(auth).await?;
@@ -71,7 +81,7 @@ FROM people p
         &state.settings.brand.instance_name,
         Some("All People".into()),
     )
-    .await
+        .await
 }
 
 #[derive(Deserialize)]
@@ -98,11 +108,11 @@ WHERE id=$1
             "#,
             person_id
         )
-        .execute(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::RemovingPerson(person_id.into()),
-        })?;
+            .execute(&mut *state.get_connection().await?)
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::RemovingPerson(person_id.into()),
+            })?;
     }
 
     Ok(Redirect::to("/show_people"))
@@ -122,11 +132,11 @@ async fn post_remove_event(
             "#,
             event_id
         )
-        .execute(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::RemovingEvent(event_id),
-        })?;
+            .execute(&mut *state.get_connection().await?)
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::RemovingEvent(event_id),
+            })?;
     }
 
     Ok(Redirect::to("/show_people"))

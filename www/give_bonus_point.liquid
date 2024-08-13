@@ -1,0 +1,56 @@
+{% include "partials/header.liquid" %}
+
+<h1>Give Bonus Points</h1>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <input type="hidden" name="user_id" value="{{ auth.user.id }}"/>
+            <div class="input-group mb-3">
+                <label class="input-group-text" for="staff_name">Staff member:</label>
+                <input
+                        type="text"
+                        name="staff_name"
+                        id="staff_name"
+                        class="form-control"
+                        required
+                        value="{{ auth.user.first_name }} {{ auth.user.surname }}"
+                        disabled
+                />
+            </div>
+            <div class="input-group mb-3">
+                <label class="input-group-text" for="reason">Reason:</label>
+                <input
+                        type="text"
+                        name="reason"
+                        id="reason"
+                        class="form-control"
+                        required
+                />
+            </div>
+            <div class="input-group mb-3">
+                <label class="input-group-text" for="quantity">Quantity:</label>
+                <input
+                        type="number"
+                        id="quantity"
+                        name="quantity"
+                        class="form-control"
+                        min="1"
+                        max="5"
+                        step="1"
+                        value="1"
+                        required
+                />
+            </div>
+            <button
+                    type="submit"
+                    class="btn btn-primary">
+                Next step.
+            </button>
+        </form>
+    </div>
+</div>
+
+<br>
+
+{% include "partials/footer.liquid" %}

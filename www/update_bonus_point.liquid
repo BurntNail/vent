@@ -1,0 +1,185 @@
+{% include "partials/header.liquid" %}
+
+<h1>Bonus Point</h1>
+
+<br/>
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="input-group mb-3">
+                <label class="input-group-text" for="staff_member">Staff Member:
+                </label>
+                <input
+                        type="text"
+                        name="staff_member"
+                        id="staff_member"
+                        class="form-control"
+                        value="{{ bonus_point.staff_member }}"
+                        required
+                        disabled/>
+                <input
+                        type="hidden"
+                        name="user_id"
+                        value="{{ bonus_point.staff_member }}"/>
+            </div>
+            <div class="input-group mb-3">
+                <label class="input-group-text" for="date">Date:
+                </label>
+                <input
+                        type="datetime-local"
+                        id="date"
+                        name="date"
+                        class="form-control"
+                        value="{{ bonus_point.date }}"
+                        required
+                        disabled/>
+            </div>
+            <div class="input-group mb-3">
+                <label class="input-group-text" for="quantity">Quantity:
+                </label>
+                <input
+                        type="number"
+                        id="quantity"
+                        name="quantity"
+                        class="form-control"
+                        min="1"
+                        max="5"
+                        step="1"
+                        value="{{ bonus_point.quantity }}"
+                {% unless auth.permissions["give_bonus_points"] %}
+                    disabled
+                        {% endunless %}>
+            </div>
+            <div class="input-group mb-3">
+                <label class="input-group-text" for="reason">Reason:
+                </label>
+                <input
+                        type="text"
+                        id="reason"
+                        name="reason"
+                        class="form-control"
+                        value="{{ bonus_point.reason }}"
+                {% unless auth.permissions["give_bonus_points"] %}
+                    disabled
+                        {% endunless %}>
+            </div>
+            {% if auth.permissions["give_bonus_points"] %}
+            <div class="d-flex gap-2">
+                <button
+                        type="submit"
+                        class="btn btn-primary">
+                    Update Bonus Point
+                </button>
+        </form>
+        <form method="POST" action="/delete_bonus_point/{{ bonus_point.id }}">
+            <button
+                    type="submit"
+                    class="btn btn-danger">
+                Remove Bonus Point
+            </button>
+        </form>
+    </div>
+
+    {% endif %}
+</div>
+</div>
+<br/>
+
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title">Potential</h3>
+                <form method="POST" action="/bonus_point/add_people">
+                    <div class="accordion" id="pot_part">
+                        {% for form in participants %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button
+                                            class="accordion-button collapsed"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#pot_part_{{ form.form }}"
+                                            aria-controls="pot_part_{{ form.form }}">
+                                        {{ form.form }}
+                                    </button>
+                                </h2>
+                                <div
+                                        class="accordion-collapse collapse"
+                                        data-bs-parent="pot_part"
+                                        id="pot_part_{{ form.form }}">
+                                    <div class="accordion-body">
+                                        {% for person in form.people %}
+                                            <div class="form-check">
+                                                <input
+                                                        type="checkbox"
+                                                        name="person_ids"
+                                                        id="{{ person.first_name }}_{{ person.surname }}_participant_checkbox"
+                                                        class="form-check-input"
+                                                        value="{{ person.id }}">
+                                                <label
+                                                        for=""
+                                                        class="form-check-label"
+                                                        for="{{ person.first_name }}_{{ person.surname }}_participant_checkbox">{{ person.first_name }} {{ person.surname }}</label>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <input
+                            type="hidden"
+                            name="bonus_point_id"
+                            value="{{ bonus_point.id }}">
+                    <button type="submit" class="btn btn-link">Add selected people.</button>
+
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title">Current</h3>
+                {% if existing_participants.size > 0 %}
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Remove</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+
+                        {% for form in existing_participants %}
+                            <tr>
+                                <th colspan="3" class="text-align: center">{{ form.form }}</th>
+                            </tr>
+                            {% for person in form.people %}
+                                <tr>
+                                <td>{{ person.first_name }} {{ person.surname }}</td>
+                                <td>
+                                    <form action="/bonus_point/remove_person" method="POST">
+                                        <input
+                                                type="hidden"
+                                                name="relation_id"
+                                                value="{{ person.relation_id }}">
+                                        <button type="submit" class="btn btn-danger">Remove</button>
+                                    </form>
+                                </td>
+                            {% endfor %}
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>No people yet</p>
+                    <br>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include "partials/footer.liquid" %}

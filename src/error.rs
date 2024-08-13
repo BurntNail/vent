@@ -233,6 +233,23 @@ pub enum SqlxAction {
     RemovingPhoto(i32),
     AddingPhotos,
 
+    AddingBonusPoint,
+    UpdatingBonusPoint(i32),
+    DeletingBonusPoint(i32),
+    FindingPotentialParticipantsForBonusPoint(i32),
+    FindingParticipantsForBonusPoint {
+        person: DatabaseIDMethod,
+        bonus_point_id: i32,
+    },
+    AddingParticipantToBonusPoint {
+        person: DatabaseIDMethod,
+        bonus_point_id: i32,
+    },
+    RemovingParticipantFromBonusPointByRI {
+        relation_id: i32,
+    },
+    GettingBonusPoints,
+
     DeletingOldSessions,
     RemovingSession(Id),
     AddingSession,

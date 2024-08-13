@@ -6,7 +6,6 @@
 <div class="card">
     <div class="card-body">
         <form method="POST">
-
             <div class="input-group mb-3">
                 <label class="input-group-text" for="first_name">First Name:
                 </label>
@@ -62,7 +61,6 @@
                     disabled
                         {% endunless %}>
             </div>
-
             <div class="mb-3">
                 <div class="form-check">
                     <input
@@ -233,9 +231,9 @@
         <div class="card">
             <div class="card-body">
                 <h2 class="card-title">Events Attended</h2>
-
-                <b>House Points: {{ participated | size }}</b>
-
+                <b>House Points: {{ pts }}</b>
+                <br>
+                <b>Events Attended: {{ event_pts }}</b>
                 <br>
 
                 <table class="table">
@@ -259,18 +257,58 @@
             </div>
         </div>
     </div>
-</div>
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">Bonus Points</h2>
+                <b>House Points: {{ pts }}</b>
+                <br>
+                <b>Bonus Points: {{ bonus_pts }}</b>
+                <br>
 
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <td>Reason</td>
+                        <td>Points</td>
+                        <td>Awarded By</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for point in bonus_points %}
+                        <tr>
+                            <td>
+                            {% if auth.permissions["see_bonus_points"] %}
+                                <a href="/update_bonus_point/{{ point.bonus_point_id }}">
+                                    {% endif %}
+                                    {{ point.reason }}
+                                    {% if auth.permissions["see_bonus_points"] %}
+                                </a>
+                                {% endif %}
+                            </td>
+                            <td>{{ point.num_points }}</td>
+                            <td>{{ point.staff_username }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 <br>
 
 <div class="card">
     <div class="card-body">
-        <h2 class="card-title">Awards Received</h2>
+        <h2 class="card-title">Rewards Received</h2>
 
         <ul class="list-group list-group-flush">
             {% for reward in rewards %}
                 <li class="list-group-item">{{ reward.name }}</li>
             {% endfor %}
+            {% if rewards.size == 0 %}
+                <li class="list-group-item">No rewards achieved</li>
+            {% endif %}
         </ul>
     </div>
 </div>
@@ -278,56 +316,56 @@
 <br>
 
 <div class="card">
-  <div class="card-body">
-    <h2 class="card-title">Possible event photos</h2>
+    <div class="card-body">
+        <h2 class="card-title">Possible event photos</h2>
 
-    {% if auth.permissions["see_photos"] %}
-      {% if n_imgs == 0 %}
-        <p>No Images yet</p>
-      {% else %}
-        <div id="imagesCarousel" class="carousel slide carousel-fade">
-          <div class="carousel-inner">
-            {% for img in imgs %}
-              {% if forloop.first %}
-                {% assign class = "carousel-item active" %}
-              {% else %}
-                {% assign class = "carousel-item" %}
-              {% endif %}
-              <div class="{{class}}">
-                <img
-                        src="/{{img.path}}"
-                        class="d-block w-100 h-100"
-                        alt="Photo of people playing sports">
-              </div>
-            {% endfor %}
-          </div>
+        {% if auth.permissions["see_photos"] %}
+        {% if n_imgs == 0 %}
+            <p>No Images yet</p>
+        {% else %}
+            <div id="imagesCarousel" class="carousel slide carousel-fade">
+                <div class="carousel-inner">
+                    {% for img in imgs %}
+                        {% if forloop.first %}
+                            {% assign class = "carousel-item active" %}
+                        {% else %}
+                            {% assign class = "carousel-item" %}
+                        {% endif %}
+                        <div class="{{ class }}">
+                            <img
+                                    src="/{{ img.path }}"
+                                    class="d-block w-100 h-100"
+                                    alt="Photo of people playing sports">
+                        </div>
+                    {% endfor %}
+                </div>
 
-          {% if n_imgs > 1 %}
-            <button
-                    class="carousel-control-prev"
-                    type="button"
-                    data-bs-target="#imagesCarousel"
-                    data-bs-slide="prev">
-              <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-              <span class="visually-hidden">Previous</span>
-            </button>
-            <button
-                    class="carousel-control-next"
-                    type="button"
-                    data-bs-target="#imagesCarousel"
-                    data-bs-slide="next">
-              <span class="carousel-control-next-icon" aria-hidden="true"></span>
-              <span class="visually-hidden">Next</span>
-            </button>
-          {% endif %}
-        </div>
+                {% if n_imgs > 1 %}
+                    <button
+                            class="carousel-control-prev"
+                            type="button"
+                            data-bs-target="#imagesCarousel"
+                            data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button
+                            class="carousel-control-next"
+                            type="button"
+                            data-bs-target="#imagesCarousel"
+                            data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                {% endif %}
+            </div>
 
-        <br>
-      {% endif %}
-  </div>
+            <br>
+        {% endif %}
+    </div>
 </div>
 {% else %}
-<p class="warning">You must log in to view images.</p>
+    <p class="warning">You must log in to view images.</p>
 {% endif %}
 
 <br>

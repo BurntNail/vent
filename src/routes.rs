@@ -14,6 +14,9 @@ pub mod show_people;
 pub mod show_events;
 pub mod spreadsheets;
 pub mod update_events;
+pub mod give_bonus_point;
+pub mod update_bonus_point;
+pub mod show_bonus_points;
 
 use crate::auth::PermissionsRole;
 use serde::Deserialize;
@@ -37,4 +40,11 @@ pub struct FormPerson {
     pub username: String,
     pub form: Option<String>,
     pub permissions: PermissionsRole,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct FormBonusPoint {
+    pub user_id: i32,
+    pub reason: String,
+    pub quantity: i32
 }

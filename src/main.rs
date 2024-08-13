@@ -25,7 +25,7 @@ use crate::{
     routes::{
         add_event, add_people_to_event, add_person, calendar::get_calendar_feed, edit_person,
         edit_self, eoy_migration, images, import_export, index::get_index, public, rewards,
-        show_people, show_events, spreadsheets::get_spreadsheet, update_events,
+        show_people, show_events, spreadsheets::get_spreadsheet, update_events, give_bonus_point, update_bonus_point, show_bonus_points
     },
     state::VentState,
 };
@@ -142,6 +142,9 @@ async fn main() {
         .merge(show_people::router())
         .merge(show_events::router())
         .merge(update_events::router())
+        .merge(give_bonus_point::router())
+        .merge(update_bonus_point::router())
+        .merge(show_bonus_points::router())
         .fallback(not_found_fallback)
         .layer(TraceLayer::new_for_http())
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think
