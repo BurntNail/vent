@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::{
     auth::{
         backend::{Auth, VentAuthBackend},
@@ -50,15 +51,17 @@ FROM people p
     people.sort_by_key(|x| x.form.clone());
 
     let mut new_people = vec![];
+    let mut points_by_form: HashMap<String, usize> = HashMap::new();
     for person in people {
         let pts = sqlx::query!("SELECT COUNT(participant_id) FROM participant_events WHERE participant_id = $1 AND is_verified = true", person.id).fetch_one(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(person.id.into())) })?.count.unwrap_or(0) as usize;
         new_people.push(SmolPerson {
             first_name: person.first_name,
             surname: person.surname,
-            form: person.form,
+            form: person.form.clone(),
             id: person.id,
             pts,
         });
+        *points_by_form.entry(person.form).or_default() += pts;
     }
 
     trace!("Compiling");
@@ -67,7 +70,7 @@ FROM people p
 
     compile_with_newtitle(
         "www/show_people.liquid",
-        liquid::object!({ "people": new_people, "auth": aa }),
+        liquid::object!({ "people": new_people, "auth": aa, "points_by_form": points_by_form }),
         &state.settings.brand.instance_name,
         Some("All People".into()),
     )
