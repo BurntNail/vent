@@ -41,6 +41,7 @@ async fn get_update_event(
         teacher,
         other_info,
         zip_file: _,
+        is_locked
     } = sqlx::query_as!(
         DbEvent,
         r#"
