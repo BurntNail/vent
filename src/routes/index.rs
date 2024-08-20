@@ -23,6 +23,7 @@ pub async fn get_index(
         pub location: String,
         pub teacher: String,
         pub other_info: String,
+        pub is_locked: bool,
     }
 
     impl<'a> From<(DbEvent, &'a str)> for HTMLEvent {
@@ -36,6 +37,7 @@ pub async fn get_index(
                     teacher,
                     other_info,
                     zip_file: _,
+                    is_locked
                 },
                 fmt,
             ): (DbEvent, &'a str),
@@ -47,6 +49,7 @@ pub async fn get_index(
                 location,
                 teacher,
                 other_info: other_info.unwrap_or_default(),
+                is_locked
             }
         }
     }
