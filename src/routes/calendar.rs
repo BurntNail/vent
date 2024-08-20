@@ -104,7 +104,7 @@ pub fn update_calendar_thread(
                         date_time: date,
                         tzid: tzid.clone(),
                     })
-                    .ends(date + chrono::Duration::minutes(45))
+                    .ends(date)
                     .location(&location)
                     .description(&format!(
                         r#"
