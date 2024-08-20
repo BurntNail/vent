@@ -88,7 +88,7 @@
                             {% if auth.permissions["edit_events"] %}
                             <li><a href="/add_event" class="dropdown-item">Event</a></li>
                             {% endif %}
-                            {% if auth.permissions["give_bonus_points"] %}
+                            {% if auth.permissions["give_bonus_points"] and siteinfo.show_bonus_points %}
                             <li><a href="/give_bonus_point" class="dropdown-item">Bonus Point</a></li>
                             {% endif %}
                         </ul>
