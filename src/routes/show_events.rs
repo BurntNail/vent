@@ -101,6 +101,7 @@ struct RemoveEvent {
 }
 
 #[axum::debug_handler]
+#[allow(dead_code)]
 async fn post_remove_person(
     State(state): State<VentState>,
     Form(RemovePerson { person_id }): Form<RemovePerson>,

@@ -1,13 +1,12 @@
 use crate::{
     auth::{
         backend::{Auth, VentAuthBackend},
-        get_auth_object, PermissionsRole, PermissionsTarget,
+        get_auth_object, PermissionsTarget,
     },
-    error::{EncodeStep, IOAction, IOSnafu, ParseTimeSnafu, SqlxAction, SqlxSnafu, VentError},
+    error::{SqlxAction, SqlxSnafu, VentError},
     liquid_utils::compile_with_newtitle,
-    routes::FormEvent,
     state::{
-        db_objects::{DbEvent, DbPerson},
+        db_objects::DbPerson,
         VentState,
     },
 };
@@ -18,13 +17,10 @@ use axum::{
     Router,
 };
 use axum_extra::extract::Form;
-use axum_login::{login_required, permission_required};
-use chrono::{NaiveDateTime, Utc};
+use axum_login::permission_required;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 use std::collections::HashMap;
-use tokio::fs::remove_file;
-use crate::routes::add_people_to_event::AddPerson;
 use crate::routes::FormBonusPoint;
 use crate::state::db_objects::DbBonusPoint;
 
@@ -186,7 +182,6 @@ SELECT username FROM people WHERE id = $1
 }
 
 async fn post_update_bonus_point(
-    auth: Auth,
     Path(bonus_point_id): Path<i32>,
     State(state): State<VentState>,
     Form(FormBonusPoint {
@@ -217,7 +212,6 @@ WHERE id=$1
 }
 
 async fn post_delete_bonus_point(
-    auth: Auth,
     Path(bonus_point_id): Path<i32>,
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
@@ -245,7 +239,6 @@ pub struct AddPeopleToBonusPoint {
 }
 #[axum::debug_handler]
 async fn post_add_people_to_bonus_point(
-    auth: Auth,
     State(state): State<VentState>,
     Form(AddPeopleToBonusPoint {
              person_ids,
@@ -303,7 +296,6 @@ struct Removal {
 }
 #[axum::debug_handler]
 async fn post_remove_person_from_bonus_point(
-    auth: Auth,
     State(state): State<VentState>,
     Form(Removal {
              relation_id

@@ -1,13 +1,13 @@
 use crate::{auth::{
     backend::{Auth, VentAuthBackend},
-    get_auth_object, PermissionsRole, PermissionsTarget,
-}, error::{DatabaseIDMethod, SqlxAction, SqlxSnafu, VentError}, liquid_utils::{compile_with_newtitle, CustomFormat}, routes::{rewards::Reward, FormPerson}, state::{db_objects::DbPerson, VentState}};
+    get_auth_object, PermissionsRole,
+}, error::{DatabaseIDMethod, SqlxAction, SqlxSnafu, VentError}, liquid_utils::{compile_with_newtitle, CustomFormat}, routes::rewards::Reward, state::{db_objects::DbPerson, VentState}};
 use axum::{
-    extract::{Path, State},
+    extract::State,
     response::{IntoResponse, Redirect},
-    routing::{get, post},
     Form, Router,
 };
+use axum::routing::get;
 use axum_login::login_required;
 use bcrypt::{hash, DEFAULT_COST};
 use serde::Serialize;

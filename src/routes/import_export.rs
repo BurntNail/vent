@@ -213,7 +213,7 @@ pub async fn post_import_events_from_csv(
             let str = record.get(0).context(MalformedCSVSnafu {
                 was_trying_to_get: TryingToGetFromCSV::Event(EventField::Date),
             })?;
-            NaiveDate::parse_from_str(str, "%A %d %B %Y").context(ParseTimeSnafu {
+            NaiveDate::parse_from_str(str, "%d-%m-%Y").context(ParseTimeSnafu {
                 original: str.to_string(),
                 how_got_in: EncodeStep::Decode,
             })?

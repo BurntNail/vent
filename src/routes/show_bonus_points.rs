@@ -1,30 +1,21 @@
-use crate::routes::add_people_to_event::AddPerson;
 use crate::{
     auth::{
         backend::{Auth, VentAuthBackend},
-        get_auth_object, PermissionsRole, PermissionsTarget,
+        get_auth_object, PermissionsTarget,
     },
-    error::{EncodeStep, IOAction, IOSnafu, ParseTimeSnafu, SqlxAction, SqlxSnafu, VentError},
+    error::{SqlxAction, SqlxSnafu, VentError},
     liquid_utils::compile_with_newtitle,
-    routes::FormEvent,
-    state::{
-        db_objects::{DbEvent, DbPerson},
-        VentState,
-    },
+    state::VentState,
 };
 use axum::{
-    extract::{Path, State},
-    response::{IntoResponse, Redirect},
-    routing::{get, post},
+    extract::State,
+    response::IntoResponse,
+    routing::get,
     Router,
 };
-use axum_extra::extract::Form;
-use axum_login::{login_required, permission_required};
-use chrono::{NaiveDateTime, Utc};
-use serde::{Deserialize, Serialize};
+use axum_login::permission_required;
+use serde::Serialize;
 use snafu::ResultExt;
-use std::collections::HashMap;
-use tokio::fs::remove_file;
 
 async fn get_show_bonus_points(
     auth: Auth,

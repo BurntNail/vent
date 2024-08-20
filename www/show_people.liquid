@@ -14,9 +14,6 @@
                 Pts
             </th>
             <th scope="col">
-                Form
-            </th>
-            <th scope="col">
                 View/Edit
             </th>
         </tr>
@@ -27,10 +24,13 @@
             {% if prev_form != person.form %}
                 {% assign prev_form = person.form %}
                 <tr>
-                    <td colspan="4" id="{{ person.form }}">
+                    <td id="{{ person.form }}">
                         <h3>
-                            <a class="link-secondary" href="/show_people#{{ person.form }}">{{ person.form }}</a>
+                            Form: <a class="link-secondary" href="/show_people#{{ person.form }}">{{ person.form }}</a>
                         </h3>
+                    </td>
+                    <td colspan="3">
+                      Total: {{ points_by_form[person.form] }}
                     </td>
                 </tr>
             {% endif %}
@@ -40,9 +40,6 @@
                 </td>
                 <td>
                     {{ person.pts }}
-                </td>
-                <td>
-                    {{ person.form }}
                 </td>
                 <td>
                     <a href="/edit_person/{{ person.id }}" class="btn btn-secondary">View{% if auth.permissions["edit_people"] %}/Edit{% endif %} Person.</a>

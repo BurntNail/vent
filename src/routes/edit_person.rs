@@ -11,7 +11,6 @@ use axum::{
 use axum_login::permission_required;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
-use sqlx::Row;
 
 #[axum::debug_handler]
 async fn get_edit_person(

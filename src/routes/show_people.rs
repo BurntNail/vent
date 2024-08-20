@@ -1,7 +1,13 @@
-use crate::{auth::{
-    backend::{Auth, VentAuthBackend},
-    get_auth_object, PermissionsTarget,
-}, error::{SqlxAction, SqlxSnafu, VentError}, liquid_utils::{compile_with_newtitle, CustomFormat}, state::VentState};
+use std::collections::HashMap;
+use crate::{
+    auth::{
+        backend::{Auth, VentAuthBackend},
+        get_auth_object, PermissionsTarget,
+    },
+    error::{SqlxAction, SqlxSnafu, VentError},
+    liquid_utils::compile_with_newtitle,
+    state::VentState,
+};
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
@@ -10,7 +16,6 @@ use axum::{
 };
 use axum_extra::extract::Form;
 use axum_login::permission_required;
-use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 
@@ -45,6 +50,7 @@ FROM people p
     people.sort_by_key(|x| x.form.clone());
 
     let mut new_people = vec![];
+    let mut points_by_form: HashMap<String, usize> = HashMap::new();
     for person in people {
         let event_pts = sqlx::query!("SELECT COUNT(participant_id) FROM participant_events WHERE participant_id = $1 AND is_verified = true", person.id).fetch_one(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(person.id.into())) })?.count.unwrap_or(0) as usize;
 
@@ -66,11 +72,13 @@ FROM people p
         new_people.push(SmolPerson {
             first_name: person.first_name,
             surname: person.surname,
-            form: person.form,
+            form: person.form.clone(),
             id: person.id,
             pts,
         });
+        *points_by_form.entry(person.form).or_default() += pts;
     }
+
     trace!("Compiling");
 
     let aa = get_auth_object(auth).await?;
@@ -81,7 +89,7 @@ FROM people p
         &state.settings.brand.instance_name,
         Some("All People".into()),
     )
-        .await
+    .await
 }
 
 #[derive(Deserialize)]
@@ -108,17 +116,18 @@ WHERE id=$1
             "#,
             person_id
         )
-            .execute(&mut *state.get_connection().await?)
-            .await
-            .context(SqlxSnafu {
-                action: SqlxAction::RemovingPerson(person_id.into()),
-            })?;
+        .execute(&mut *state.get_connection().await?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::RemovingPerson(person_id.into()),
+        })?;
     }
 
     Ok(Redirect::to("/show_people"))
 }
 
 #[axum::debug_handler]
+#[allow(dead_code)]
 async fn post_remove_event(
     State(state): State<VentState>,
     Form(RemoveEvent { event_id }): Form<RemoveEvent>,
@@ -132,11 +141,11 @@ async fn post_remove_event(
             "#,
             event_id
         )
-            .execute(&mut *state.get_connection().await?)
-            .await
-            .context(SqlxSnafu {
-                action: SqlxAction::RemovingEvent(event_id),
-            })?;
+        .execute(&mut *state.get_connection().await?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::RemovingEvent(event_id),
+        })?;
     }
 
     Ok(Redirect::to("/show_people"))

@@ -77,6 +77,7 @@ pub struct DbEvent {
     pub location: String,
     pub teacher: String,
     pub other_info: Option<String>,
+    #[allow(dead_code)]
     pub zip_file: Option<String>,
 }
 
