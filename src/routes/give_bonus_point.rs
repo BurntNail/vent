@@ -13,27 +13,34 @@ use axum::{
     routing::get,
     Router,
 };
+use axum::response::Response;
 use axum_extra::extract::Form;
 use axum_login::permission_required;
 use snafu::ResultExt;
 use crate::routes::FormBonusPoint;
 use chrono::Utc;
+use dotenvy::var;
 
 #[allow(clippy::too_many_lines)]
 #[axum::debug_handler]
 async fn get_give_bonus_points_form(
     auth: Auth,
     State(state): State<VentState>,
-) -> Result<impl IntoResponse, VentError> {
+) -> Result<Response, VentError> {
+    if var("HIDE_BONUS_POINTS").is_ok() {
+        return Ok(Redirect::to("/").into_response());
+    }
     let aa = get_auth_object(auth).await?;
 
-    compile_with_newtitle(
+    let page = compile_with_newtitle(
         "www/give_bonus_point.liquid",
         liquid::object!({"auth": aa}),
         &state.settings.brand.instance_name,
         Some("Give Bonus Point".into()),
     )
-        .await
+        .await?;
+
+    Ok(page.into_response())
 }
 
 #[axum::debug_handler]

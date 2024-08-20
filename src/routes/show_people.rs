@@ -85,7 +85,7 @@ FROM people p
 
     compile_with_newtitle(
         "www/show_people.liquid",
-        liquid::object!({ "people": new_people, "auth": aa }),
+        liquid::object!({ "people": new_people, "auth": aa, "points_by_form": points_by_form }),
         &state.settings.brand.instance_name,
         Some("All People".into()),
     )

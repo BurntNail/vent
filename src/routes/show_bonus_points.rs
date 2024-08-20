@@ -13,14 +13,20 @@ use axum::{
     routing::get,
     Router,
 };
+use axum::response::{Redirect, Response};
 use axum_login::permission_required;
+use dotenvy::var;
 use serde::Serialize;
 use snafu::ResultExt;
 
 async fn get_show_bonus_points(
     auth: Auth,
     State(state): State<VentState>,
-) -> Result<impl IntoResponse, VentError> {
+) -> Result<Response, VentError> {
+    if var("HIDE_BONUS_POINTS").is_ok() {
+        return Ok(Redirect::to("/").into_response());
+    }
+
     let aa = get_auth_object(auth).await?;
 
     #[derive(Serialize)]
@@ -43,13 +49,15 @@ async fn get_show_bonus_points(
             staff_member_username: row.username
         }
     }).collect();
-    compile_with_newtitle(
+
+    let page = compile_with_newtitle(
         "www/show_bonus_points.liquid",
         liquid::object!({ "bonus_points": bonus_points_vec,"auth": aa }),
         &state.settings.brand.instance_name,
         Some("All Bonus Points".into()),
     )
-        .await
+        .await?;
+    Ok(page.into_response())
 }
 
 pub fn router() -> Router<VentState> {

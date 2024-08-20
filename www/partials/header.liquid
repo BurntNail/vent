@@ -56,7 +56,7 @@
                         <a class="nav-link" href="/show_people">People</a>
                     </li>
                 {% endif %}
-                {% if auth.permissions["give_bonus_points"] %}
+                {% if auth.permissions["give_bonus_points"] and siteinfo.show_bonus_points %}
                     <li class="nav-item">
                         <a class="nav-link" href="/show_bonus_points">Bonus Points</a>
                     </li>

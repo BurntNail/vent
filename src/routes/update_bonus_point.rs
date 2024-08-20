@@ -21,6 +21,8 @@ use axum_login::permission_required;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 use std::collections::HashMap;
+use axum::response::Response;
+use dotenvy::var;
 use crate::routes::FormBonusPoint;
 use crate::state::db_objects::DbBonusPoint;
 
@@ -37,7 +39,11 @@ async fn get_update_bonus_point(
     auth: Auth,
     Path(bonus_point_id): Path<i32>,
     State(state): State<VentState>,
-) -> Result<impl IntoResponse, VentError> {
+) -> Result<Response, VentError> {
+    if var("HIDE_BONUS_POINTS").is_ok() {
+        return Ok(Redirect::to("/").into_response());
+    }
+
     debug!("Getting bonus point");
     let DbBonusPoint {
         id,
@@ -162,7 +168,7 @@ SELECT username FROM people WHERE id = $1
     debug!("Compiling");
     let aa = get_auth_object(auth).await?;
 
-    compile_with_newtitle(
+    let page = compile_with_newtitle(
         "www/update_bonus_point.liquid",
         liquid::object!({"bonus_point":
             liquid::object!({
@@ -178,7 +184,9 @@ SELECT username FROM people WHERE id = $1
         &state.settings.brand.instance_name,
         Some("Bonus Point".to_string()),
     )
-        .await
+        .await?;
+
+    Ok(page.into_response())
 }
 
 async fn post_update_bonus_point(
@@ -322,23 +330,8 @@ RETURNING bonus_point_id
 pub fn router() -> Router<VentState> {
     Router::new()
         .route("/update_bonus_point/:id", post(post_update_bonus_point))
-        .route_layer(permission_required!(
-            VentAuthBackend,
-            login_url = "/login",
-            PermissionsTarget::GiveBonusPoints
-        ))
         .route("/bonus_point/add_people", post(post_add_people_to_bonus_point))
-        .route_layer(permission_required!(
-            VentAuthBackend,
-            login_url = "/login",
-            PermissionsTarget::GiveBonusPoints
-        ))
         .route("/bonus_point/remove_person", post(post_remove_person_from_bonus_point))
-        .route_layer(permission_required!(
-            VentAuthBackend,
-            login_url = "/login",
-            PermissionsTarget::GiveBonusPoints
-        ))
         .route("/delete_bonus_point/:id", post(post_delete_bonus_point))
         .route_layer(permission_required!(
             VentAuthBackend,
@@ -351,4 +344,5 @@ pub fn router() -> Router<VentState> {
             login_url = "/login",
             PermissionsTarget::SeeBonusPoints
         ))
+
 }
