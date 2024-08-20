@@ -34,12 +34,15 @@ pub fn update_calendar_thread(
     pool: Pool<Postgres>,
     mut stop_rx: BroadcastReceiver<()>,
     tzid: String,
+    instance_name: String,
 ) -> UnboundedSender<()> {
     let (update_tx, mut update_rx) = unbounded_channel();
+    let calendar_title = format!("{instance_name} Events");
 
     async fn update_events(
         mut conn: PoolConnection<Postgres>,
         tzid: String,
+        calendar_title: &str,
     ) -> Result<(), VentError> {
         let mut prefect_events: HashMap<i32, Vec<String>> = HashMap::new();
 
@@ -116,7 +119,7 @@ Prefects Attending: {prefects}"#
                     .done(),
             );
         }
-        calendar.name("Kingsley House Events");
+        calendar.name(calendar_title);
 
         let mut local_file = File::create("calendar.ics").await.context(IOSnafu {
             action: IOAction::CreatingFile("calendar.ics".into()),
@@ -134,7 +137,7 @@ Prefects Attending: {prefects}"#
     tokio::spawn(async move {
         match pool.acquire().await {
             Ok(conn) => {
-                if let Err(e) = update_events(conn, tzid.clone()).await {
+                if let Err(e) = update_events(conn, tzid.clone(), &calendar_title).await {
                     error!(?e, "Error updating calendar!!!");
                 }
             }
@@ -150,7 +153,7 @@ Prefects Attending: {prefects}"#
             if let Ok(()) = update_rx.try_recv() {
                 match pool.acquire().await {
                     Ok(conn) => {
-                        if let Err(e) = update_events(conn, tzid.clone()).await {
+                        if let Err(e) = update_events(conn, tzid.clone(), &calendar_title).await {
                             error!(?e, "Error updating calendar!!!");
                         }
                     }
