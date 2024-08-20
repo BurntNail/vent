@@ -52,6 +52,7 @@ async fn post_add_event_form(
         location,
         teacher,
         info,
+        is_locked
     }): Form<FormEvent>,
 ) -> Result<impl IntoResponse, VentError> {
     let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M").context(ParseTimeSnafu {
@@ -64,15 +65,16 @@ async fn post_add_event_form(
     let id = sqlx::query!(
         r#"
 INSERT INTO public.events
-(event_name, "date", "location", teacher, other_info)
-VALUES($1, $2, $3, $4, $5)
+(event_name, "date", "location", teacher, other_info, is_locked)
+VALUES($1, $2, $3, $4, $5, $6)
 RETURNING id
         "#,
         name,
         date,
         location,
         teacher,
-        info
+        info,
+        is_locked
     )
     .fetch_one(&mut *state.get_connection().await?) //add the event to the db
     .await

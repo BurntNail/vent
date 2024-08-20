@@ -82,6 +82,7 @@ pub fn update_calendar_thread(
             teacher,
             other_info,
             zip_file: _,
+            is_locked: _
         } in sqlx::query_as!(DbEvent, r#"SELECT * FROM events"#)
             .fetch_all(&mut *conn)
             .await

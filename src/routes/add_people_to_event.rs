@@ -92,13 +92,21 @@ async fn post_add_participant_to_event(
 ) -> Result<impl IntoResponse, VentError> {
     let current_user = auth.user.expect("need to be logged in to add participants");
 
-    let event_date = sqlx::query!("SELECT date FROM events WHERE id = $1", event_id)
-        .fetch_one(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::FindingEvent(event_id),
-        })?
-        .date;
+    let event_date = {
+        let record = sqlx::query!("SELECT date,is_locked FROM events WHERE id = $1", event_id)
+            .fetch_one(&mut *state.get_connection().await?)
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::FindingEvent(event_id),
+            })?;
+
+        if record.is_locked {
+            warn!("Student {person_ids:?} tried to add to {event_id}, but event locked.");
+            return Ok(Redirect::to(&format!("/update_event/{event_id}")));
+        }
+
+        record.date
+    };
 
     if event_date < (Utc::now() + chrono::Duration::hours(1)).naive_local()
         && current_user.permissions < PermissionsRole::Prefect
