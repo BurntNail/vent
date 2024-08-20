@@ -1,0 +1,53 @@
+{% include "partials/header.liquid" %}
+
+
+{% if auth.permissions["see_bonus_points"] %}
+    <h2>Bonus Points</h2>
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th scope="col">
+                Reason
+            </th>
+            <th scope="col">
+                Pts
+            </th>
+            <th scope="col">
+                Awarded By
+            </th>
+            <th scope="col">
+                Date
+            </th>
+            <th scope="col">
+                View/Edit
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for point in bonus_points %}
+            <tr>
+                <td>
+                    {{ point.reason }}
+                </td>
+                <td>
+                    {{ point.num_points }}
+                </td>
+                <td>
+                    {{ point.staff_member_username }}
+                </td>
+                <td>
+                    {{ point.date }}
+                </td>
+                <td>
+                    <a href="/update_bonus_point/{{ point.bonus_point_id }}" class="btn btn-secondary">View{% if auth.permissions["give_bonus_points"] %}/Edit{% endif %} Bonus Point.</a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <br><br>
+
+{% endif %}
+
+{% include "partials/footer.liquid" %}

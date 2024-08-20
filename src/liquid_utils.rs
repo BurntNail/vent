@@ -43,6 +43,8 @@ pub async fn compile_with_newtitle(
         Some(x) => x.to_string(),
     };
 
+    let show_bonus_points = !var("HIDE_BONUS_POINTS").is_ok();
+
     globals.insert("cft_sitekey".into(), Value::scalar(CFT_SITEKEY.as_str()));
     globals.insert(
         "siteinfo".into(),
@@ -50,7 +52,8 @@ pub async fn compile_with_newtitle(
             "instance_name": project_name,
             "html_title": title,
             "domain_exists": DOMAIN.0,
-            "domain": DOMAIN.1.as_str()
+            "domain": DOMAIN.1.as_str(),
+            "show_bonus_points": show_bonus_points
         })),
     );
 

@@ -1,0 +1,2 @@
+DROP TABLE bonus_points;
+DROP TABLE participant_bonus_points

@@ -56,6 +56,11 @@
                         <a class="nav-link" href="/show_people">People</a>
                     </li>
                 {% endif %}
+                {% if auth.permissions["give_bonus_points"] and siteinfo.show_bonus_points %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/show_bonus_points">Bonus Points</a>
+                    </li>
+                {% endif %}
                 {% if auth.permissions["add_rewards"] %}
                     <li class="nav-item">
                         <a class="nav-link" href="/add_reward">See Rewards</a>
@@ -72,16 +77,24 @@
                         </a>
                     </li>
                 {% endif %}
-                {% if auth.permissions["edit_people"] %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="/add_person">Add Person</a>
+                {% if auth.permissions["edit_people"] or auth.permissions["edit_events"] or auth.permissions["give_bonus_points"] %}
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"
+                           aria-expanded="false">Add</a>
+                        <ul class="dropdown-menu">
+                            {% if auth.permissions["edit_people"] %}
+                            <li><a href="/add_person" class="dropdown-item">Person</a></li>
+                            {% endif %}
+                            {% if auth.permissions["edit_events"] %}
+                            <li><a href="/add_event" class="dropdown-item">Event</a></li>
+                            {% endif %}
+                            {% if auth.permissions["give_bonus_points"] %}
+                            <li><a href="/give_bonus_point" class="dropdown-item">Bonus Point</a></li>
+                            {% endif %}
+                        </ul>
                     </li>
                 {% endif %}
-                {% if auth.permissions["edit_events"] %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="/add_event">Add Event</a>
-                    </li>
-                {% endif %}
+
                 {% if auth.permissions["run_migrations"] %}
                     <li class="nav-item">
                         <a class="nav-link" href="/eoy_migration">Change Form Names</a>
@@ -102,7 +115,7 @@
                         <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"
                            aria-expanded="false">{{ auth.user.first_name }} {{ auth.user.surname }}</a>
                         <ul class="dropdown-menu">
-                            <li><a href="/edit_user" class="dropdown-item">Edit Profile</a></li>
+                            <li><a href="/edit_user" class="dropdown-item">My Profile</a></li>
                             <li><a href="/logout" class="dropdown-item">Logout</a></li>
                         </ul>
                     </li>
@@ -116,6 +129,6 @@
     </div>
 </nav>
 
-<br />
+<br/>
 
 <div class="container mt-5">

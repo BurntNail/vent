@@ -77,5 +77,15 @@ pub struct DbEvent {
     pub location: String,
     pub teacher: String,
     pub other_info: Option<String>,
+    #[allow(dead_code)]
     pub zip_file: Option<String>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct DbBonusPoint {
+    pub id: i32,
+    pub point_date: NaiveDateTime,
+    pub staff_member_id: Option<i32>,
+    pub num_points: i32,
+    pub reason: String,
 }
