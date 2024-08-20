@@ -61,6 +61,7 @@
                     disabled
                         {% endunless %}>
             </div>
+            {% if siteinfo.show_different_awards %}
             <div class="mb-3">
                 <div class="form-check">
                     <input
@@ -97,6 +98,7 @@
                     </label>
                 </div>
             </div>
+            {% endif %}
 
             {% if can_edit %}
                 <div class="mb-3">

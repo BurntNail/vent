@@ -50,6 +50,7 @@
                         placeholder="L6K2">
             </div>
 
+            {% if siteinfo.show_different_awards %}
             <div class="mb-3">
                 <div class="form-check">
                     <input
@@ -75,6 +76,9 @@
                     </label>
                 </div>
             </div>
+            {% else %}
+                <input type="hidden" name="was_first_entry" value="true" >
+            {% endif %}
 
 
             <div class="mb-3">

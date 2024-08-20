@@ -44,6 +44,7 @@ pub async fn compile_with_newtitle(
     };
 
     let show_bonus_points = !var("HIDE_BONUS_POINTS").is_ok();
+    let show_different_awards = !var("DISABLE_DIFFERENT_AWARD_THRESHOLDS").is_ok();
 
     globals.insert("cft_sitekey".into(), Value::scalar(CFT_SITEKEY.as_str()));
     globals.insert(
@@ -53,7 +54,8 @@ pub async fn compile_with_newtitle(
             "html_title": title,
             "domain_exists": DOMAIN.0,
             "domain": DOMAIN.1.as_str(),
-            "show_bonus_points": show_bonus_points
+            "show_bonus_points": show_bonus_points,
+            "show_different_awards": show_different_awards
         })),
     );
 
