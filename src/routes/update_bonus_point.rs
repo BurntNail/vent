@@ -148,14 +148,6 @@ WHERE p.form != 'Gone'
         .collect::<Vec<_>>();
     possible_participants.sort_by_key(|dfg| dfg.form.clone());
 
-    #[derive(Serialize)]
-    struct Image {
-        path: String,
-        id: i32,
-        added_by: Vec<String>, // len 2 if we got stuff, len 0 if not
-        has_added_by: bool,
-    }
-
     let staff_member_username = sqlx::query!(
         r#"
 SELECT username FROM people WHERE id = $1
@@ -198,6 +190,7 @@ async fn post_update_bonus_point(
              quantity
          }): Form<FormBonusPoint>,
 ) -> Result<impl IntoResponse, VentError> {
+    // User ID is not used here but needs to be provided anyway. Just set user_id=0 in the form
     sqlx::query!(
         r#"
 UPDATE public.bonus_points
