@@ -1,10 +1,15 @@
 use crate::{
-    auth::backend::{Auth, VentAuthBackend}, error::{
+    auth::backend::{Auth, VentAuthBackend},
+    error::{
         ConvertingWhatToString, DatabaseIDMethod, IOAction, IOSnafu, ImageAction, ImageSnafu,
-        JoinSnafu, MissingExtensionSnafu, NoImageExtensionSnafu, SqlxAction, SqlxSnafu,
-        ThreadReason, ToStrSnafu, UnknownMIMESnafu, VentError,
-    }, image_format::ImageFormat, routes::public::{serve_read, serve_static_file}, state::VentState
+        MissingExtensionSnafu, NoImageExtensionSnafu, SqlxAction, SqlxSnafu,
+        ToStrSnafu, UnknownMIMESnafu, VentError,
+    },
+    image_format::ImageFormat,
+    routes::public::{serve_read, serve_static_file},
+    state::VentState,
 };
+use async_walkdir::WalkDir;
 use async_zip::{tokio::write::ZipFileWriter, Compression, ZipEntryBuilder};
 use axum::{
     extract::{Multipart, Path, State},
@@ -20,7 +25,7 @@ use tokio::{
     fs::File,
     io::{AsyncReadExt, AsyncWriteExt},
 };
-use walkdir::WalkDir;
+use futures::StreamExt;
 
 #[axum::debug_handler]
 async fn post_add_photo(
@@ -124,7 +129,7 @@ async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoResponse, 
     let ext = ext.to_str().context(ToStrSnafu {
         what: ConvertingWhatToString::PathBuffer(path.clone()),
     })?;
-    let ext = ImageFormat::from_extension(ext).context(UnknownMIMESnafu {path})?;
+    let ext = ImageFormat::from_extension(ext).context(UnknownMIMESnafu { path })?;
 
     debug!("Getting body");
 
@@ -181,11 +186,15 @@ WHERE event_id = $1"#,
     .map(|x| x.path);
 
     let file_name = {
-        fn get_existing() -> Vec<String> {
+        let existing = {
             let zip_ext = OsStr::new("zip");
             let mut files = vec![];
 
-            for de in WalkDir::new("uploads").into_iter().filter_map(Result::ok) {
+            while let Some(de) = WalkDir::new("uploads").next().await {
+                let Ok(de) = de else {
+                    continue;
+                };
+
                 match de.file_name().to_str().context(ToStrSnafu {
                     what: ConvertingWhatToString::FileName(de.file_name().to_os_string()),
                 }) {
@@ -199,13 +208,7 @@ WHERE event_id = $1"#,
             }
 
             files
-        }
-
-        let existing = tokio::task::spawn_blocking(get_existing)
-            .await
-            .context(JoinSnafu {
-                title: ThreadReason::FindingExistingFilesWithWalkDir,
-            })?;
+        };
 
         let mut rng = thread_rng();
         format!(

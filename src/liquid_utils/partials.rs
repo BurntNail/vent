@@ -2,12 +2,14 @@ use crate::{
     auth::{backend::VentAuthBackend, PermissionsTarget},
     state::VentState,
 };
+use async_walkdir::WalkDir;
 use axum::{
     response::{IntoResponse, Redirect},
     routing::get,
     Router,
 };
 use axum_login::permission_required;
+use futures::StreamExt;
 use liquid::partials::{EagerCompiler, PartialSource};
 use once_cell::sync::Lazy;
 use std::{
@@ -16,7 +18,6 @@ use std::{
     ffi::{OsStr, OsString},
 };
 use tokio::{fs::read_to_string, sync::RwLock};
-use walkdir::{DirEntry, WalkDir};
 
 ///Struct to hold all the partials - then I can use a convenience function to easily get a [`PartialCompiler`]
 #[derive(Debug, Clone, Default)]
@@ -75,18 +76,17 @@ async fn get_partials() -> HashMap<String, String> {
 
     let mut in_memory_source = HashMap::new(); //make a new source
 
-    for partial in WalkDir::new(PARTIALS_DIR)
-        .into_iter() //for every file in PARTIALS_DIR
-        .filter_map(Result::ok) //that we can access
-        .map(DirEntry::into_path) //get it as a path
-        .filter(|x| {
-            //and check it has one of the extensions
-            x.extension().map_or(false, |x| {
-                //if it doesn't have an extension, ignore
-                partial_extensions.iter().any(|allowed| x == allowed)
-            })
-        })
-    {
+    while let Some(partial) = WalkDir::new(PARTIALS_DIR).next().await {
+        let Ok(partial) = partial else {
+            continue;
+        };
+        let partial = partial.path();
+        if !partial.extension().map_or(false, |x| {
+            partial_extensions.iter().any(|allowed| x == allowed)
+        }) {
+            continue;
+        }
+
         match read_to_string(&partial).await {
             Ok(source) => {
                 info!(?partial, "Loading Partial");
@@ -101,6 +101,7 @@ async fn get_partials() -> HashMap<String, String> {
                 error!(?partial, ?e, "Error reading partial");
             }
         }
+
     }
 
     in_memory_source
