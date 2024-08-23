@@ -80,6 +80,7 @@ pub struct DbEvent {
     #[allow(dead_code)]
     pub zip_file: Option<String>,
     pub is_locked: bool,
+    pub extra_points: i32,
 }
 
 #[derive(Deserialize, Clone, Debug)]

@@ -41,6 +41,7 @@ async fn get_update_event(
         other_info,
         zip_file: _,
         is_locked,
+        extra_points
     } = sqlx::query_as!(
         DbEvent,
         r#"

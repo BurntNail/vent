@@ -1,7 +1,8 @@
 {% include "partials/header.liquid" %}
 
 <div class="alert alert-light" role="alert">
-    <p>Total House Points: {{ total_house_points }}</p>
+    <p>Participation Points: {{ participation_points }}</p>
+    <p>Victory Points: {{ event_victory_points }}</p>
 </div>
 
 {% if auth.is_logged_in %}

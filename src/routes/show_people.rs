@@ -23,6 +23,16 @@ async fn get_show_people(
     auth: Auth,
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
+    let event_victory_points: i32 = sqlx::query!("SELECT extra_points FROM public.events").fetch_all(&mut *state.get_connection().await?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingAllEvents
+        })?
+        .into_iter()
+        .map(|rec| rec.extra_points)
+        .sum();
+    let event_victory_points = event_victory_points as usize;
+
     #[derive(Serialize)]
     pub struct SmolPerson {
         pub first_name: String,
@@ -50,7 +60,7 @@ FROM people p
 
     let mut new_people = vec![];
     let mut points_by_form: HashMap<String, usize> = HashMap::new();
-    let mut total_house_points: usize = 0;
+    let mut participation_points: usize = 0;
     for person in people {
         let event_pts = sqlx::query!("SELECT COUNT(participant_id) FROM participant_events WHERE participant_id = $1 AND is_verified = true", person.id).fetch_one(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(person.id.into())) })?.count.unwrap_or(0) as usize;
 
@@ -78,7 +88,7 @@ FROM people p
         });
 
         *points_by_form.entry(person.form).or_default() += pts;
-        total_house_points += pts;
+        participation_points += pts;
     }
 
     trace!("Compiling");
@@ -88,7 +98,7 @@ FROM people p
     state
         .compile(
             "www/show_people.liquid",
-            liquid::object!({ "people": new_people, "auth": aa, "points_by_form": points_by_form, "total_house_points": total_house_points }),
+            liquid::object!({ "people": new_people, "auth": aa, "points_by_form": points_by_form, "event_victory_points": event_victory_points, "participation_points": participation_points }),
             Some("All People".into()),
         )
         .await
