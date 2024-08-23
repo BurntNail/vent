@@ -95,11 +95,11 @@ pub fn update_calendar_thread(
                 action: SqlxAction::FindingAllEvents,
             })?
         {
-            let other_info = other_info.unwrap_or_default();
+            /* let other_info = other_info.unwrap_or_default();
             let prefects = prefect_events
                 .get(&id)
                 .map(|x| x.join(", "))
-                .unwrap_or_default();
+                .unwrap_or_default(); */
 
             debug!(?event_name, ?date, "Adding event to calendar");
 
@@ -112,12 +112,12 @@ pub fn update_calendar_thread(
                     })
                     .ends(date)
                     .location(&location)
-                    .description(&format!(
+                    /* .description(&format!(
                         r#"
 Teacher: {teacher}
 Other Information: {other_info}
 Prefects Attending: {prefects}"#
-                    ))
+                    )) */
                     .done(),
             );
         }
