@@ -183,7 +183,7 @@ async fn post_update_bonus_point(
     Path(bonus_point_id): Path<i32>,
     State(state): State<VentState>,
     Form(FormBonusPoint {
-             user_id,
+             user_id: _,
              reason,
              quantity
          }): Form<FormBonusPoint>,
@@ -228,7 +228,7 @@ DELETE FROM public.bonus_points WHERE id = $1
 
     state.update_events()?;
 
-    Ok(Redirect::to(&format!("/")))
+    Ok(Redirect::to("/"))
 }
 
 #[derive(Deserialize)]

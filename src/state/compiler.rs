@@ -51,8 +51,8 @@ impl VentCompiler {
             Some(x) => x.to_string(),
         };
 
-        let show_bonus_points = !var("HIDE_BONUS_POINTS").is_ok();
-        let show_different_awards = !var("DISABLE_DIFFERENT_AWARD_THRESHOLDS").is_ok();
+        let show_bonus_points = var("HIDE_BONUS_POINTS").is_err();
+        let show_different_awards = var("DISABLE_DIFFERENT_AWARD_THRESHOLDS").is_err();
 
         globals.insert("cft_sitekey".into(), Value::scalar(CFT_SITEKEY.as_str()));
         globals.insert(

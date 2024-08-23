@@ -54,7 +54,7 @@ impl VentState {
             postgres.clone(),
             stop_senders_tx.subscribe(),
             settings.timezone_id.clone(),
-            settings.brand.instance_name.clone()
+            &settings.brand.instance_name
         );
 
         let database = VentDatabase::new(postgres);

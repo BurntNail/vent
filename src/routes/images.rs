@@ -193,7 +193,7 @@ WHERE event_id = $1"#,
             let des: Vec<_> = WalkDir::new("uploads").collect().await;
             for de in des.into_iter().filter_map(Result::ok) {
                 match de.file_name().to_str().context(ToStrSnafu {
-                    what: ConvertingWhatToString::FileName(de.file_name().to_os_string()),
+                    what: ConvertingWhatToString::FileName(de.file_name().clone()),
                 }) {
                     Ok(file_name) => {
                         if de.path().extension().map_or(false, |e| e == zip_ext) {

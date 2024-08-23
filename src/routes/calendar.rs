@@ -34,8 +34,9 @@ pub fn update_calendar_thread(
     pool: Pool<Postgres>,
     mut stop_rx: BroadcastReceiver<()>,
     tzid: String,
-    instance_name: String,
+    instance_name: &impl AsRef<str>,
 ) -> UnboundedSender<()> {
+    let instance_name = instance_name.as_ref();
     let (update_tx, mut update_rx) = unbounded_channel();
     let calendar_title = format!("{instance_name} Events");
 

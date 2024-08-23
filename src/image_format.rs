@@ -109,7 +109,7 @@ impl ImageFormat {
         }
     }
 
-    pub fn to_mime_type(&self) -> &'static str {
+    pub fn to_mime_type(self) -> &'static str {
         match self {
             ImageFormat::Avif => "image/avif",
             ImageFormat::Jpeg => "image/jpeg",
