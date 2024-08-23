@@ -1,10 +1,13 @@
-use crate::error::{FileIdentifier, IOAction, VentError};
+use crate::error::{FileIdentifier, IOAction, IOSnafu, VentError};
 use moka::future::{Cache, CacheBuilder};
 use std::{
     io::{Error as IOError, ErrorKind},
     path::{Path, PathBuf},
     sync::Arc,
 };
+use async_walkdir::WalkDir;
+use futures::StreamExt;
+use snafu::ResultExt;
 use tokio::fs::read_to_string;
 
 #[derive(Clone, Debug)]
@@ -45,6 +48,24 @@ impl VentCache {
     }
 
     pub async fn pre_populate(&mut self) {
-        todo!()
+        while let Some(de) = WalkDir::new("www/").next().await {
+            let Ok(de) = de else {
+                continue;
+            };
+            let path = de.path();
+
+            let contents = read_to_string(path.clone()).await.with_context(|_e| IOSnafu {
+                action: IOAction::ReadingFile(FileIdentifier::PB(path.clone()))
+            });
+            let contents: Arc<str> = match contents {
+                Ok(c) => c.into(),
+                Err(e) => {
+                    warn!(?e, ?path, "Error reading file for pre-population");
+                    continue;
+                }
+            };
+
+            self.templates_cache.insert(path, contents).await;
+        }
     }
 }
