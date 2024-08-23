@@ -17,19 +17,24 @@ use crate::{
         mail::{email_sender_thread, EmailToSend},
     },
 };
-use axum::response::Html;
+use axum::response::{Html, IntoResponse, Redirect};
 use liquid::Object;
 use snafu::ResultExt;
 use sqlx::{pool::PoolConnection, Pool, Postgres};
-use std::{fmt::Debug, path::Path, sync::Arc};
+use std::{fmt::Debug, path::Path};
+use axum::extract::State;
+use axum::Router;
+use axum::routing::get;
+use axum_login::permission_required;
 use tokio::{
     fs::File,
     sync::{
         broadcast::{channel as broadcast_channel, Sender as BroadcastSender},
         mpsc::UnboundedSender,
-        Mutex,
     },
 };
+use crate::auth::backend::VentAuthBackend;
+use crate::auth::PermissionsTarget;
 
 #[derive(Clone, Debug)]
 pub struct VentState {
@@ -39,7 +44,7 @@ pub struct VentState {
     pub settings: Settings,
     database: VentDatabase,
     compiler: VentCompiler,
-    cache: Arc<Mutex<VentCache>>,
+    cache: VentCache,
 }
 
 impl VentState {
@@ -57,7 +62,7 @@ impl VentState {
 
         let database = VentDatabase::new(postgres);
         let compiler = VentCompiler;
-        let mut cache = VentCache::new();
+        let cache = VentCache::new();
         cache.pre_populate().await;
 
         Self {
@@ -67,7 +72,7 @@ impl VentState {
             stop_senders: stop_senders_tx,
             settings,
             compiler,
-            cache: Arc::new(Mutex::new(cache)),
+            cache,
         }
     }
 
@@ -127,4 +132,20 @@ impl VentState {
             )
             .await
     }
+}
+
+pub async fn reload_cache (State(state): State<VentState>) -> impl IntoResponse {
+    state.cache.clear();
+    Redirect::to("/")
+}
+
+
+pub fn router () -> Router<VentState> {
+    Router::new()
+        .route("/reload_pages", get(reload_cache))
+        .route_layer(permission_required!(
+            VentAuthBackend,
+            login_url = "/login",
+            PermissionsTarget::DevAccess
+        ))
 }

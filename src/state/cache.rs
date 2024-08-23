@@ -22,7 +22,7 @@ impl VentCache {
         Self { templates_cache }
     }
 
-    pub async fn get(&mut self, path: impl AsRef<Path>) -> Result<Arc<str>, VentError> {
+    pub async fn get(&self, path: impl AsRef<Path>) -> Result<Arc<str>, VentError> {
         let path = path.as_ref().to_path_buf();
         if !path.exists() {
             return Err(VentError::IO {
@@ -47,7 +47,7 @@ impl VentCache {
         Ok(read_in)
     }
 
-    pub async fn pre_populate(&mut self) {
+    pub async fn pre_populate(&self) {
         let des: Vec<_> = WalkDir::new("www/").collect().await;
 
         for path in des.into_iter().filter_map(Result::ok).map(|x| x.path()) {
@@ -66,5 +66,9 @@ impl VentCache {
 
             self.templates_cache.insert(path, contents).await;
         }
+    }
+
+    pub fn clear (&self) {
+        self.templates_cache.invalidate_all();
     }
 }

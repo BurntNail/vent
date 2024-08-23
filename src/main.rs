@@ -146,6 +146,7 @@ async fn main() {
         .merge(give_bonus_point::router())
         .merge(update_bonus_point::router())
         .merge(show_bonus_points::router())
+        .merge(state::router())
         .fallback(not_found_fallback)
         .layer(TraceLayer::new_for_http())
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) //50MB i think
