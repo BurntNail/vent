@@ -52,6 +52,7 @@ async fn post_add_event_form(
         teacher,
         info,
         is_locked,
+        victory_points: _
     }): Form<FormEvent>,
 ) -> Result<impl IntoResponse, VentError> {
     let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M").context(ParseTimeSnafu {
