@@ -91,7 +91,7 @@ SELECT * FROM events"#
             sheet.write_with_format(
                 1,
                 col,
-                &event.date.format("%d/%m/%Y").to_string(),
+                event.date.format("%d/%m/%Y").to_string(),
                 &event_fmt,
             )?;
             events_to_check.push((col, event.id));
@@ -114,7 +114,7 @@ SELECT * FROM events"#
                 &person_fmt,
             )?;
             sheet.write_with_format(row, 1, &rec.form, &person_fmt)?;
-            sheet.write_with_format(row, 2, &pr.len().to_string(), &person_fmt)?;
+            sheet.write_with_format(row, 2, pr.len().to_string(), &person_fmt)?;
 
             for (col, event_id) in &events_to_check {
                 if pr.contains(event_id) {

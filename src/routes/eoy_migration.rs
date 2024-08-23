@@ -4,7 +4,6 @@ use crate::{
         get_auth_object, PermissionsTarget,
     },
     error::{SqlxAction, SqlxSnafu, VentError},
-    liquid_utils::compile_with_newtitle,
     state::VentState,
 };
 use axum::{
@@ -40,16 +39,16 @@ async fn get_eoy_migration(
 
     let aa = get_auth_object(auth).await?;
 
-    compile_with_newtitle(
-        "www/eoy_migration.liquid",
-        liquid::object!({
-            "auth": aa,
-            "forms": forms
-        }),
-        &state.settings.brand.instance_name,
-        Some("Migrating Forms".into()),
-    )
-    .await
+    state
+        .compile(
+            "www/eoy_migration.liquid",
+            liquid::object!({
+                "auth": aa,
+                "forms": forms
+            }),
+            Some("Migrating Forms".into()),
+        )
+        .await
 }
 
 #[derive(Deserialize)]

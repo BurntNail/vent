@@ -1,17 +1,22 @@
-use crate::{auth::{
-    backend::{Auth, VentAuthBackend},
-    get_auth_object, PermissionsRole,
-}, error::{DatabaseIDMethod, SqlxAction, SqlxSnafu, VentError}, liquid_utils::{compile_with_newtitle, CustomFormat}, routes::rewards::Reward, state::{db_objects::DbPerson, VentState}};
+use crate::{
+    auth::{
+        backend::{Auth, VentAuthBackend},
+        get_auth_object, PermissionsRole,
+    },
+    error::{DatabaseIDMethod, SqlxAction, SqlxSnafu, VentError},
+    liquid_utils::CustomFormat,
+    routes::rewards::Reward,
+    state::{db_objects::DbPerson, VentState},
+};
 use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
+    routing::get,
     Form, Router,
 };
-use axum::routing::get;
 use axum_login::login_required;
 use bcrypt::{hash, DEFAULT_COST};
-use serde::Serialize;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 
 #[derive(Serialize)]
@@ -91,18 +96,18 @@ ON pe.event_id = e.id AND pe.prefect_id = $1
         "#,
         current_id
     )
-        .fetch_all(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::FindingPerson(current_id.into()),
-        })?
-        .into_iter()
-        .map(|r| Event {
-            name: r.event_name,
-            date: r.date.to_env_string(&state.settings.niche.date_time_format),
-            id: r.id,
-        })
-        .collect::<Vec<_>>();
+    .fetch_all(&mut *state.get_connection().await?)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingPerson(current_id.into()),
+    })?
+    .into_iter()
+    .map(|r| Event {
+        name: r.event_name,
+        date: r.date.to_env_string(&state.settings.niche.date_time_format),
+        id: r.id,
+    })
+    .collect::<Vec<_>>();
 
     debug!("Getting events participated");
 
@@ -113,38 +118,39 @@ INNER JOIN participant_events pe
 ON pe.event_id = e.id AND pe.participant_id = $1 AND pe.is_verified"#,
         current_id
     )
-        .fetch_all(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::FindingEventsOnPeople {
-                person: current_id.into(),
-            },
-        })?;
+    .fetch_all(&mut *state.get_connection().await?)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingEventsOnPeople {
+            person: current_id.into(),
+        },
+    })?;
 
     let mut events_participated = vec![];
     let mut photos = vec![];
 
     for record in events_participated_records {
         let name = record.event_name;
-        let date = record.date.format(&state.settings.niche.date_time_format).to_string();
+        let date = record
+            .date
+            .format(&state.settings.niche.date_time_format)
+            .to_string();
         let id = record.id;
 
-        for rec in sqlx::query!("SELECT path FROM photos WHERE event_id = $1", id).fetch_all(&mut *state.get_connection().await?)
+        for rec in sqlx::query!("SELECT path FROM photos WHERE event_id = $1", id)
+            .fetch_all(&mut *state.get_connection().await?)
             .await
             .context(SqlxSnafu {
-                action: SqlxAction::FindingPhotos(DatabaseIDMethod::Id(id))
-            })? {
+                action: SqlxAction::FindingPhotos(DatabaseIDMethod::Id(id)),
+            })?
+        {
             photos.push(Photo {
                 path: rec.path,
                 event_name: name.clone(),
             });
         }
 
-        events_participated.push(Event {
-            name,
-            date,
-            id,
-        });
+        events_participated.push(Event { name, date, id });
     }
 
     let event_pts = sqlx::query!("SELECT COUNT(participant_id) FROM participant_events WHERE participant_id = $1 AND is_verified = true", current_id).fetch_one(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(person.id.into())) })?.count.unwrap_or(0) as usize;
@@ -168,7 +174,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1 AND pe.is_verified"#,
 
     debug!("Compiling");
 
-    compile_with_newtitle("www/edit_self.liquid", liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "pts": pts, "event_pts": event_pts, "bonus_points": bonus_points, "bonus_pts": bonus_pts, "rewards": rewards, "auth": aa, "imgs": photos, "n_imgs": photos.len() }), &state.settings.brand.instance_name, Some(format!("Edit {} {}", person.first_name, person.surname))).await
+    state.compile("www/edit_self.liquid", liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "pts": pts, "event_pts": event_pts, "bonus_points": bonus_points, "bonus_pts": bonus_pts, "rewards": rewards, "auth": aa, "imgs": photos, "n_imgs": photos.len() }), Some(format!("Edit {} {}", person.first_name, person.surname))).await
 }
 
 #[derive(Deserialize)]
@@ -182,10 +188,10 @@ pub async fn post_edit_user(
     auth: Auth,
     State(state): State<VentState>,
     Form(LoginDetails {
-             first_name,
-             surname,
-             unhashed_password,
-         }): Form<LoginDetails>,
+        first_name,
+        surname,
+        unhashed_password,
+    }): Form<LoginDetails>,
 ) -> Result<impl IntoResponse, VentError> {
     let current_id = auth.user.unwrap().id;
 
@@ -206,11 +212,11 @@ WHERE id=$4;
         hashed,
         current_id
     )
-        .execute(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::UpdatingPerson(current_id.into()),
-        })?;
+    .execute(&mut *state.get_connection().await?)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::UpdatingPerson(current_id.into()),
+    })?;
 
     Ok(Redirect::to("/"))
 }

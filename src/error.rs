@@ -1,4 +1,7 @@
-use crate::{auth::{backend::VentAuthBackend, cloudflare_turnstile::CommonHeaders}, image_format::ImageFormat};
+use crate::{
+    auth::{backend::VentAuthBackend, cloudflare_turnstile::CommonHeaders},
+    image_format::ImageFormat,
+};
 use axum::{
     http::StatusCode,
     response::{Html, IntoResponse},
@@ -330,9 +333,7 @@ pub enum VentError {
         source: axum::extract::multipart::MultipartError,
     },
     #[snafu(display("Invalid Image"))]
-    Image {
-        action: ImageAction,
-    },
+    Image { action: ImageAction },
     #[snafu(display("Missing Image Extension: {extension:?}"))]
     NoImageExtension { extension: ImageFormat },
     #[snafu(display("Error creating Zip File: {source:?}"), context(false))]

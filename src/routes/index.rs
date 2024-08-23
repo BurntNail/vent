@@ -5,7 +5,7 @@ use snafu::ResultExt;
 use crate::{
     auth::{backend::Auth, get_auth_object},
     error::{SqlxAction, SqlxSnafu, VentError},
-    liquid_utils::{compile, CustomFormat},
+    liquid_utils::CustomFormat,
     state::{db_objects::DbEvent, VentState},
 };
 
@@ -37,7 +37,7 @@ pub async fn get_index(
                     teacher,
                     other_info,
                     zip_file: _,
-                    is_locked
+                    is_locked,
                 },
                 fmt,
             ): (DbEvent, &'a str),
@@ -49,7 +49,7 @@ pub async fn get_index(
                 location,
                 teacher,
                 other_info: other_info.unwrap_or_default(),
-                is_locked
+                is_locked,
             }
         }
     }
@@ -215,5 +215,5 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
 
     let aa = get_auth_object(auth).await?;
 
-    compile("www/index.liquid", liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events, "auth": aa }), &state.settings.brand.instance_name).await
+    state.compile("www/index.liquid", liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events, "auth": aa }), None).await
 }

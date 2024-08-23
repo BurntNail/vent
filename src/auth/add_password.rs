@@ -5,7 +5,6 @@ use crate::{
         get_auth_object,
     },
     error::{SqlxAction, SqlxSnafu, VentError},
-    liquid_utils::compile,
     state::{db_objects::DbPerson, mail::EmailToSend, VentState},
 };
 use axum::{
@@ -28,15 +27,16 @@ async fn get_blank_add_password(
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
     let aa = get_auth_object(auth).await?;
-    compile(
-        "www/add_password.liquid",
-        liquid::object!({
-            "is_authing_user": false,
-            "auth": aa,
-        }),
-        &state.settings.brand.instance_name,
-    )
-    .await
+    state
+        .compile(
+            "www/add_password.liquid",
+            liquid::object!({
+                "is_authing_user": false,
+                "auth": aa,
+            }),
+            None,
+        )
+        .await
 }
 
 #[derive(Debug, Deserialize)]
@@ -91,18 +91,19 @@ WHERE id = $1"#,
 
     let aa = get_auth_object(auth).await?;
 
-    Ok(compile(
-        "www/add_password.liquid",
-        liquid::object!({
-            "is_authing_user": true,
-            "person": person,
-            "auth": aa,
-            "link_id": link_thingie
-        }),
-        &state.settings.brand.instance_name,
-    )
-    .await?
-    .into_response())
+    Ok(state
+        .compile(
+            "www/add_password.liquid",
+            liquid::object!({
+                "is_authing_user": true,
+                "person": person,
+                "auth": aa,
+                "link_id": link_thingie
+            }),
+            None,
+        )
+        .await?
+        .into_response())
 }
 
 #[derive(Deserialize)]

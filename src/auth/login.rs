@@ -5,7 +5,6 @@ use crate::{
         get_auth_object,
     },
     error::{ALError, LoginFailureReason, VentError},
-    liquid_utils::compile,
     state::VentState,
 };
 use axum::{
@@ -32,10 +31,10 @@ pub async fn get_login(
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
     let aa = get_auth_object(auth).await?;
-    compile(
+    state.compile(
         "www/login.liquid",
         liquid::object!({ "auth": aa, "tech_support_person": state.settings.tech_support_person.clone() }),
-        &state.settings.brand.instance_name,
+        None
     )
     .await
 }
@@ -75,12 +74,13 @@ pub async fn get_login_failure(
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
     let aa = get_auth_object(auth).await?;
-    let html = compile(
-        "www/failed_auth.liquid",
-        liquid::object!({ "auth": aa, "was_password_related": was_password_related }),
-        &state.settings.brand.instance_name,
-    )
-    .await?;
+    let html = state
+        .compile(
+            "www/failed_auth.liquid",
+            liquid::object!({ "auth": aa, "was_password_related": was_password_related }),
+            None,
+        )
+        .await?;
 
     Ok((was_password_related.status_code(), html).into_response())
 }

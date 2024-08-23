@@ -50,7 +50,7 @@ pub enum PermissionsTarget {
     AddPhotos,
     SeePeople,
     GiveBonusPoints,
-    SeeBonusPoints
+    SeeBonusPoints,
 }
 
 impl PermissionsTarget {
@@ -72,7 +72,7 @@ impl PermissionsTarget {
             PermissionsTarget::AddPhotos => role >= PermissionsRole::Prefect,
             PermissionsTarget::SeePeople => role >= PermissionsRole::Prefect,
             PermissionsTarget::GiveBonusPoints => role >= PermissionsRole::Admin,
-            PermissionsTarget::SeeBonusPoints => role >= PermissionsRole::Participant
+            PermissionsTarget::SeeBonusPoints => role >= PermissionsRole::Participant,
         }
     }
 }
@@ -80,7 +80,13 @@ impl PermissionsTarget {
 pub async fn get_auth_object(auth: Auth) -> Result<Object, VentError> {
     let iter = PermissionsTarget::iter().map(|x| {
         let pre_snake_case: &'static str = x.into();
-        (x, AsSnakeCase(pre_snake_case).to_string().parse().expect("unable to convert string to kstring"))
+        (
+            x,
+            AsSnakeCase(pre_snake_case)
+                .to_string()
+                .parse()
+                .expect("unable to convert string to kstring"),
+        )
     });
 
     match &auth.user {

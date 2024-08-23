@@ -10,7 +10,6 @@ use crate::{
         get_auth_object, PermissionsTarget,
     },
     error::{EncodeStep, ParseTimeSnafu, SqlxAction, SqlxSnafu, VentError},
-    liquid_utils::compile_with_newtitle,
     routes::FormEvent,
     state::VentState,
 };
@@ -33,13 +32,13 @@ async fn get_add_event_form(
 ) -> Result<impl IntoResponse, VentError> {
     let aa = get_auth_object(auth).await?;
 
-    compile_with_newtitle(
-        "www/add_event.liquid",
-        liquid::object!({"auth": aa}),
-        &state.settings.brand.instance_name,
-        Some("New House Event".to_string()),
-    )
-    .await
+    state
+        .compile(
+            "www/add_event.liquid",
+            liquid::object!({"auth": aa}),
+            Some("New House Event".to_string()),
+        )
+        .await
 }
 
 ///`POST` method to add an event from a form to the database. Redirects back to the [`get_add_event_form`]
@@ -52,7 +51,7 @@ async fn post_add_event_form(
         location,
         teacher,
         info,
-        is_locked
+        is_locked,
     }): Form<FormEvent>,
 ) -> Result<impl IntoResponse, VentError> {
     let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M").context(ParseTimeSnafu {
