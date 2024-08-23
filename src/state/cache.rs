@@ -48,12 +48,9 @@ impl VentCache {
     }
 
     pub async fn pre_populate(&mut self) {
-        while let Some(de) = WalkDir::new("www/").next().await {
-            let Ok(de) = de else {
-                continue;
-            };
-            let path = de.path();
+        let des: Vec<_> = WalkDir::new("www/").collect().await;
 
+        for path in des.into_iter().filter_map(Result::ok).map(|x| x.path()) {
             let contents = read_to_string(path.clone()).await.with_context(|_e| IOSnafu {
                 action: IOAction::ReadingFile(FileIdentifier::PB(path.clone()))
             });

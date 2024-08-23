@@ -190,11 +190,8 @@ WHERE event_id = $1"#,
             let zip_ext = OsStr::new("zip");
             let mut files = vec![];
 
-            while let Some(de) = WalkDir::new("uploads").next().await {
-                let Ok(de) = de else {
-                    continue;
-                };
-
+            let des: Vec<_> = WalkDir::new("uploads").collect().await;
+            for de in des.into_iter().filter_map(Result::ok) {
                 match de.file_name().to_str().context(ToStrSnafu {
                     what: ConvertingWhatToString::FileName(de.file_name().to_os_string()),
                 }) {
