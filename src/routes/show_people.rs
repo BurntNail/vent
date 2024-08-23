@@ -50,6 +50,7 @@ FROM people p
 
     let mut new_people = vec![];
     let mut points_by_form: HashMap<String, usize> = HashMap::new();
+    let mut total_house_points: usize = 0;
     for person in people {
         let event_pts = sqlx::query!("SELECT COUNT(participant_id) FROM participant_events WHERE participant_id = $1 AND is_verified = true", person.id).fetch_one(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::GettingRewardsReceived(Some(person.id.into())) })?.count.unwrap_or(0) as usize;
 
@@ -75,7 +76,9 @@ FROM people p
             id: person.id,
             pts,
         });
+
         *points_by_form.entry(person.form).or_default() += pts;
+        total_house_points += pts;
     }
 
     trace!("Compiling");
@@ -85,7 +88,7 @@ FROM people p
     state
         .compile(
             "www/show_people.liquid",
-            liquid::object!({ "people": new_people, "auth": aa, "points_by_form": points_by_form }),
+            liquid::object!({ "people": new_people, "auth": aa, "points_by_form": points_by_form, "total_house_points": total_house_points }),
             Some("All People".into()),
         )
         .await

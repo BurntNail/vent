@@ -1,7 +1,11 @@
 {% include "partials/header.liquid" %}
 
+<div class="alert alert-light" role="alert">
+    <p>Total House Points: {{ total_house_points }}</p>
+</div>
 
 {% if auth.is_logged_in %}
+    <br>
     <h2>People</h2>
 
     <table class="table">
