@@ -4,7 +4,6 @@ use crate::{
         get_auth_object, PermissionsRole, PermissionsTarget,
     },
     error::{EncodeStep, IOAction, IOSnafu, ParseTimeSnafu, SqlxAction, SqlxSnafu, VentError},
-    liquid_utils::compile_with_newtitle,
     routes::FormEvent,
     state::{
         db_objects::{DbEvent, DbPerson},
@@ -319,7 +318,7 @@ WHERE event_id = $1
 
     let aa = get_auth_object(auth).await?;
 
-    compile_with_newtitle(
+    state.compile(
         "www/update_event.liquid",
         liquid::object!({"event": 
             liquid::object!({
@@ -338,7 +337,6 @@ WHERE event_id = $1
         "n_imgs": photos.len(),
         "imgs": photos,
         "auth": aa, "already_in": already_in }),
-        &state.settings.brand.instance_name,
         Some(event_name),
     )
     .await

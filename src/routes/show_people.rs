@@ -5,7 +5,6 @@ use crate::{
         get_auth_object, PermissionsTarget,
     },
     error::{SqlxAction, SqlxSnafu, VentError},
-    liquid_utils::compile_with_newtitle,
     state::VentState,
 };
 use axum::{
@@ -83,10 +82,9 @@ FROM people p
 
     let aa = get_auth_object(auth).await?;
 
-    compile_with_newtitle(
+    state.compile(
         "www/show_people.liquid",
         liquid::object!({ "people": new_people, "auth": aa, "points_by_form": points_by_form }),
-        &state.settings.brand.instance_name,
         Some("All People".into()),
     )
     .await

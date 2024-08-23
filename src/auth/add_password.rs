@@ -5,7 +5,6 @@ use crate::{
         get_auth_object,
     },
     error::{SqlxAction, SqlxSnafu, VentError},
-    liquid_utils::compile,
     state::{db_objects::DbPerson, mail::EmailToSend, VentState},
 };
 use axum::{
@@ -28,13 +27,13 @@ async fn get_blank_add_password(
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
     let aa = get_auth_object(auth).await?;
-    compile(
+    state.compile(
         "www/add_password.liquid",
         liquid::object!({
             "is_authing_user": false,
             "auth": aa,
         }),
-        &state.settings.brand.instance_name,
+        None
     )
     .await
 }
@@ -91,7 +90,7 @@ WHERE id = $1"#,
 
     let aa = get_auth_object(auth).await?;
 
-    Ok(compile(
+    Ok(state.compile(
         "www/add_password.liquid",
         liquid::object!({
             "is_authing_user": true,
@@ -99,7 +98,7 @@ WHERE id = $1"#,
             "auth": aa,
             "link_id": link_thingie
         }),
-        &state.settings.brand.instance_name,
+        None
     )
     .await?
     .into_response())

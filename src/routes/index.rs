@@ -5,7 +5,7 @@ use snafu::ResultExt;
 use crate::{
     auth::{backend::Auth, get_auth_object},
     error::{SqlxAction, SqlxSnafu, VentError},
-    liquid_utils::{compile, CustomFormat},
+    liquid_utils::CustomFormat,
     state::{db_objects::DbEvent, VentState},
 };
 
@@ -215,5 +215,5 @@ INNER JOIN participant_events pe ON p.id = pe.participant_id and pe.event_id = $
 
     let aa = get_auth_object(auth).await?;
 
-    compile("www/index.liquid", liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events, "auth": aa }), &state.settings.brand.instance_name).await
+    state.compile("www/index.liquid", liquid::object!({ "events_to_happen": events_to_happen, "happened_events": happened_events, "auth": aa }), None).await
 }

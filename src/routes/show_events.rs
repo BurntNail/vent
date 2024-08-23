@@ -4,7 +4,7 @@ use crate::{
         get_auth_object, PermissionsTarget,
     },
     error::{SqlxAction, SqlxSnafu, VentError},
-    liquid_utils::{compile_with_newtitle, CustomFormat},
+    liquid_utils::CustomFormat,
     state::VentState,
 };
 use axum::{
@@ -81,10 +81,9 @@ ORDER BY e.date DESC
 
     let aa = get_auth_object(auth).await?;
 
-    compile_with_newtitle(
+    state.compile(
         "www/show_events.liquid",
         liquid::object!({ "events": events, "auth": aa }),
-        &state.settings.brand.instance_name,
         Some("All Events".into()),
     )
         .await

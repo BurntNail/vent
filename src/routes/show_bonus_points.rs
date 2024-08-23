@@ -4,7 +4,6 @@ use crate::{
         get_auth_object, PermissionsTarget,
     },
     error::{SqlxAction, SqlxSnafu, VentError},
-    liquid_utils::compile_with_newtitle,
     state::VentState,
 };
 use axum::{
@@ -50,10 +49,9 @@ async fn get_show_bonus_points(
         }
     }).collect();
 
-    let page = compile_with_newtitle(
+    let page = state.compile(
         "www/show_bonus_points.liquid",
         liquid::object!({ "bonus_points": bonus_points_vec,"auth": aa }),
-        &state.settings.brand.instance_name,
         Some("All Bonus Points".into()),
     )
         .await?;

@@ -1,7 +1,7 @@
 use crate::{auth::{
     backend::{Auth, VentAuthBackend},
     get_auth_object, PermissionsRole, PermissionsTarget,
-}, error::{SqlxAction, SqlxSnafu, VentError, DatabaseIDMethod}, liquid_utils::{compile_with_newtitle, CustomFormat}, routes::{rewards::Reward, FormPerson}, state::{db_objects::DbPerson, VentState}};
+}, error::{SqlxAction, SqlxSnafu, VentError, DatabaseIDMethod}, liquid_utils::{CustomFormat}, routes::{rewards::Reward, FormPerson}, state::{db_objects::DbPerson, VentState}};
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Redirect},
@@ -167,7 +167,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1 AND pe.is_verified"#,
 
     let aa = get_auth_object(auth).await?;
 
-    compile_with_newtitle("www/edit_person.liquid", liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "pts": pts, "event_pts": event_pts, "bonus_points": bonus_points, "bonus_pts": bonus_pts, "rewards": rewards, "auth": aa, "imgs": photos, "n_imgs": photos.len() }), &state.settings.brand.instance_name, Some(format!("Edit {} {}", person.first_name, person.surname))).await
+    state.compile("www/edit_person.liquid", liquid::object!({ "person": person, "supervised": events_supervised, "participated": events_participated, "pts": pts, "event_pts": event_pts, "bonus_points": bonus_points, "bonus_pts": bonus_pts, "rewards": rewards, "auth": aa, "imgs": photos, "n_imgs": photos.len() }), Some(format!("Edit {} {}", person.first_name, person.surname))).await
 }
 
 #[axum::debug_handler]

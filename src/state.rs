@@ -2,7 +2,14 @@ pub mod db;
 pub mod mail;
 
 pub mod db_objects;
+mod cache;
+mod compiler;
 
+use std::fmt::Debug;
+use std::path::Path;
+use std::sync::Arc;
+use axum::response::Html;
+use liquid::Object;
 use snafu::ResultExt;
 use sqlx::{pool::PoolConnection, Pool, Postgres};
 use tokio::{
@@ -12,7 +19,7 @@ use tokio::{
         mpsc::UnboundedSender,
     },
 };
-
+use tokio::sync::Mutex;
 use crate::{
     auth::add_password::get_email_to_be_sent_for_reset_password,
     cfg::Settings,
@@ -23,6 +30,8 @@ use crate::{
         mail::{email_sender_thread, EmailToSend},
     },
 };
+use crate::state::cache::VentCache;
+use crate::state::compiler::VentCompiler;
 
 #[derive(Clone, Debug)]
 pub struct VentState {
@@ -31,6 +40,8 @@ pub struct VentState {
     stop_senders: BroadcastSender<()>,
     pub settings: Settings,
     database: VentDatabase,
+    compiler: VentCompiler,
+    cache: Arc<Mutex<VentCache>>,
 }
 
 impl VentState {
@@ -47,6 +58,9 @@ impl VentState {
         );
 
         let database = VentDatabase::new(postgres);
+        let compiler = VentCompiler;
+        let mut cache = VentCache::new();
+        cache.pre_populate().await;
 
         Self {
             database,
@@ -54,6 +68,8 @@ impl VentState {
             update_calendar_sender,
             stop_senders: stop_senders_tx,
             settings,
+            compiler,
+            cache: Arc::new(Mutex::new(cache))
         }
     }
 
@@ -95,5 +111,9 @@ impl VentState {
         self.stop_senders
             .send(())
             .expect("unable to send stop messages");
+    }
+
+    pub async fn compile (&self, path: impl AsRef<Path> + Debug, globals: Object, title_additional_info: Option<String>) -> Result<Html<String>, VentError> {
+        self.compiler.compile_with_newtitle(path, globals, title_additional_info, &self.settings, self.cache.clone()).await
     }
 }

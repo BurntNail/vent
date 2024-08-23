@@ -16,7 +16,6 @@ use crate::{
         get_auth_object, PermissionsTarget,
     },
     error::{SqlxAction, SqlxSnafu, VentError},
-    liquid_utils::compile_with_newtitle,
     state::VentState,
 };
 
@@ -166,10 +165,9 @@ pub async fn get_rewards(
 
     let aa = get_auth_object(auth).await?;
 
-    compile_with_newtitle(
+    state.compile(
         "www/rewards.liquid",
         liquid::object!({ "tba": to_be_awarded, "aa": already_awarded, "auth": aa }),
-        &state.settings.brand.instance_name,
         Some("Rewards".into()),
     )
     .await

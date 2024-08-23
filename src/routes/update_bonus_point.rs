@@ -4,7 +4,6 @@ use crate::{
         get_auth_object, PermissionsTarget,
     },
     error::{SqlxAction, SqlxSnafu, VentError},
-    liquid_utils::compile_with_newtitle,
     state::{
         db_objects::DbPerson,
         VentState,
@@ -160,7 +159,7 @@ SELECT username FROM people WHERE id = $1
     debug!("Compiling");
     let aa = get_auth_object(auth).await?;
 
-    let page = compile_with_newtitle(
+    let page = state.compile(
         "www/update_bonus_point.liquid",
         liquid::object!({"bonus_point":
             liquid::object!({
@@ -173,7 +172,6 @@ SELECT username FROM people WHERE id = $1
         "existing_participants": existing_participants,
         "participants": possible_participants,
         "auth": aa }),
-        &state.settings.brand.instance_name,
         Some("Bonus Point".to_string()),
     )
         .await?;

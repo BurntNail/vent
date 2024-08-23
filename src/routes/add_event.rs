@@ -10,7 +10,6 @@ use crate::{
         get_auth_object, PermissionsTarget,
     },
     error::{EncodeStep, ParseTimeSnafu, SqlxAction, SqlxSnafu, VentError},
-    liquid_utils::compile_with_newtitle,
     routes::FormEvent,
     state::VentState,
 };
@@ -33,10 +32,9 @@ async fn get_add_event_form(
 ) -> Result<impl IntoResponse, VentError> {
     let aa = get_auth_object(auth).await?;
 
-    compile_with_newtitle(
+    state.compile(
         "www/add_event.liquid",
         liquid::object!({"auth": aa}),
-        &state.settings.brand.instance_name,
         Some("New House Event".to_string()),
     )
     .await

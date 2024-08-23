@@ -8,7 +8,6 @@ use crate::{
         ParseTimeSnafu, PersonField, SqlxAction, SqlxSnafu, TryingToGetFromCSV, VentError,
         WhatToParse,
     },
-    liquid_utils::compile_with_newtitle,
     routes::public::serve_static_file,
     state::VentState,
 };
@@ -34,10 +33,9 @@ pub async fn get_import_export_csv(
 ) -> Result<impl IntoResponse, VentError> {
     let aa = get_auth_object(auth).await?;
 
-    compile_with_newtitle(
+    state.compile(
         "www/csv.liquid",
         liquid::object!({ "auth": aa }),
-        &state.settings.brand.instance_name,
         Some("Import/Export".to_string()),
     )
     .await

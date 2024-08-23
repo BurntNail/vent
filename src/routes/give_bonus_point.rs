@@ -4,7 +4,6 @@ use crate::{
         get_auth_object, PermissionsTarget,
     },
     error::{SqlxAction, SqlxSnafu, VentError},
-    liquid_utils::compile_with_newtitle,
     state::VentState,
 };
 use axum::{
@@ -32,10 +31,9 @@ async fn get_give_bonus_points_form(
     }
     let aa = get_auth_object(auth).await?;
 
-    let page = compile_with_newtitle(
+    let page = state.compile(
         "www/give_bonus_point.liquid",
         liquid::object!({"auth": aa}),
-        &state.settings.brand.instance_name,
         Some("Give Bonus Point".into()),
     )
         .await?;

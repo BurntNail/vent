@@ -6,7 +6,6 @@ use crate::{
         get_auth_object, PermissionsTarget,
     },
     error::{SqlxAction, SqlxSnafu, VentError},
-    liquid_utils::compile_with_newtitle,
     routes::FormPerson,
     state::VentState,
 };
@@ -27,10 +26,9 @@ async fn get_add_person(
 ) -> Result<impl IntoResponse, VentError> {
     let aa = get_auth_object(auth).await?;
 
-    compile_with_newtitle(
+    state.compile(
         "www/add_person.liquid",
         liquid::object!({"auth": aa}),
-        &state.settings.brand.instance_name,
         Some("New Person".into()),
     )
     .await
