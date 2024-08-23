@@ -8,8 +8,7 @@ use axum::response::Html;
 use liquid::{model::Value, Object, ParserBuilder};
 use once_cell::sync::Lazy;
 use snafu::ResultExt;
-use std::{env::var, fmt::Debug, path::Path, sync::Arc};
-use tokio::sync::Mutex;
+use std::{env::var, fmt::Debug, path::Path};
 
 pub static CFT_SITEKEY: Lazy<String> =
     Lazy::new(|| var("CFT_SITEKEY").expect("missing environment variable `CFT_SITEKEY`"));
@@ -31,14 +30,11 @@ impl VentCompiler {
         mut globals: Object,
         title_additional_info: Option<String>,
         settings: &Settings,
-        cache: Arc<Mutex<VentCache>>,
+        cache: VentCache,
     ) -> Result<Html<String>, VentError> {
         debug!("Reading in file + partials");
 
-        let liquid = {
-            let mut cache = cache.lock().await;
-            cache.get(path).await?.to_string()
-        };
+        let liquid = cache.get(path).await?.to_string();
         let partial_compiler = PARTIALS.read().await.to_compiler();
 
         debug!("Inserting globals");
