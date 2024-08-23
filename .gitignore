@@ -14,3 +14,5 @@ config/
 
 public/*.png
 public/*.ico
+
+docker-compose.yml
