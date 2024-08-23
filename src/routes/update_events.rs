@@ -41,6 +41,7 @@ async fn get_update_event(
         other_info,
         zip_file: _,
         is_locked,
+        extra_points
     } = sqlx::query_as!(
         DbEvent,
         r#"
@@ -329,7 +330,8 @@ WHERE event_id = $1
                 "location": location,
                 "teacher": teacher,
                 "other_info": other_info.unwrap_or_default(),
-                "is_locked": is_locked
+                "is_locked": is_locked,
+                "victory_points": extra_points
             }),
         "existing_prefects": existing_prefects,
         "existing_participants": existing_participants,
@@ -353,6 +355,7 @@ async fn post_update_event(
         teacher,
         info,
         is_locked,
+        victory_points
     }): Form<FormEvent>,
 ) -> Result<impl IntoResponse, VentError> {
     let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M").context(ParseTimeSnafu {
@@ -363,7 +366,7 @@ async fn post_update_event(
     sqlx::query!(
         r#"
 UPDATE public.events
-SET event_name=$2, date=$3, location=$4, teacher=$5, other_info=$6, is_locked=$7
+SET event_name=$2, date=$3, location=$4, teacher=$5, other_info=$6, is_locked=$7, extra_points=$8
 WHERE id=$1
         "#,
         event_id,
@@ -372,7 +375,8 @@ WHERE id=$1
         location,
         teacher,
         info,
-        is_locked
+        is_locked,
+        victory_points
     )
     .execute(&mut *state.get_connection().await?)
     .await

@@ -79,6 +79,12 @@
                 {% endunless %}>
       </div>
 
+      <div class="input-group mb-3">
+        <label for="victory_points" class="input-group-text">Points from Victory:</label>
+        <input type="text" id="victory_points" name="victory_points" class="form-control" value="{{ event.victory_points }}"
+          {% unless auth.permissions["edit_events"] %} disabled {% endunless %}>
+      </div>
+
       <div class="mb-3">
         {% if auth.permissions["edit_events"] %}
           <div class="form-check">

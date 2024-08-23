@@ -20,10 +20,6 @@ pub async fn get_index(
         pub id: i32,
         pub event_name: String,
         pub date: String,
-        pub location: String,
-        pub teacher: String,
-        pub other_info: String,
-        pub is_locked: bool,
     }
 
     impl<'a> From<(DbEvent, &'a str)> for HTMLEvent {
@@ -33,11 +29,12 @@ pub async fn get_index(
                     id,
                     event_name,
                     date,
-                    location,
-                    teacher,
-                    other_info,
+                    location: _,
+                    teacher: _,
+                    other_info: _,
                     zip_file: _,
-                    is_locked,
+                    is_locked: _,
+                    extra_points: _
                 },
                 fmt,
             ): (DbEvent, &'a str),
@@ -46,10 +43,6 @@ pub async fn get_index(
                 id,
                 event_name,
                 date: date.to_env_string(fmt),
-                location,
-                teacher,
-                other_info: other_info.unwrap_or_default(),
-                is_locked,
             }
         }
     }

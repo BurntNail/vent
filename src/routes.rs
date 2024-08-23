@@ -32,6 +32,7 @@ pub struct FormEvent {
     pub teacher: String,
     pub info: String,
     pub is_locked: bool,
+    pub victory_points: i32,
 }
 
 #[derive(Deserialize)]

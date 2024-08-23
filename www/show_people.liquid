@@ -1,7 +1,12 @@
 {% include "partials/header.liquid" %}
 
+<div class="alert alert-light" role="alert">
+    <p>Participation Points: {{ participation_points }}</p>
+    <p>Victory Points: {{ event_victory_points }}</p>
+</div>
 
 {% if auth.is_logged_in %}
+    <br>
     <h2>People</h2>
 
     <table class="table">
