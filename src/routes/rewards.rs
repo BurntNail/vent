@@ -165,12 +165,13 @@ pub async fn get_rewards(
 
     let aa = get_auth_object(auth).await?;
 
-    state.compile(
-        "www/rewards.liquid",
-        liquid::object!({ "tba": to_be_awarded, "aa": already_awarded, "auth": aa }),
-        Some("Rewards".into()),
-    )
-    .await
+    state
+        .compile(
+            "www/rewards.liquid",
+            liquid::object!({ "tba": to_be_awarded, "aa": already_awarded, "auth": aa }),
+            Some("Rewards".into()),
+        )
+        .await
 }
 
 #[derive(Deserialize)]

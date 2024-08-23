@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use crate::{
     auth::{
         backend::{Auth, VentAuthBackend},
@@ -17,6 +16,7 @@ use axum_extra::extract::Form;
 use axum_login::permission_required;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
+use std::collections::HashMap;
 
 #[axum::debug_handler]
 async fn get_show_people(
@@ -40,11 +40,11 @@ SELECT first_name, surname, form, id
 FROM people p
         "#
     )
-        .fetch_all(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::FindingPeople,
-        })?;
+    .fetch_all(&mut *state.get_connection().await?)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingPeople,
+    })?;
     people.sort_by_key(|x| x.surname.clone());
     people.sort_by_key(|x| x.form.clone());
 
@@ -55,7 +55,7 @@ FROM people p
 
         #[derive(Serialize)]
         struct BonusPointCount {
-            num_points: i32
+            num_points: i32,
         }
         let bonus_points_vec: Vec<BonusPointCount> = sqlx::query!("SELECT bonus_points.num_points FROM participant_bonus_points INNER JOIN bonus_points ON participant_bonus_points.bonus_point_id = bonus_points.id WHERE participant_id = $1;", person.id).fetch_all(&mut *state.get_connection().await?)
             .await
@@ -82,12 +82,13 @@ FROM people p
 
     let aa = get_auth_object(auth).await?;
 
-    state.compile(
-        "www/show_people.liquid",
-        liquid::object!({ "people": new_people, "auth": aa, "points_by_form": points_by_form }),
-        Some("All People".into()),
-    )
-    .await
+    state
+        .compile(
+            "www/show_people.liquid",
+            liquid::object!({ "people": new_people, "auth": aa, "points_by_form": points_by_form }),
+            Some("All People".into()),
+        )
+        .await
 }
 
 #[derive(Deserialize)]

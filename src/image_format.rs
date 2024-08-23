@@ -79,14 +79,14 @@ static MAGIC_BYTES: [(&[u8], ImageFormat); 23] = [
 ];
 
 impl ImageFormat {
-    pub fn guess_format (buffer: &[u8]) -> Option<Self> {
+    pub fn guess_format(buffer: &[u8]) -> Option<Self> {
         for &(signature, format) in &MAGIC_BYTES {
             if buffer.starts_with(signature) {
                 return Some(format);
             }
         }
         None
-    }    
+    }
 
     pub fn extensions_str(self) -> &'static [&'static str] {
         match self {

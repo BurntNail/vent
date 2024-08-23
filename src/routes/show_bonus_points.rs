@@ -8,11 +8,10 @@ use crate::{
 };
 use axum::{
     extract::State,
-    response::IntoResponse,
+    response::{IntoResponse, Redirect, Response},
     routing::get,
     Router,
 };
-use axum::response::{Redirect, Response};
 use axum_login::permission_required;
 use dotenvy::var;
 use serde::Serialize;
@@ -49,11 +48,12 @@ async fn get_show_bonus_points(
         }
     }).collect();
 
-    let page = state.compile(
-        "www/show_bonus_points.liquid",
-        liquid::object!({ "bonus_points": bonus_points_vec,"auth": aa }),
-        Some("All Bonus Points".into()),
-    )
+    let page = state
+        .compile(
+            "www/show_bonus_points.liquid",
+            liquid::object!({ "bonus_points": bonus_points_vec,"auth": aa }),
+            Some("All Bonus Points".into()),
+        )
         .await?;
     Ok(page.into_response())
 }

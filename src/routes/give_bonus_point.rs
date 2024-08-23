@@ -4,21 +4,20 @@ use crate::{
         get_auth_object, PermissionsTarget,
     },
     error::{SqlxAction, SqlxSnafu, VentError},
+    routes::FormBonusPoint,
     state::VentState,
 };
 use axum::{
     extract::State,
-    response::{IntoResponse, Redirect},
+    response::{IntoResponse, Redirect, Response},
     routing::get,
     Router,
 };
-use axum::response::Response;
 use axum_extra::extract::Form;
 use axum_login::permission_required;
-use snafu::ResultExt;
-use crate::routes::FormBonusPoint;
 use chrono::Utc;
 use dotenvy::var;
+use snafu::ResultExt;
 
 #[allow(clippy::too_many_lines)]
 #[axum::debug_handler]
@@ -31,11 +30,12 @@ async fn get_give_bonus_points_form(
     }
     let aa = get_auth_object(auth).await?;
 
-    let page = state.compile(
-        "www/give_bonus_point.liquid",
-        liquid::object!({"auth": aa}),
-        Some("Give Bonus Point".into()),
-    )
+    let page = state
+        .compile(
+            "www/give_bonus_point.liquid",
+            liquid::object!({"auth": aa}),
+            Some("Give Bonus Point".into()),
+        )
         .await?;
 
     Ok(page.into_response())
@@ -45,10 +45,10 @@ async fn get_give_bonus_points_form(
 async fn post_give_bonus_points_form(
     State(state): State<VentState>,
     Form(FormBonusPoint {
-             user_id,
-             reason,
-             quantity
-         }): Form<FormBonusPoint>,
+        user_id,
+        reason,
+        quantity,
+    }): Form<FormBonusPoint>,
 ) -> Result<impl IntoResponse, VentError> {
     let date = Utc::now().naive_utc();
 
@@ -58,14 +58,17 @@ INSERT INTO public.bonus_points (point_date, staff_member_id, num_points, reason
 VALUES ($1, $2, $3, $4)
 RETURNING id
         "#,
-        date, user_id, quantity, reason
+        date,
+        user_id,
+        quantity,
+        reason
     )
-        .fetch_one(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::AddingBonusPoint,
-        })?
-        .id;
+    .fetch_one(&mut *state.get_connection().await?)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::AddingBonusPoint,
+    })?
+    .id;
 
     state.update_events()?;
 
@@ -73,7 +76,10 @@ RETURNING id
 }
 pub fn router() -> Router<VentState> {
     Router::new()
-        .route("/give_bonus_point", get(get_give_bonus_points_form).post(post_give_bonus_points_form))
+        .route(
+            "/give_bonus_point",
+            get(get_give_bonus_points_form).post(post_give_bonus_points_form),
+        )
         .route_layer(permission_required!(
             VentAuthBackend,
             login_url = "/login",

@@ -39,15 +39,16 @@ async fn get_eoy_migration(
 
     let aa = get_auth_object(auth).await?;
 
-    state.compile(
-        "www/eoy_migration.liquid",
-        liquid::object!({
-            "auth": aa,
-            "forms": forms
-        }),
-        Some("Migrating Forms".into()),
-    )
-    .await
+    state
+        .compile(
+            "www/eoy_migration.liquid",
+            liquid::object!({
+                "auth": aa,
+                "forms": forms
+            }),
+            Some("Migrating Forms".into()),
+        )
+        .await
 }
 
 #[derive(Deserialize)]

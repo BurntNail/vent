@@ -26,12 +26,13 @@ async fn get_add_person(
 ) -> Result<impl IntoResponse, VentError> {
     let aa = get_auth_object(auth).await?;
 
-    state.compile(
-        "www/add_person.liquid",
-        liquid::object!({"auth": aa}),
-        Some("New Person".into()),
-    )
-    .await
+    state
+        .compile(
+            "www/add_person.liquid",
+            liquid::object!({"auth": aa}),
+            Some("New Person".into()),
+        )
+        .await
 }
 
 #[axum::debug_handler]

@@ -1,13 +1,13 @@
 use crate::error::{FileIdentifier, IOAction, IOSnafu, VentError};
+use async_walkdir::WalkDir;
+use futures::StreamExt;
 use moka::future::{Cache, CacheBuilder};
+use snafu::ResultExt;
 use std::{
     io::{Error as IOError, ErrorKind},
     path::{Path, PathBuf},
     sync::Arc,
 };
-use async_walkdir::WalkDir;
-use futures::StreamExt;
-use snafu::ResultExt;
 use tokio::fs::read_to_string;
 
 #[derive(Clone, Debug)]
@@ -51,9 +51,11 @@ impl VentCache {
         let des: Vec<_> = WalkDir::new("www/").collect().await;
 
         for path in des.into_iter().filter_map(Result::ok).map(|x| x.path()) {
-            let contents = read_to_string(path.clone()).await.with_context(|_e| IOSnafu {
-                action: IOAction::ReadingFile(FileIdentifier::PB(path.clone()))
-            });
+            let contents = read_to_string(path.clone())
+                .await
+                .with_context(|_e| IOSnafu {
+                    action: IOAction::ReadingFile(FileIdentifier::PB(path.clone())),
+                });
             let contents: Arc<str> = match contents {
                 Ok(c) => c.into(),
                 Err(e) => {

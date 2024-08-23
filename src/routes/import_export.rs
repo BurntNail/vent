@@ -33,12 +33,13 @@ pub async fn get_import_export_csv(
 ) -> Result<impl IntoResponse, VentError> {
     let aa = get_auth_object(auth).await?;
 
-    state.compile(
-        "www/csv.liquid",
-        liquid::object!({ "auth": aa }),
-        Some("Import/Export".to_string()),
-    )
-    .await
+    state
+        .compile(
+            "www/csv.liquid",
+            liquid::object!({ "auth": aa }),
+            Some("Import/Export".to_string()),
+        )
+        .await
 }
 
 #[axum::debug_handler]

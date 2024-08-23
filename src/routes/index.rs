@@ -37,7 +37,7 @@ pub async fn get_index(
                     teacher,
                     other_info,
                     zip_file: _,
-                    is_locked
+                    is_locked,
                 },
                 fmt,
             ): (DbEvent, &'a str),
@@ -49,7 +49,7 @@ pub async fn get_index(
                 location,
                 teacher,
                 other_info: other_info.unwrap_or_default(),
-                is_locked
+                is_locked,
             }
         }
     }

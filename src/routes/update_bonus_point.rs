@@ -4,26 +4,24 @@ use crate::{
         get_auth_object, PermissionsTarget,
     },
     error::{SqlxAction, SqlxSnafu, VentError},
+    routes::FormBonusPoint,
     state::{
-        db_objects::DbPerson,
+        db_objects::{DbBonusPoint, DbPerson},
         VentState,
     },
 };
 use axum::{
     extract::{Path, State},
-    response::{IntoResponse, Redirect},
+    response::{IntoResponse, Redirect, Response},
     routing::{get, post},
     Router,
 };
 use axum_extra::extract::Form;
 use axum_login::permission_required;
+use dotenvy::var;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 use std::collections::HashMap;
-use axum::response::Response;
-use dotenvy::var;
-use crate::routes::FormBonusPoint;
-use crate::state::db_objects::DbBonusPoint;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 struct PersonPlusRelID {
@@ -57,11 +55,11 @@ SELECT * FROM bonus_points WHERE id = $1
 "#,
         bonus_point_id
     )
-        .fetch_one(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::UpdatingBonusPoint(bonus_point_id),
-        })?;
+    .fetch_one(&mut *state.get_connection().await?)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::UpdatingBonusPoint(bonus_point_id),
+    })?;
 
     #[derive(Serialize, Clone)]
     struct RelFormGroup {
@@ -87,11 +85,11 @@ WHERE pbp.bonus_point_id = $1
 "#,
         bonus_point_id
     )
-        .fetch_all(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::FindingPotentialParticipantsForBonusPoint(id),
-        })? {
+    .fetch_all(&mut *state.get_connection().await?)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingPotentialParticipantsForBonusPoint(id),
+    })? {
         existing_participants
             .entry(person.form.clone())
             .or_insert(RelFormGroup {
@@ -153,15 +151,20 @@ SELECT username FROM people WHERE id = $1
         "#,
         staff_member_id
     )
-        .fetch_one(&mut *state.get_connection().await?)
-        .await.context(SqlxSnafu { action: SqlxAction::FindingPerson(staff_member_id.unwrap().into()) })?.username;
+    .fetch_one(&mut *state.get_connection().await?)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingPerson(staff_member_id.unwrap().into()),
+    })?
+    .username;
 
     debug!("Compiling");
     let aa = get_auth_object(auth).await?;
 
-    let page = state.compile(
-        "www/update_bonus_point.liquid",
-        liquid::object!({"bonus_point":
+    let page = state
+        .compile(
+            "www/update_bonus_point.liquid",
+            liquid::object!({"bonus_point":
             liquid::object!({
                 "id": bonus_point_id,
                 "date": naive_date.date().format("%Y-%m-%d").to_string(),
@@ -172,8 +175,8 @@ SELECT username FROM people WHERE id = $1
         "existing_participants": existing_participants,
         "participants": possible_participants,
         "auth": aa }),
-        Some("Bonus Point".to_string()),
-    )
+            Some("Bonus Point".to_string()),
+        )
         .await?;
 
     Ok(page.into_response())
@@ -183,10 +186,10 @@ async fn post_update_bonus_point(
     Path(bonus_point_id): Path<i32>,
     State(state): State<VentState>,
     Form(FormBonusPoint {
-             user_id: _,
-             reason,
-             quantity
-         }): Form<FormBonusPoint>,
+        user_id: _,
+        reason,
+        quantity,
+    }): Form<FormBonusPoint>,
 ) -> Result<impl IntoResponse, VentError> {
     // User ID is not used here but needs to be provided anyway. Just set user_id=0 in the form
     sqlx::query!(
@@ -199,15 +202,17 @@ WHERE id=$1
         reason,
         quantity
     )
-        .execute(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::UpdatingBonusPoint(bonus_point_id),
-        })?;
+    .execute(&mut *state.get_connection().await?)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::UpdatingBonusPoint(bonus_point_id),
+    })?;
 
     state.update_events()?;
 
-    Ok(Redirect::to(&format!("/update_bonus_point/{bonus_point_id}")))
+    Ok(Redirect::to(&format!(
+        "/update_bonus_point/{bonus_point_id}"
+    )))
 }
 
 async fn post_delete_bonus_point(
@@ -220,11 +225,11 @@ DELETE FROM public.bonus_points WHERE id = $1
         "#,
         bonus_point_id,
     )
-        .execute(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::DeletingBonusPoint(bonus_point_id),
-        })?;
+    .execute(&mut *state.get_connection().await?)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::DeletingBonusPoint(bonus_point_id),
+    })?;
 
     state.update_events()?;
 
@@ -240,9 +245,9 @@ pub struct AddPeopleToBonusPoint {
 async fn post_add_people_to_bonus_point(
     State(state): State<VentState>,
     Form(AddPeopleToBonusPoint {
-             person_ids,
-             bonus_point_id
-         }): Form<AddPeopleToBonusPoint>,
+        person_ids,
+        bonus_point_id,
+    }): Form<AddPeopleToBonusPoint>,
 ) -> Result<impl IntoResponse, VentError> {
     for participant_id in person_ids {
         if sqlx::query!(
@@ -253,15 +258,15 @@ async fn post_add_people_to_bonus_point(
             participant_id,
             bonus_point_id,
         )
-            .fetch_optional(&mut *state.get_connection().await?)
-            .await
-            .context(SqlxSnafu {
-                action: SqlxAction::FindingParticipantsForBonusPoint {
-                    person: participant_id.into(),
-                    bonus_point_id,
-                },
-            })?
-            .is_none()
+        .fetch_optional(&mut *state.get_connection().await?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingParticipantsForBonusPoint {
+                person: participant_id.into(),
+                bonus_point_id,
+            },
+        })?
+        .is_none()
         {
             debug!(%participant_id, %bonus_point_id, "Adding person to bonus point");
             sqlx::query!(
@@ -273,20 +278,22 @@ async fn post_add_people_to_bonus_point(
                 participant_id,
                 bonus_point_id,
             )
-                .execute(&mut *state.get_connection().await?)
-                .await
-                .context(SqlxSnafu {
-                    action: SqlxAction::AddingParticipantToBonusPoint {
-                        person: participant_id.into(),
-                        bonus_point_id,
-                    },
-                })?;
+            .execute(&mut *state.get_connection().await?)
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::AddingParticipantToBonusPoint {
+                    person: participant_id.into(),
+                    bonus_point_id,
+                },
+            })?;
         } else {
             warn!(%participant_id, %bonus_point_id, "Person already received this bonus point.");
         }
     }
 
-    Ok(Redirect::to(&format!("/update_bonus_point/{bonus_point_id}"))) //then back to the update event page
+    Ok(Redirect::to(&format!(
+        "/update_bonus_point/{bonus_point_id}"
+    ))) //then back to the update event page
 }
 
 #[derive(Deserialize)]
@@ -296,9 +303,7 @@ struct Removal {
 #[axum::debug_handler]
 async fn post_remove_person_from_bonus_point(
     State(state): State<VentState>,
-    Form(Removal {
-             relation_id
-         }): Form<Removal>,
+    Form(Removal { relation_id }): Form<Removal>,
 ) -> Result<impl IntoResponse, VentError> {
     let id = sqlx::query!(
         r#"
@@ -307,12 +312,12 @@ RETURNING bonus_point_id
 "#,
         relation_id
     )
-        .fetch_one(&mut *state.get_connection().await?)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::RemovingParticipantFromBonusPointByRI { relation_id },
-        })?
-        .bonus_point_id;
+    .fetch_one(&mut *state.get_connection().await?)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::RemovingParticipantFromBonusPointByRI { relation_id },
+    })?
+    .bonus_point_id;
 
     state.update_events()?;
 
@@ -321,8 +326,14 @@ RETURNING bonus_point_id
 pub fn router() -> Router<VentState> {
     Router::new()
         .route("/update_bonus_point/:id", post(post_update_bonus_point))
-        .route("/bonus_point/add_people", post(post_add_people_to_bonus_point))
-        .route("/bonus_point/remove_person", post(post_remove_person_from_bonus_point))
+        .route(
+            "/bonus_point/add_people",
+            post(post_add_people_to_bonus_point),
+        )
+        .route(
+            "/bonus_point/remove_person",
+            post(post_remove_person_from_bonus_point),
+        )
         .route("/delete_bonus_point/:id", post(post_delete_bonus_point))
         .route_layer(permission_required!(
             VentAuthBackend,
@@ -335,5 +346,4 @@ pub fn router() -> Router<VentState> {
             login_url = "/login",
             PermissionsTarget::SeeBonusPoints
         ))
-
 }

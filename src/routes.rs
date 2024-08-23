@@ -5,18 +5,18 @@ pub mod calendar;
 pub mod edit_person;
 pub mod edit_self;
 pub mod eoy_migration;
+pub mod give_bonus_point;
 pub mod images;
 pub mod import_export;
 pub mod index;
 pub mod public;
 pub mod rewards;
-pub mod show_people;
-pub mod show_events;
-pub mod spreadsheets;
-pub mod update_events;
-pub mod give_bonus_point;
-pub mod update_bonus_point;
 pub mod show_bonus_points;
+pub mod show_events;
+pub mod show_people;
+pub mod spreadsheets;
+pub mod update_bonus_point;
+pub mod update_events;
 
 use crate::auth::PermissionsRole;
 use serde::Deserialize;
@@ -47,5 +47,5 @@ pub struct FormPerson {
 pub struct FormBonusPoint {
     pub user_id: i32,
     pub reason: String,
-    pub quantity: i32
+    pub quantity: i32,
 }

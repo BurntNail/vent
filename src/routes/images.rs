@@ -2,8 +2,8 @@ use crate::{
     auth::backend::{Auth, VentAuthBackend},
     error::{
         ConvertingWhatToString, DatabaseIDMethod, IOAction, IOSnafu, ImageAction, ImageSnafu,
-        MissingExtensionSnafu, NoImageExtensionSnafu, SqlxAction, SqlxSnafu,
-        ToStrSnafu, UnknownMIMESnafu, VentError,
+        MissingExtensionSnafu, NoImageExtensionSnafu, SqlxAction, SqlxSnafu, ToStrSnafu,
+        UnknownMIMESnafu, VentError,
     },
     image_format::ImageFormat,
     routes::public::{serve_read, serve_static_file},
@@ -18,6 +18,7 @@ use axum::{
     Router,
 };
 use axum_login::login_required;
+use futures::StreamExt;
 use rand::{random, thread_rng, Rng};
 use snafu::{OptionExt, ResultExt};
 use std::{ffi::OsStr, path::PathBuf};
@@ -25,7 +26,6 @@ use tokio::{
     fs::File,
     io::{AsyncReadExt, AsyncWriteExt},
 };
-use futures::StreamExt;
 
 #[axum::debug_handler]
 async fn post_add_photo(

@@ -1,17 +1,15 @@
-use std::env::var;
-use std::fmt::Debug;
-use std::path::Path;
-use std::sync::Arc;
+use crate::{
+    cfg::Settings,
+    error::{JoinSnafu, LiquidAction, LiquidSnafu, ThreadReason, VentError},
+    liquid_utils::partials::PARTIALS,
+    state::cache::VentCache,
+};
 use axum::response::Html;
-use liquid::model::Value;
-use liquid::{Object, ParserBuilder};
+use liquid::{model::Value, Object, ParserBuilder};
 use once_cell::sync::Lazy;
 use snafu::ResultExt;
+use std::{env::var, fmt::Debug, path::Path, sync::Arc};
 use tokio::sync::Mutex;
-use crate::cfg::Settings;
-use crate::error::{JoinSnafu, LiquidAction, LiquidSnafu, ThreadReason, VentError};
-use crate::liquid_utils::partials::PARTIALS;
-use crate::state::cache::VentCache;
 
 pub static CFT_SITEKEY: Lazy<String> =
     Lazy::new(|| var("CFT_SITEKEY").expect("missing environment variable `CFT_SITEKEY`"));
@@ -33,7 +31,7 @@ impl VentCompiler {
         mut globals: Object,
         title_additional_info: Option<String>,
         settings: &Settings,
-        cache: Arc<Mutex<VentCache>>
+        cache: Arc<Mutex<VentCache>>,
     ) -> Result<Html<String>, VentError> {
         debug!("Reading in file + partials");
 
@@ -58,13 +56,13 @@ impl VentCompiler {
         globals.insert(
             "siteinfo".into(),
             Value::Object(liquid::object!({
-            "instance_name": project_name,
-            "html_title": title,
-            "domain_exists": DOMAIN.0,
-            "domain": DOMAIN.1.as_str(),
-            "show_bonus_points": show_bonus_points,
-            "show_different_awards": show_different_awards
-        })),
+                "instance_name": project_name,
+                "html_title": title,
+                "domain_exists": DOMAIN.0,
+                "domain": DOMAIN.1.as_str(),
+                "show_bonus_points": show_bonus_points,
+                "show_different_awards": show_different_awards
+            })),
         );
 
         let html: Result<String, VentError> = tokio::task::spawn_blocking(move || {
@@ -85,10 +83,10 @@ impl VentCompiler {
                 })?;
             Ok(res)
         })
-            .await
-            .context(JoinSnafu {
-                title: ThreadReason::LiquidCompiler,
-            })?;
+        .await
+        .context(JoinSnafu {
+            title: ThreadReason::LiquidCompiler,
+        })?;
 
         Ok(Html(html?))
     }

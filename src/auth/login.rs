@@ -74,12 +74,13 @@ pub async fn get_login_failure(
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
     let aa = get_auth_object(auth).await?;
-    let html = state.compile(
-        "www/failed_auth.liquid",
-        liquid::object!({ "auth": aa, "was_password_related": was_password_related }),
-        None
-    )
-    .await?;
+    let html = state
+        .compile(
+            "www/failed_auth.liquid",
+            liquid::object!({ "auth": aa, "was_password_related": was_password_related }),
+            None,
+        )
+        .await?;
 
     Ok((was_password_related.status_code(), html).into_response())
 }

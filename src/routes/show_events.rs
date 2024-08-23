@@ -52,10 +52,7 @@ impl<'a> From<(SmolDbEvent, &'a str)> for SmolFormattedDbEvent {
 }
 
 #[axum::debug_handler]
-async fn get_(
-    auth: Auth,
-    State(state): State<VentState>,
-) -> Result<impl IntoResponse, VentError> {
+async fn get_(auth: Auth, State(state): State<VentState>) -> Result<impl IntoResponse, VentError> {
     trace!("Getting events");
 
     let events: Vec<SmolFormattedDbEvent> = sqlx::query_as!(
@@ -81,11 +78,12 @@ ORDER BY e.date DESC
 
     let aa = get_auth_object(auth).await?;
 
-    state.compile(
-        "www/show_events.liquid",
-        liquid::object!({ "events": events, "auth": aa }),
-        Some("All Events".into()),
-    )
+    state
+        .compile(
+            "www/show_events.liquid",
+            liquid::object!({ "events": events, "auth": aa }),
+            Some("All Events".into()),
+        )
         .await
 }
 
@@ -114,11 +112,11 @@ WHERE id=$1
             "#,
             person_id
         )
-            .execute(&mut *state.get_connection().await?)
-            .await
-            .context(SqlxSnafu {
-                action: SqlxAction::RemovingPerson(person_id.into()),
-            })?;
+        .execute(&mut *state.get_connection().await?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::RemovingPerson(person_id.into()),
+        })?;
     }
 
     Ok(Redirect::to("/show_events"))
@@ -138,11 +136,11 @@ async fn post_remove_event(
             "#,
             event_id
         )
-            .execute(&mut *state.get_connection().await?)
-            .await
-            .context(SqlxSnafu {
-                action: SqlxAction::RemovingEvent(event_id),
-            })?;
+        .execute(&mut *state.get_connection().await?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::RemovingEvent(event_id),
+        })?;
     }
 
     Ok(Redirect::to("/show_events"))

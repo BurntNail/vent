@@ -77,11 +77,16 @@ async fn get_partials() -> HashMap<String, String> {
     let mut in_memory_source = HashMap::new(); //make a new source
     let partials: Vec<_> = WalkDir::new(PARTIALS_DIR).collect().await;
 
-    for partial in partials.into_iter().filter_map(Result::ok).map(|x| x.path()).filter(|de| {
-        de.extension().map_or(false, |x| {
-            partial_extensions.iter().any(|allowed| x == allowed)
+    for partial in partials
+        .into_iter()
+        .filter_map(Result::ok)
+        .map(|x| x.path())
+        .filter(|de| {
+            de.extension().map_or(false, |x| {
+                partial_extensions.iter().any(|allowed| x == allowed)
+            })
         })
-    }) {
+    {
         match read_to_string(&partial).await {
             Ok(source) => {
                 info!(?partial, "Loading Partial");
@@ -96,7 +101,6 @@ async fn get_partials() -> HashMap<String, String> {
                 error!(?partial, ?e, "Error reading partial");
             }
         }
-
     }
 
     in_memory_source

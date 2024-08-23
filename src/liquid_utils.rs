@@ -2,7 +2,6 @@ use chrono::NaiveDateTime;
 
 pub mod partials;
 
-
 pub trait CustomFormat {
     fn to_env_string(&self, format: &str) -> String;
 }

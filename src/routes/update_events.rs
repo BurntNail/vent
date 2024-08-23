@@ -40,7 +40,7 @@ async fn get_update_event(
         teacher,
         other_info,
         zip_file: _,
-        is_locked
+        is_locked,
     } = sqlx::query_as!(
         DbEvent,
         r#"
@@ -318,9 +318,10 @@ WHERE event_id = $1
 
     let aa = get_auth_object(auth).await?;
 
-    state.compile(
-        "www/update_event.liquid",
-        liquid::object!({"event": 
+    state
+        .compile(
+            "www/update_event.liquid",
+            liquid::object!({"event": 
             liquid::object!({
                 "id": id,
                 "event_name": event_name.clone(),
@@ -337,9 +338,9 @@ WHERE event_id = $1
         "n_imgs": photos.len(),
         "imgs": photos,
         "auth": aa, "already_in": already_in }),
-        Some(event_name),
-    )
-    .await
+            Some(event_name),
+        )
+        .await
 }
 #[axum::debug_handler]
 async fn post_update_event(
@@ -351,7 +352,7 @@ async fn post_update_event(
         location,
         teacher,
         info,
-        is_locked
+        is_locked,
     }): Form<FormEvent>,
 ) -> Result<impl IntoResponse, VentError> {
     let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M").context(ParseTimeSnafu {

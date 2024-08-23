@@ -11,10 +11,10 @@
 mod auth;
 mod cfg;
 mod error;
+mod image_format;
 mod liquid_utils;
 mod routes;
 mod state;
-mod image_format;
 
 pub use http;
 
@@ -24,8 +24,9 @@ use crate::{
     liquid_utils::partials,
     routes::{
         add_event, add_people_to_event, add_person, calendar::get_calendar_feed, edit_person,
-        edit_self, eoy_migration, images, import_export, index::get_index, public, rewards,
-        show_people, show_events, spreadsheets::get_spreadsheet, update_events, give_bonus_point, update_bonus_point, show_bonus_points
+        edit_self, eoy_migration, give_bonus_point, images, import_export, index::get_index,
+        public, rewards, show_bonus_points, show_events, show_people,
+        spreadsheets::get_spreadsheet, update_bonus_point, update_events,
     },
     state::VentState,
 };
