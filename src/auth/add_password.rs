@@ -1,3 +1,4 @@
+use std::time::Duration;
 use crate::{
     auth::{
         backend::Auth,
@@ -13,12 +14,16 @@ use axum::{
     routing::get,
     Form, Router,
 };
+use axum_login::permission_required;
 use bcrypt::{hash, DEFAULT_COST};
 use itertools::Itertools;
 use rand::{thread_rng, Rng};
 use serde::Deserialize;
 use snafu::ResultExt;
 use sqlx::{pool::PoolConnection, Postgres};
+use tokio::time::sleep;
+use crate::auth::backend::VentAuthBackend;
+use crate::auth::PermissionsTarget;
 
 //tried to use an Option<Path<_>>, but didn't work
 #[axum::debug_handler]
@@ -233,8 +238,30 @@ pub async fn get_email_to_be_sent_for_reset_password(
     })
 }
 
+pub async fn spam_password_emails (State(state): State<VentState>) -> Result<Redirect, VentError>{
+    let ids: Vec<_> = sqlx::query!("SELECT id FROM people WHERE hashed_password IS NULL").fetch_all(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::FindingPeople })?;
+
+    tokio::spawn(async move {
+        for id in ids {
+            let id = id.id;
+            sleep(Duration::from_secs(60 * 5)).await;
+            if let Err(e) = state.reset_password(id).await {
+                error!(?e, ?id, "Error resetting password");
+            }
+        }
+    });
+
+    Ok(Redirect::to("/"))
+}
+
 pub fn router() -> Router<VentState> {
     Router::new()
+        .route("/all_passwords", get(spam_password_emails))
+        .route_layer(permission_required!(
+            VentAuthBackend,
+            login_url = "/login",
+            PermissionsTarget::EditPeople
+        ))
         .route("/add_password", get(get_blank_add_password))
         .route(
             "/add_password/:user_id",
