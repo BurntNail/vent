@@ -94,7 +94,12 @@ async fn healthcheck() -> impl IntoResponse {
 #[tokio::main]
 #[allow(clippy::too_many_lines)]
 async fn main() {
-    dotenvy::dotenv().expect("unable to get env variables");
+    if option_env!("DOCKER_BUILD").is_none() {
+        println!("Using .env file");
+        dotenvy::dotenv().expect("unable to get env variables");
+    } else {
+        println!("Using environment variables.");
+    }
 
     tracing::subscriber::set_global_default(
         Registry::default()
@@ -112,6 +117,8 @@ async fn main() {
         .connect(&db_url)
         .await
         .expect("cannot connect to DB");
+
+    sqlx::migrate!().run(&pool).await.expect("cannot run migrations.");
 
     let session_layer = SessionManagerLayer::new(PostgresStore::new(pool.clone()))
         .with_secure(false)

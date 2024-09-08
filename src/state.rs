@@ -98,7 +98,7 @@ impl VentState {
     }
 
     pub async fn ensure_calendar_exists(&self) -> Result<bool, VentError> {
-        if let Err(e) = File::open("./calendar.ics").await {
+        if let Err(e) = File::open("./calendar/calendar.ics").await {
             warn!(?e, "Tried to open calendar, failed, rebuilding");
             self.update_events()?;
 

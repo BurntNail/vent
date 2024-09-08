@@ -27,7 +27,7 @@ pub async fn get_calendar_feed(
     if !(state.ensure_calendar_exists().await?) {
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
-    serve_static_file("calendar.ics").await
+    serve_static_file("calendar/calendar.ics").await
 }
 
 pub fn update_calendar_thread(
@@ -123,8 +123,8 @@ Prefects Attending: {prefects}"#
         }
         calendar.name(calendar_title);
 
-        let mut local_file = File::create("calendar.ics").await.context(IOSnafu {
-            action: IOAction::CreatingFile("calendar.ics".into()),
+        let mut local_file = File::create("calendar/calendar.ics").await.context(IOSnafu {
+            action: IOAction::CreatingFile("calendar/calendar.ics".into()),
         })?;
         local_file
             .write_all(calendar.done().to_string().as_bytes())

@@ -41,7 +41,7 @@ pub fn email_sender_thread(
         project_domain: &str,
     ) -> Result<(), VentError> {
         let m = Message::builder()
-            .from(format!("{project_name} NoReply <{from_username}>").parse()?)
+            .from(format!("{project_name} noreply <{from_username}>").parse()?)
             .to(format!("{to_fullname} <{to_username}@{username_domain}>").parse()?)
             .subject(format!("{project_name} - Add Password"))
             .body(format!(
@@ -67,8 +67,9 @@ Have a nice day!"#
     tokio::spawn(async move {
         let mailer = AsyncSmtpTransport::<Tokio1Executor>::relay(&mail_settings.smtp)
             .expect("unable to get relay")
+            .port(587)
             .credentials(Credentials::new(
-                mail_settings.username.clone(),
+                "kingsley".into(),
                 mail_settings.password.clone(),
             ))
             .build();
