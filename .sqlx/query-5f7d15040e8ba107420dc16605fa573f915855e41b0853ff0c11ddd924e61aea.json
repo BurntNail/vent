@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT p.id, p.first_name, p.surname, pbp.relation_id, p.form\nFROM people p\nINNER JOIN participant_bonus_points pbp ON p.id = pbp.participant_id\nWHERE pbp.bonus_point_id = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "surname",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "relation_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "form",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5f7d15040e8ba107420dc16605fa573f915855e41b0853ff0c11ddd924e61aea"
+}

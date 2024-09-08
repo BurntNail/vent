@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT p.first_name, p.surname, p.form\nFROM people p\nINNER JOIN events e ON e.id = $1\nINNER JOIN prefect_events pe ON p.id = pe.prefect_id and pe.event_id = $1\n    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "surname",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "form",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "69305dc0930dff1cbb33a0bc93f3ed62b0f9793350dc371dee00c73f46c803d0"
+}

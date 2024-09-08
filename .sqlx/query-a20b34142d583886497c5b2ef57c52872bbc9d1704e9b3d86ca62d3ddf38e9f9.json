@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO public.sessions (id, data, expiry_date)\n        VALUES ($1, $2, $3)\n        on conflict (id) do update\n            set\n              data = excluded.data,\n              expiry_date = excluded.expiry_date\n\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Bytea",
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a20b34142d583886497c5b2ef57c52872bbc9d1704e9b3d86ca62d3ddf38e9f9"
+}

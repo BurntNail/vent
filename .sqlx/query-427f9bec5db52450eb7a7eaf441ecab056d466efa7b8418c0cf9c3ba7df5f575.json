@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nUPDATE public.bonus_points\nSET reason=$2, num_points=$3\nWHERE id=$1\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "427f9bec5db52450eb7a7eaf441ecab056d466efa7b8418c0cf9c3ba7df5f575"
+}

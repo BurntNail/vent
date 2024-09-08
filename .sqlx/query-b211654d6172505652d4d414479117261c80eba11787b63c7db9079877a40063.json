@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT bonus_point_id, bonus_points.point_date, bonus_points.num_points, bonus_points.reason, participant_people.first_name AS participant_first_name, participant_people.surname AS participant_surname, staff_people.username AS staff_username FROM participant_bonus_points INNER JOIN bonus_points ON participant_bonus_points.bonus_point_id = bonus_points.id INNER JOIN people AS participant_people ON participant_bonus_points.participant_id = participant_people.id INNER JOIN people AS staff_people ON bonus_points.staff_member_id = staff_people.id WHERE participant_bonus_points.participant_id = $1;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bonus_point_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "point_date",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 2,
+        "name": "num_points",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "participant_first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "participant_surname",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "staff_username",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b211654d6172505652d4d414479117261c80eba11787b63c7db9079877a40063"
+}

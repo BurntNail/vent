@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM events",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "event_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "date",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 3,
+        "name": "location",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "teacher",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "other_info",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "zip_file",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "is_locked",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "extra_points",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "0d4d698b039ac95743392f44379bd1b8881297a06d0e0d333b065aec5d9da24e"
+}

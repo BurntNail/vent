@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nINSERT INTO public.events\n(event_name, \"date\", \"location\", teacher, other_info, is_locked)\nVALUES($1, $2, $3, $4, $5, $6)\nRETURNING id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamp",
+        "Text",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a23aeea7b413c10447c5ad0079424517fd6f120f922eac3900ddbec0e6c67db6"
+}

@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT first_name, surname, form, id\nFROM people p\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "surname",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "form",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4b0781875c6539c700e0916356bebf626be3152cd589de09008ce9299af17ea8"
+}

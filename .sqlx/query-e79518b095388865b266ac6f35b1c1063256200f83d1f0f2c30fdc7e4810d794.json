@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nDELETE FROM prefect_events WHERE relation_id = $1 \nRETURNING event_id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "event_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e79518b095388865b266ac6f35b1c1063256200f83d1f0f2c30fdc7e4810d794"
+}

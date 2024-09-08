@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nUPDATE public.events\nSET event_name=$2, date=$3, location=$4, teacher=$5, other_info=$6, is_locked=$7, extra_points=$8\nWHERE id=$1\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Timestamp",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5c644da9f45d65ece8daad9b75d8c0d3180d5ca6427427ce9ff02f162bec38a5"
+}

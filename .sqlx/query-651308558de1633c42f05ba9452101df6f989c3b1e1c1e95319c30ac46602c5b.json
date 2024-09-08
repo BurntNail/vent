@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nUPDATE public.people\nSET permissions=$6, first_name=$2, surname=$3, form=$4, username=$5\nWHERE id=$1\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        {
+          "Custom": {
+            "name": "user_role",
+            "kind": {
+              "Enum": [
+                "dev",
+                "admin",
+                "prefect",
+                "participant"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "651308558de1633c42f05ba9452101df6f989c3b1e1c1e95319c30ac46602c5b"
+}

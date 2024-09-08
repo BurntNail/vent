@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT *\nFROM events e\nWHERE e.date < (now() - interval '12 hours')\nORDER BY e.date DESC\nLIMIT 10\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "event_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "date",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 3,
+        "name": "location",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "teacher",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "other_info",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "zip_file",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "is_locked",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "extra_points",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "4e61eef9f16003fa3397f784c5e3c1d983fed236adb50cd307596d236175b10a"
+}

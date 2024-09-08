@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    DELETE FROM participant_events WHERE relation_id = $1 \n    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a9abafbd0f326a61751a8239e896905a9941e6898d39a4daddca33e86d369e53"
+}

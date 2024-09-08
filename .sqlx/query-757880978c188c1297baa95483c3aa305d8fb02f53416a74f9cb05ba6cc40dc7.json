@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE participant_events SET is_verified = true WHERE event_id = $1 AND participant_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "757880978c188c1297baa95483c3aa305d8fb02f53416a74f9cb05ba6cc40dc7"
+}

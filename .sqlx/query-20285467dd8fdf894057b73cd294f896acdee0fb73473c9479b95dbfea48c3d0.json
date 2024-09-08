@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT extra_points FROM public.events",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "extra_points",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "20285467dd8fdf894057b73cd294f896acdee0fb73473c9479b95dbfea48c3d0"
+}

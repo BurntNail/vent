@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT id, first_name, surname, username, form, hashed_password, permissions as \"permissions: _\", was_first_entry\nFROM people\nWHERE LOWER(username) = LOWER($1)\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "surname",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "form",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "hashed_password",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "permissions: _",
+        "type_info": {
+          "Custom": {
+            "name": "user_role",
+            "kind": {
+              "Enum": [
+                "dev",
+                "admin",
+                "prefect",
+                "participant"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "was_first_entry",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "2e6d21a66ade268ae6cc19305763c26fbf8c265d129c2b02637b3862d54dd1b2"
+}

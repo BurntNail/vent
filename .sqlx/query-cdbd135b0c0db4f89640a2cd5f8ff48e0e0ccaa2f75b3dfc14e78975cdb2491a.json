@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE people SET password_link_id = $1, hashed_password = NULL WHERE id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cdbd135b0c0db4f89640a2cd5f8ff48e0e0ccaa2f75b3dfc14e78975cdb2491a"
+}

@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nUPDATE people\nSET hashed_password = $1\nWHERE id = $2\nRETURNING id, first_name, surname, username, form, hashed_password, permissions as \"permissions: _\", was_first_entry\n    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "surname",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "form",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "hashed_password",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "permissions: _",
+        "type_info": {
+          "Custom": {
+            "name": "user_role",
+            "kind": {
+              "Enum": [
+                "dev",
+                "admin",
+                "prefect",
+                "participant"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "was_first_entry",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "d8cb9d8bac64b216511dbb5e5df86169a2272d49ef86b4f0e63c5bfee30ff2bd"
+}

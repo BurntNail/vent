@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT p.first_name, p.surname, pe.relation_id, p.id, p.form, pe.is_verified\nFROM people p\nINNER JOIN participant_events pe ON pe.event_id = $1 AND pe.participant_id = p.id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "surname",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "relation_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "form",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "is_verified",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "282ebd61fd60f48e4f56d5dbb5d3cc916332702148ac234718016fdbce870cb0"
+}

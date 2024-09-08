@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    INSERT INTO public.participant_events\n    (participant_id, event_id, is_verified)\n    VALUES($1, $2, false);            \n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "057dce8d313ff81be3ca4ebdcdfaccce06ac212f4d1fdda701a115da14c2ebb8"
+}

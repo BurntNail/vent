@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT id, first_name, surname, username, form, hashed_password, permissions as \"permissions: _\", was_first_entry\nFROM people p\nWHERE p.form != 'Gone'\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "surname",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "form",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "hashed_password",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "permissions: _",
+        "type_info": {
+          "Custom": {
+            "name": "user_role",
+            "kind": {
+              "Enum": [
+                "dev",
+                "admin",
+                "prefect",
+                "participant"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "was_first_entry",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "f0d4b6c7124df9182a20146f0fd657d0d8e088d3c22978dde6e3d886d9de0e0f"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM public.sessions where expiry_date < (now())",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "e221706459ec6de1b1c533207ebcf3c8b094a9e63df46f2325b0c9910a40eacd"
+}

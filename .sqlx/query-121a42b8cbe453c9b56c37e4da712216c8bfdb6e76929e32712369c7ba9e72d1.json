@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nUPDATE events\nSET zip_file = NULL\nWHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "121a42b8cbe453c9b56c37e4da712216c8bfdb6e76929e32712369c7ba9e72d1"
+}

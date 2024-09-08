@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    INSERT INTO public.prefect_events\n    (prefect_id, event_id)\n    VALUES($1, $2);            \n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5f7453aefb4934a29ee78d6eaa25e6b63ace2622bc4583379c983e42f0c309f2"
+}

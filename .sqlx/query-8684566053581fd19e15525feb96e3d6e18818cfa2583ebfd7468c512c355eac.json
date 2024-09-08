@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO public.people\n            (first_name, surname, form, hashed_password, permissions, username, password_link_id, was_first_entry)\n            VALUES($1, $2, $3, NULL, $4, $5, NULL, $6);\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        {
+          "Custom": {
+            "name": "user_role",
+            "kind": {
+              "Enum": [
+                "dev",
+                "admin",
+                "prefect",
+                "participant"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8684566053581fd19e15525feb96e3d6e18818cfa2583ebfd7468c512c355eac"
+}

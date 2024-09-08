@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT date, event_name, id FROM events e\nINNER JOIN participant_events pe\nON pe.event_id = e.id AND pe.participant_id = $1 AND pe.is_verified",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "date",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 1,
+        "name": "event_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e514fbdc1fda4d39be2ebfb59d612583929289b992db24e33637b4b78fdea6d2"
+}

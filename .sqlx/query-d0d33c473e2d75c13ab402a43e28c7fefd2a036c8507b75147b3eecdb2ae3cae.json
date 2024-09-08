@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT password_link_id FROM people WHERE password_link_id <> NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "password_link_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "d0d33c473e2d75c13ab402a43e28c7fefd2a036c8507b75147b3eecdb2ae3cae"
+}

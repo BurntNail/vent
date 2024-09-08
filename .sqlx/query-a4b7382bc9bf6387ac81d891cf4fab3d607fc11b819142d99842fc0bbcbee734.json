@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT * FROM bonus_points WHERE id = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "point_date",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 2,
+        "name": "staff_member_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "num_points",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "reason",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "a4b7382bc9bf6387ac81d891cf4fab3d607fc11b819142d99842fc0bbcbee734"
+}

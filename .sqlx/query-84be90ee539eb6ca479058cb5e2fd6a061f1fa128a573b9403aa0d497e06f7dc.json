@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nINSERT INTO public.bonus_points (point_date, staff_member_id, num_points, reason)\nVALUES ($1, $2, $3, $4)\nRETURNING id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamp",
+        "Int4",
+        "Int4",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "84be90ee539eb6ca479058cb5e2fd6a061f1fa128a573b9403aa0d497e06f7dc"
+}

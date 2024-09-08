@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    SELECT * FROM public.participant_bonus_points\n    WHERE participant_id = $1\n    AND bonus_point_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "relation_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "bonus_point_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "participant_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6f7b429f2e0fa10ba46c736b684536557cf0815cc2155719e956643e807d602d"
+}

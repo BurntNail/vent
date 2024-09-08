@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nDELETE FROM public.participant_bonus_points WHERE relation_id = $1\nRETURNING bonus_point_id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bonus_point_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "46bd160452f4dca7e269282883603fb6576762dfb8639c9eb898a230aba5bb05"
+}
