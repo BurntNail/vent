@@ -24,7 +24,7 @@ impl<S: Send + Sync> FromRequestParts<S> for GrabCFRemoteIP {
     type Rejection = VentError;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) || var("IS_LOCALHOST").is_ok() {
             return Ok(Self(HeaderValue::from_static("127.0.0.1")));
         }
 
@@ -94,7 +94,7 @@ pub async fn verify_turnstile(
     cf_turnstile_response: String,
     GrabCFRemoteIP(remote_ip): GrabCFRemoteIP,
 ) -> Result<bool, VentError> {
-    if cfg!(debug_assertions) {
+    if cfg!(debug_assertions) || var("IS_LOCALHOST").is_ok() {
         return Ok(true);
     }
 

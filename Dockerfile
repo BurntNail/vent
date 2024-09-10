@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+## syntax=docker/dockerfile:1
 
 # Comments are provided throughout this file to help you get started.
 # If you need more help, visit the Dockerfile reference guide at
@@ -37,7 +37,7 @@ RUN --mount=type=bind,source=src,target=src \
 set -e
 
 cargo build --release --locked
-cp ./target/debug/$APP_NAME /bin/server
+cp ./target/release/$APP_NAME /bin/server
 EOF
 
 ################################################################################
@@ -52,6 +52,8 @@ EOF
 # reproducability is important, consider using a digest
 # (e.g.,    debian@sha256:ac707220fbd7b67fc19b112cee8170b41a9e97f703f588b2cdbbcdcecdd8af57).
 FROM debian:bullseye-slim AS final
+LABEL org.opencontainers.image.source=https://github.com/BurntNail/vent
+
 
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/develop/develop-images/dockerfile_best-practices/   #user

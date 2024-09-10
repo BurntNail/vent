@@ -95,10 +95,7 @@ async fn healthcheck() -> impl IntoResponse {
 #[allow(clippy::too_many_lines)]
 async fn main() {
     if option_env!("DOCKER_BUILD").is_none() {
-        println!("Using .env file");
         dotenvy::dotenv().expect("unable to get env variables");
-    } else {
-        println!("Using environment variables.");
     }
 
     tracing::subscriber::set_global_default(
@@ -161,11 +158,7 @@ async fn main() {
         .layer(ConcurrencyLimitLayer::new(512)) //limit to 512 inflight reqs
         .with_state(state.clone());
 
-    let port: SocketAddr = var("VENT_SERVER_IP")
-        .expect("need VENT_SERVER_IP env var")
-        .parse()
-        .expect("need VENT_SERVER_IP to be valid");
-
+    let port: SocketAddr = "0.0.0.0:8080".parse().unwrap();
     info!(?port, "Serving: ");
 
     serve(router, TcpListener::bind(port).await.unwrap(), state).await;

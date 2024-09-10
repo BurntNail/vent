@@ -1,5 +1,4 @@
 use config::{Config, ConfigError, File};
-use dotenvy::var;
 use serde::Deserialize;
 use std::path::PathBuf;
 use tokio::task::spawn_blocking;
@@ -35,14 +34,6 @@ pub struct MailSettings {
 
 impl Settings {
     pub async fn new() -> Result<Self, ConfigError> {
-        let file_name = var("CONFIG_LOCATION").unwrap_or_else(|e| {
-            error!(
-                ?e,
-                "Unable to get CONFIG_LOCATION - defaulting to config/local.toml"
-            );
-            "config/local.toml".to_string()
-        });
-
         let builder = Config::builder()
             .set_default("date_time_format", "%c")?
             .set_default("instance_name", "House Events Manager")?
@@ -51,7 +42,7 @@ impl Settings {
 
         spawn_blocking(move || {
             builder
-                .add_source(File::from(PathBuf::from(file_name)))
+                .add_source(File::from(PathBuf::from("config.toml")))
                 .build()
                 .and_then(Config::try_deserialize)
         })

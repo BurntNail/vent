@@ -67,12 +67,19 @@ Have a nice day!"#
     tokio::spawn(async move {
         let mailer = AsyncSmtpTransport::<Tokio1Executor>::relay(&mail_settings.smtp)
             .expect("unable to get relay")
-            .port(587)
             .credentials(Credentials::new(
-                "kingsley".into(),
+                mail_settings.username.clone(),
                 mail_settings.password.clone(),
             ))
             .build();
+
+        info!("Created mailer");
+
+        match mailer.test_connection().await {
+        	Err(e) => error!(?e, "Error with mailer connection"),
+        	Ok(true) => info!("Mailer connection OK"),
+        	Ok(false) => error!("Mailer connection not OK"),
+        }
 
         loop {
             if let Some(ret) = tokio::select! {
