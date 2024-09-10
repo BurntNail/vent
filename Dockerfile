@@ -54,6 +54,8 @@ EOF
 FROM debian:bullseye-slim AS final
 LABEL org.opencontainers.image.source=https://github.com/BurntNail/vent
 
+RUN apt-get update && apt-get install -y ca-certificates
+RUN update-ca-certificates
 
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/develop/develop-images/dockerfile_best-practices/   #user
