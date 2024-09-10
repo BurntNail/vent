@@ -1,23 +1,11 @@
 # Vent
 
-This is a project designed for managing events with 2 classes of people - those who can only attend, and those can both
-attend and supervise - and these are refered to as participants and prefects respectively. Anyone with the IP/Domain can
-view this server and edit the events, and it also publishes an endpoint to update an ICS subscription.
+Vent is a project designed to manage events, photos & rewarding participants for their participation.
 
 This was originally engineered as a replacement to a brittle spreadsheet that didn't track photos or participants -
 participants were manually added to a separate spreadsheet, and photos were inconsistently named in a OneDrive folder.
 
 ## Setup/Installation
-
-### Requirements
-
-This project requires:
-
-- `cargo` and the other rust build tools like a valid `C++` compiler
-- [`sqlx-cli`](https://lib.rs/crates/sqlx-cli) installed via `cargo` - this is used for postgres migrations. This project currently uses the latest version.
-- `devenv` or `docker compose` - this is used for the postgres server. `docker` is reccomended, and can be installed through [the docs](https://docs.docker.com/engine/install/ubuntu/).
-- `libssl-dev` - this is used for the axum server
-- `clang` - this is used for the spreadsheet export
 
 ### Environment
 
@@ -36,16 +24,12 @@ You need to have a `.env` file with the following variables set:
 | Name                                  | Use                                                                                                           | Example Contents                                                                                                                                                                           | Default               |
 |---------------------------------------|---------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|
 | `RUST_LOG`                            | Logging                                                                                                       | `ERROR`, `WARN`, `INFO`, `DEBUG`, or `TRACE`. For more examples, see [the docs](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax). | No logging            |
-| `HONEYCOMB_API_KEY`                   | This is the [Honeycomb](https://honeycomb.io) destination                                                     | `abcdefghijklmopqrstuvwxyz`                                                                                                                                                                | N/A                   |
-| `SENTRY_DSN`                          | This is the [Sentry](https://sentry.io/welcome/) destination                                                  | `https://abc.ingest.sentry.io/123`                                                                                                                                                         | N/A                   |
 | `HIDE_BONUS_POINTS`                   | If your application doesn't need bonus points and this variable exists, the bonus points will not be present. | `[not set]`                                                                                                                                                                                |
 | `DISABLE_DIFFERENT_AWARD_THRESHOLDS`  | If your application doesn't need two reward thresholds, set this variable.| "well, um actually, we use the *other* system"                                                                                                                                             |                       |
 
 ### Configuration
 
-You should also have a configuration
-file ([JSON](https://www.json.org/json-en.html), [TOML](https://toml.io/en/), [YAML](https://yaml.org/), [INI](https://en.wikipedia.org/wiki/INI_file), [RON](https://lib.rs/crates/ron), [JSON5](https://json5.org/)
-all supported) that follows the following schema:
+You should also have a TOML configuration file that follows this schema:
 
 ```
 niche: {
@@ -62,7 +46,8 @@ mail: {
     smtp: String,
     username_domain: String,
 },
-timezone_id: String
+timezone_id: String,
+tech_support_person: String
 ```
 
 | Name                     | Use                                                                                                                               | Example Contents                                    |
@@ -80,36 +65,61 @@ timezone_id: String
 
 ### Setup
 
-I would highly reccomend a `tmux` based setup to run this without needing an active ssh session to run whilst away.
+Previously, this project had to be manually compiled, but it now has a Docker image! 
 
-1) Setup the postgres server - `devenv up` or `docker compose up`.
-2) Run the postgres migrations - `sqlx migrate run`
-3) Make sure the name of your project is correctly set in the `public/manifest.json` - this is the one thing I couldn't work out how to set with environment variables. You also need to provide: `256x256.png`, `512x512.png` and `favicon.ico`.
-4) Run the binary - `cargo r --release` for production, or `cargo r` for development. In production to minimise
-   downtime, I use `cargo b` rather than `cargo r` to quickly stop the old binary and launch into the new one without
-   recompiling.
-5Enjoy!
+1) You need to setup a Docker Compose environment (example file below) that creates a vent instance and a postgres instance at a minimum.
+2) You need to create directories for uploads, and create marketing materials and put them all into a folder. Ensure docker has adequate permissions for them.
+3) Create a config & environment file.
+4) Get going!
 
-### Reccomendations
+Example docker-compose file:
+```yaml
+services:
+  db:
+    image: postgres
+    restart: always
+    secrets:
+      - db-password
+    environment:
+      - POSTGRES_DB=database
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
+    ports:
+      - "5432:5432"
+    expose:
+      - 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
-I currently run this through [Caddy](https://caddyserver.com/) as a reverse proxy to get HTTPS certificates
-via [Let's Encrypt!](https://letsencrypt.org/).
-These are the contents of the [Caddyfile](https://caddyserver.com/docs/caddyfile) on the server that this runs on,
-redacted appropriately. This just runs via the default systemd service which takes the config
-from `/etc/caddy/Caddyfile`:
+  vent:
+    image: ghcr.io/burntnail/vent:testing
+    restart: always
+    ports:
+      - "8080:8080"
+      - "587:587"
+      - "465:465"
+    volumes:
+      - ./uploads:/uploads
+      - ./public:/public
+    configs:
+      - source: my-config
+        target: ./config.toml
+    env_file:
+      - ./.env
+    depends_on:
+      - db
+volumes:
+  pgdata:
 
+secrets:
+  db-password:
+    file: db_password.txt
+
+configs:
+  my-config:
+    file: config/local.toml
 ```
-{
-    email EMAIL_ADDRESS #eg. a@b.com
-}
 
-# Refer to the Caddy docs for more information:
-# https://caddyserver.com/docs/caddyfile
-
-FULL_DOMAIN { #eg. vent.your.domain
-    reverse_proxy 127.0.0.1:8080 # make sure this is set to a localhost address, and NOT your server's external IP
-}
-```
+Then, use whatever load balancer or reverse proxy takes your fancy - I've had success with both [Caddy](https://caddyserver.com/docs/) and [Traefik](https://doc.traefik.io/traefik/). There is no stored state outside of the postgres database and the files and efforts have been made not to hold file handles for extended periods of time so feel free to use replicated instances for high availability. This is also compatible with [watchtower](https://github.com/containrrr/watchtower) - production environments should use the *latest* tag.
 
 ## Architecture
 
