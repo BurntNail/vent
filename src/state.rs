@@ -17,29 +17,34 @@ use crate::{
         mail::{email_sender_thread, EmailToSend},
     },
 };
-use axum::response::{Html, IntoResponse, Redirect};
+use axum::response::{Html, IntoResponse, Redirect, Response};
 use liquid::Object;
 use snafu::ResultExt;
 use sqlx::{pool::PoolConnection, Pool, Postgres};
 use std::{fmt::Debug, path::Path};
+use std::sync::Arc;
 use axum::extract::State;
 use axum::Router;
 use axum::routing::get;
 use axum_login::permission_required;
+use icalendar::Calendar;
 use tokio::{
-    fs::File,
     sync::{
         broadcast::{channel as broadcast_channel, Sender as BroadcastSender},
         mpsc::UnboundedSender,
     },
 };
+use tokio::sync::RwLock;
 use crate::auth::backend::VentAuthBackend;
 use crate::auth::PermissionsTarget;
+use crate::routes::calendar::get_events;
+use crate::routes::public::serve_bytes_with_mime;
 
 #[derive(Clone, Debug)]
 pub struct VentState {
     mail_sender: UnboundedSender<EmailToSend>,
     update_calendar_sender: UnboundedSender<()>,
+    calendar: Arc<RwLock<Calendar>>,
     stop_senders: BroadcastSender<()>,
     pub settings: Settings,
     database: VentDatabase,
@@ -52,12 +57,19 @@ impl VentState {
         let settings = Settings::new().await.expect("unable to get settings");
         let (stop_senders_tx, stop_senders_rx1) = broadcast_channel(2);
 
+        let calendar = Arc::new(RwLock::new({
+            let conn = postgres.acquire().await.expect("unable to get postgres connection");
+            get_events(conn, settings.timezone_id.clone(), &settings.brand.instance_name).await.expect("unable to create calendar")
+        }));
+
+
         let mail_sender = email_sender_thread(settings.clone(), stop_senders_rx1);
         let update_calendar_sender = update_calendar_thread(
             postgres.clone(),
             stop_senders_tx.subscribe(),
             settings.timezone_id.clone(),
             &settings.brand.instance_name,
+            calendar.clone(),
         );
 
         let database = VentDatabase::new(postgres);
@@ -65,11 +77,13 @@ impl VentState {
         let cache = VentCache::new();
         cache.pre_populate().await;
 
+
         Self {
             database,
             mail_sender,
             update_calendar_sender,
             stop_senders: stop_senders_tx,
+            calendar,
             settings,
             compiler,
             cache,
@@ -97,19 +111,6 @@ impl VentState {
         })
     }
 
-    pub async fn ensure_calendar_exists(&self) -> Result<bool, VentError> {
-        if let Err(e) = File::open("./calendar/calendar.ics").await {
-            warn!(?e, "Tried to open calendar, failed, rebuilding");
-            self.update_events()?;
-
-            Ok(false)
-        } else {
-            debug!("Successfully found calendar");
-
-            Ok(true)
-        }
-    }
-
     pub fn send_stop_notices(&self) {
         self.stop_senders
             .send(())
@@ -131,6 +132,11 @@ impl VentState {
                 self.cache.clone(),
             )
             .await
+    }
+
+    pub async fn get_calendar (&self) -> Result<Response, VentError> {
+        let bytes = self.calendar.read().await.to_string().into_bytes();
+        serve_bytes_with_mime(bytes, "text/calendar").await
     }
 }
 

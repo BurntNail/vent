@@ -9,12 +9,12 @@ use crate::{
 use axum::{
     body::{Body, Bytes},
     http::header,
-    response::{IntoResponse, Json},
+    response::{IntoResponse, Json, Response},
     routing::get,
     Router,
 };
 use axum_login::permission_required;
-use http::{HeaderValue, Response};
+use http::{HeaderValue};
 use new_mime_guess::from_path;
 use serde_json::{from_str, Value};
 use snafu::{OptionExt, ResultExt};
@@ -66,22 +66,22 @@ pub async fn serve_read(
 
     drop(reader);
 
-    let file_size = contents.len();
+    serve_bytes_with_mime(contents, mime).await
+}
 
-    let rsp = Response::builder()
+pub async fn serve_bytes_with_mime (contents: Vec<u8>, mime: &str) -> Result<Response, VentError> {
+    Ok(Response::builder()
         .header(
             header::CONTENT_TYPE,
             HeaderValue::try_from(mime).context(HeadersSnafu {
                 which_header: CommonHeaders::ContentType,
             })?,
         )
-        .header(header::CONTENT_LENGTH, file_size)
+        .header(header::CONTENT_LENGTH, contents.len())
         .body(Body::from(Bytes::from(contents)))
         .context(HttpSnafu {
             action: HttpAction::BuildingResponse,
-        })?;
-
-    Ok(rsp)
+        })?)
 }
 
 #[axum::debug_handler]
