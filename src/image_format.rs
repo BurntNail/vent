@@ -39,7 +39,7 @@ pub enum ImageFormat {
     /// An Image in Radiance HDR Format
     Hdr,
 
-    /// An Image in OpenEXR Format
+    /// An Image in `OpenEXR` Format
     OpenExr,
 
     /// An Image in farbfeld Format

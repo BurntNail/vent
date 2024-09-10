@@ -70,7 +70,7 @@ pub async fn serve_read(
 }
 
 pub async fn serve_bytes_with_mime(contents: Vec<u8>, mime: &str) -> Result<Response, VentError> {
-    Ok(Response::builder()
+    Response::builder()
         .header(
             header::CONTENT_TYPE,
             HeaderValue::try_from(mime).context(HeadersSnafu {
@@ -81,7 +81,7 @@ pub async fn serve_bytes_with_mime(contents: Vec<u8>, mime: &str) -> Result<Resp
         .body(Body::from(Bytes::from(contents)))
         .context(HttpSnafu {
             action: HttpAction::BuildingResponse,
-        })?)
+        })
 }
 
 #[axum::debug_handler]

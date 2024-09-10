@@ -46,6 +46,7 @@ struct Photo {
 
 #[derive(Serialize)]
 struct BonusPoint {
+    #[allow(clippy::field_struct_names)]
     bonus_point_id: i32,
     point_date: String,
     num_points: i32,

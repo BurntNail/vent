@@ -141,6 +141,7 @@ ON pe.event_id = e.id AND pe.participant_id = $1 AND pe.is_verified"#,
 
     #[derive(Serialize)]
     struct BonusPoint {
+        #[allow(clippy::struct_field_names)]
         bonus_point_id: i32,
         point_date: String,
         num_points: i32,

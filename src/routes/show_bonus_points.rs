@@ -29,6 +29,7 @@ async fn get_show_bonus_points(
 
     #[derive(Serialize)]
     struct BonusPoint {
+        #[allow(clippy::struct_field_names)]
         bonus_point_id: i32,
         reason: String,
         num_points: i32,
