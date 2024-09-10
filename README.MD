@@ -90,7 +90,7 @@ I would highly reccomend a `tmux` based setup to run this without needing an act
    recompiling.
 5Enjoy!
 
-### Reccomendations
+### Recommendations
 
 I currently run this through [Caddy](https://caddyserver.com/) as a reverse proxy to get HTTPS certificates
 via [Let's Encrypt!](https://letsencrypt.org/).
@@ -110,6 +110,14 @@ FULL_DOMAIN { #eg. vent.your.domain
     reverse_proxy 127.0.0.1:8080 # make sure this is set to a localhost address, and NOT your server's external IP
 }
 ```
+
+## Required Assets
+
+Please place all of the following inside your `public` directory:
+- `manifest.json` & `sw.js` for PWAs.
+- `favicon.ico` for the icon.
+- `offline.html` for the offline page.
+- Icons specified in the manifest - NB: these will be served as `your.domain/assets/512x512.png`
 
 ## Architecture
 

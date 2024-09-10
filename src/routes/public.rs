@@ -23,6 +23,7 @@ use tokio::{
     fs::{read_to_string, File},
     io::{AsyncRead, AsyncReadExt},
 };
+use tower_http::services::ServeDir;
 
 pub async fn serve_static_file(
     path: impl Into<PathBuf> + Debug,
@@ -115,10 +116,6 @@ get_x!(get_favicon, "public/favicon.ico");
 get_x!(get_manifest, "public/manifest.json");
 get_x!(get_sw, "public/sw.js");
 get_x!(get_offline, "public/offline.html");
-get_x!(get_512, "public/512x512.png");
-get_x!(get_256, "public/256x256.png");
-get_x!(get_people_csv_example, "public/people_example.csv");
-get_x!(get_events_csv_example, "public/events_example.csv");
 get_x!(get_robots_txt, "public/robots.txt");
 
 pub fn router() -> Router<VentState> {
@@ -133,9 +130,7 @@ pub fn router() -> Router<VentState> {
         .route("/manifest.json", get(get_manifest))
         .route("/sw.js", get(get_sw))
         .route("/offline.html", get(get_offline))
-        .route("/512x512.png", get(get_512))
-        .route("/256x256.png", get(get_256))
-        .route("/people_example.csv", get(get_people_csv_example))
-        .route("/events_example.csv", get(get_events_csv_example))
         .route("/robots.txt", get(get_robots_txt))
+        .nest_service("/assets/", ServeDir::new("public/"))
+    
 }

@@ -22,7 +22,7 @@ impl VentCache {
         Self { templates_cache }
     }
 
-    pub async fn get(&self, path: impl AsRef<Path>) -> Result<Arc<str>, VentError> {
+    pub async fn get_template(&self, path: impl AsRef<Path>) -> Result<Arc<str>, VentError> {
         let path = path.as_ref().to_path_buf();
         if !path.exists() {
             return Err(VentError::IO {

@@ -34,7 +34,7 @@ impl VentCompiler {
     ) -> Result<Html<String>, VentError> {
         debug!("Reading in file + partials");
 
-        let liquid = cache.get(path).await?.to_string();
+        let liquid = cache.get_template(path).await?.to_string();
         let partial_compiler = PARTIALS.read().await.to_compiler();
 
         debug!("Inserting globals");
