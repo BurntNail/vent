@@ -24,7 +24,7 @@ use crate::{
     liquid_utils::partials,
     routes::{
         add_event, add_people_to_event, add_person, calendar::get_calendar_feed, edit_person,
-        edit_self, eoy_migration, give_bonus_point, images, import_export, index::get_index,
+        edit_self, eoy_migration, give_bonus_point, images, csv_import_export, index::get_index,
         public, rewards, show_bonus_points, show_events, show_people,
         spreadsheets::get_spreadsheet, update_bonus_point, update_events,
     },
@@ -138,7 +138,7 @@ async fn main() {
         .merge(add_password::router())
         .merge(login::router())
         .merge(partials::router())
-        .merge(import_export::router())
+        .merge(csv_import_export::router())
         .merge(edit_self::router())
         .merge(rewards::router())
         .merge(add_event::router())

@@ -9,8 +9,6 @@
                         This expects a CSV in the same format as the following example: <br>
                         <i>08-09-2023,L6th Mixed Tennis,08:35,BDJ,Tennis Courts</i> <br>
                         <br>
-                        <a href="/events_example.csv" target="_blank">See example</a>
-
                     </div>
 
                     <form
@@ -44,10 +42,8 @@
                     <div class="alert alert-info">
                         This expects a CSV with the following columns:
                         <br><i>
-                            first_name, surname, form, is_prefect</i> <b> (either <i>true</i> or <i>false</i>) </b> <i>,username
+                            first_name, surname, form, is_prefect</i> <b> (either <i>true</i> or <i>false</i>) </b> <i>,username{% if siteinfo.show_different_awards %}, was_first_entry </i> <b>(either <i>true</i> or <i>false</i>)</b><i>{% endif %}
                         </i> <br>
-                        <br>
-                        <a href="/people_example.csv" target="_blank">See example</a>
                     </div>
 
                     <form

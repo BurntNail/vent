@@ -7,7 +7,7 @@ pub mod edit_self;
 pub mod eoy_migration;
 pub mod give_bonus_point;
 pub mod images;
-pub mod import_export;
+pub mod csv_import_export;
 pub mod index;
 pub mod public;
 pub mod rewards;

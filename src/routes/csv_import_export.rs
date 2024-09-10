@@ -117,14 +117,8 @@ pub async fn post_import_people_from_csv(
         })?;
         let was_first_entry: bool = record
             .get(5)
-            .context(MalformedCSVSnafu {
-                was_trying_to_get: PersonField::WasFirstEntry,
-            })?
-            .parse()
-            .context(ParseBoolSnafu {
-                trying_to_parse: WhatToParse::PartOfAPerson(PersonField::WasFirstEntry),
-                how_got_in: EncodeStep::Decode,
-            })?;
+            .and_then(|x| x.parse().ok())
+            .unwrap_or(true);
 
         debug!("Checking if needs to be updated rather than created");
 
