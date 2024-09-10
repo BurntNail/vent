@@ -111,14 +111,6 @@ FULL_DOMAIN { #eg. vent.your.domain
 }
 ```
 
-## Required Assets
-
-Please place all of the following inside your `public` directory:
-- `manifest.json` & `sw.js` for PWAs.
-- `favicon.ico` for the icon.
-- `offline.html` for the offline page.
-- Icons specified in the manifest - NB: these will be served as `your.domain/assets/512x512.png`
-
 ## Architecture
 
 The project consists of an [axum](https://lib.rs/axum) app, which serves [liquid](https://shopify.github.io/liquid/)
