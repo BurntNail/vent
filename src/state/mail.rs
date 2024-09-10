@@ -76,9 +76,9 @@ Have a nice day!"#
         info!("Created mailer");
 
         match mailer.test_connection().await {
-        	Err(e) => error!(?e, "Error with mailer connection"),
-        	Ok(true) => info!("Mailer connection OK"),
-        	Ok(false) => error!("Mailer connection not OK"),
+            Err(e) => error!(?e, "Error with mailer connection"),
+            Ok(true) => info!("Mailer connection OK"),
+            Ok(false) => error!("Mailer connection not OK"),
         }
 
         loop {

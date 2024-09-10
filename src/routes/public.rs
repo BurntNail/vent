@@ -14,7 +14,7 @@ use axum::{
     Router,
 };
 use axum_login::permission_required;
-use http::{HeaderValue};
+use http::HeaderValue;
 use new_mime_guess::from_path;
 use serde_json::{from_str, Value};
 use snafu::{OptionExt, ResultExt};
@@ -69,7 +69,7 @@ pub async fn serve_read(
     serve_bytes_with_mime(contents, mime).await
 }
 
-pub async fn serve_bytes_with_mime (contents: Vec<u8>, mime: &str) -> Result<Response, VentError> {
+pub async fn serve_bytes_with_mime(contents: Vec<u8>, mime: &str) -> Result<Response, VentError> {
     Ok(Response::builder()
         .header(
             header::CONTENT_TYPE,

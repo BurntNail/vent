@@ -115,7 +115,10 @@ async fn main() {
         .await
         .expect("cannot connect to DB");
 
-    sqlx::migrate!().run(&pool).await.expect("cannot run migrations.");
+    sqlx::migrate!()
+        .run(&pool)
+        .await
+        .expect("cannot run migrations.");
 
     let session_layer = SessionManagerLayer::new(PostgresStore::new(pool.clone()))
         .with_secure(false)

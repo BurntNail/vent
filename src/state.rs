@@ -6,10 +6,16 @@ mod compiler;
 pub mod db_objects;
 
 use crate::{
-    auth::add_password::get_email_to_be_sent_for_reset_password,
+    auth::{
+        add_password::get_email_to_be_sent_for_reset_password, backend::VentAuthBackend,
+        PermissionsTarget,
+    },
     cfg::Settings,
     error::{ChannelReason, SendSnafu, SqlxAction, SqlxSnafu, VentError},
-    routes::calendar::update_calendar_thread,
+    routes::{
+        calendar::{get_events, update_calendar_thread},
+        public::serve_bytes_with_mime,
+    },
     state::{
         cache::VentCache,
         compiler::VentCompiler,
@@ -17,28 +23,23 @@ use crate::{
         mail::{email_sender_thread, EmailToSend},
     },
 };
-use axum::response::{Html, IntoResponse, Redirect, Response};
+use axum::{
+    extract::State,
+    response::{Html, IntoResponse, Redirect, Response},
+    routing::get,
+    Router,
+};
+use axum_login::permission_required;
+use icalendar::Calendar;
 use liquid::Object;
 use snafu::ResultExt;
 use sqlx::{pool::PoolConnection, Pool, Postgres};
-use std::{fmt::Debug, path::Path};
-use std::sync::Arc;
-use axum::extract::State;
-use axum::Router;
-use axum::routing::get;
-use axum_login::permission_required;
-use icalendar::Calendar;
-use tokio::{
-    sync::{
-        broadcast::{channel as broadcast_channel, Sender as BroadcastSender},
-        mpsc::UnboundedSender,
-    },
+use std::{fmt::Debug, path::Path, sync::Arc};
+use tokio::sync::{
+    broadcast::{channel as broadcast_channel, Sender as BroadcastSender},
+    mpsc::UnboundedSender,
+    RwLock,
 };
-use tokio::sync::RwLock;
-use crate::auth::backend::VentAuthBackend;
-use crate::auth::PermissionsTarget;
-use crate::routes::calendar::get_events;
-use crate::routes::public::serve_bytes_with_mime;
 
 #[derive(Clone, Debug)]
 pub struct VentState {
@@ -58,10 +59,18 @@ impl VentState {
         let (stop_senders_tx, stop_senders_rx1) = broadcast_channel(2);
 
         let calendar = Arc::new(RwLock::new({
-            let conn = postgres.acquire().await.expect("unable to get postgres connection");
-            get_events(conn, settings.timezone_id.clone(), &settings.brand.instance_name).await.expect("unable to create calendar")
+            let conn = postgres
+                .acquire()
+                .await
+                .expect("unable to get postgres connection");
+            get_events(
+                conn,
+                settings.timezone_id.clone(),
+                &settings.brand.instance_name,
+            )
+            .await
+            .expect("unable to create calendar")
         }));
-
 
         let mail_sender = email_sender_thread(settings.clone(), stop_senders_rx1);
         let update_calendar_sender = update_calendar_thread(
@@ -76,7 +85,6 @@ impl VentState {
         let compiler = VentCompiler;
         let cache = VentCache::new();
         cache.pre_populate().await;
-
 
         Self {
             database,
@@ -134,19 +142,18 @@ impl VentState {
             .await
     }
 
-    pub async fn get_calendar (&self) -> Result<Response, VentError> {
+    pub async fn get_calendar(&self) -> Result<Response, VentError> {
         let bytes = self.calendar.read().await.to_string().into_bytes();
         serve_bytes_with_mime(bytes, "text/calendar").await
     }
 }
 
-pub async fn reload_cache (State(state): State<VentState>) -> impl IntoResponse {
+pub async fn reload_cache(State(state): State<VentState>) -> impl IntoResponse {
     state.cache.clear();
     Redirect::to("/")
 }
 
-
-pub fn router () -> Router<VentState> {
+pub fn router() -> Router<VentState> {
     Router::new()
         .route("/reload_pages", get(reload_cache))
         .route_layer(permission_required!(

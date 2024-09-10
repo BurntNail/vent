@@ -68,7 +68,7 @@ impl VentCache {
         }
     }
 
-    pub fn clear (&self) {
+    pub fn clear(&self) {
         self.templates_cache.invalidate_all();
     }
 }

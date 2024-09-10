@@ -9,15 +9,12 @@ use axum::{extract::State, response::IntoResponse};
 use icalendar::{Calendar, CalendarDateTime, Component, Event, EventLike};
 use snafu::ResultExt;
 use sqlx::{pool::PoolConnection, Pool, Postgres};
-use std::{collections::HashMap, time::Duration};
-use std::sync::Arc;
-use tokio::{
-    sync::{
-        broadcast::{error::TryRecvError, Receiver as BroadcastReceiver},
-        mpsc::{unbounded_channel, UnboundedSender},
-    },
+use std::{collections::HashMap, sync::Arc, time::Duration};
+use tokio::sync::{
+    broadcast::{error::TryRecvError, Receiver as BroadcastReceiver},
+    mpsc::{unbounded_channel, UnboundedSender},
+    RwLock,
 };
-use tokio::sync::RwLock;
 
 #[axum::debug_handler]
 pub async fn get_calendar_feed(
@@ -34,26 +31,26 @@ pub async fn get_events(
     let mut prefect_events: HashMap<i32, Vec<String>> = HashMap::new();
 
     let prefects = sqlx::query!(
-            r#"
+        r#"
     SELECT id, first_name, surname FROM people p WHERE p.permissions != 'participant'"#
-        )
-        .fetch_all(&mut *conn)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::FindingPeople,
-        })?
-        .into_iter()
-        .map(|x| (x.id, format!("{} {}", x.first_name, x.surname)))
-        .collect::<HashMap<_, _>>();
+    )
+    .fetch_all(&mut *conn)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingPeople,
+    })?
+    .into_iter()
+    .map(|x| (x.id, format!("{} {}", x.first_name, x.surname)))
+    .collect::<HashMap<_, _>>();
     let relations = sqlx::query!(
-            r#"
+        r#"
     SELECT event_id, prefect_id FROM prefect_events"#
-        )
-        .fetch_all(&mut *conn)
-        .await
-        .context(SqlxSnafu {
-            action: SqlxAction::FindingParticipantsOrPrefectsAtEvents { event_id: None },
-        })?;
+    )
+    .fetch_all(&mut *conn)
+    .await
+    .context(SqlxSnafu {
+        action: SqlxAction::FindingParticipantsOrPrefectsAtEvents { event_id: None },
+    })?;
 
     for rec in relations {
         if let Some(name) = prefects.get(&rec.event_id).cloned() {
@@ -99,11 +96,11 @@ pub async fn get_events(
                 .ends(date)
                 .location(&location)
                 /* .description(&format!(
-                    r#"
-Teacher: {teacher}
-Other Information: {other_info}
-Prefects Attending: {prefects}"#
-                )) */
+                                    r#"
+                Teacher: {teacher}
+                Other Information: {other_info}
+                Prefects Attending: {prefects}"#
+                                )) */
                 .done(),
         );
     }
@@ -117,7 +114,7 @@ pub fn update_calendar_thread(
     mut stop_rx: BroadcastReceiver<()>,
     tzid: String,
     instance_name: &impl AsRef<str>,
-    calendar: Arc<RwLock<Calendar>>
+    calendar: Arc<RwLock<Calendar>>,
 ) -> UnboundedSender<()> {
     let instance_name = instance_name.as_ref();
     let (update_tx, mut update_rx) = unbounded_channel();
@@ -132,16 +129,14 @@ pub fn update_calendar_thread(
 
             if let Ok(()) = update_rx.try_recv() {
                 match pool.acquire().await {
-                    Ok(conn) => {
-                        match get_events(conn, tzid.clone(), &calendar_title).await {
-                            Ok(x) => {
-                                *calendar.write().await = x;
-                            },
-                            Err(e) => {
-                                error!(?e, "Error updating calendar!!!");
-                            }
+                    Ok(conn) => match get_events(conn, tzid.clone(), &calendar_title).await {
+                        Ok(x) => {
+                            *calendar.write().await = x;
                         }
-                    }
+                        Err(e) => {
+                            error!(?e, "Error updating calendar!!!");
+                        }
+                    },
                     Err(e) => error!(?e, "Error getting connection to update calendar"),
                 }
             }

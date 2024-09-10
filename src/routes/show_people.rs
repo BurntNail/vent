@@ -23,10 +23,11 @@ async fn get_show_people(
     auth: Auth,
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
-    let event_victory_points: i32 = sqlx::query!("SELECT extra_points FROM public.events").fetch_all(&mut *state.get_connection().await?)
+    let event_victory_points: i32 = sqlx::query!("SELECT extra_points FROM public.events")
+        .fetch_all(&mut *state.get_connection().await?)
         .await
         .context(SqlxSnafu {
-            action: SqlxAction::FindingAllEvents
+            action: SqlxAction::FindingAllEvents,
         })?
         .into_iter()
         .map(|rec| rec.extra_points)

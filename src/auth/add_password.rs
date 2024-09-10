@@ -1,9 +1,8 @@
-use std::time::Duration;
 use crate::{
     auth::{
-        backend::Auth,
+        backend::{Auth, VentAuthBackend},
         cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP},
-        get_auth_object,
+        get_auth_object, PermissionsTarget,
     },
     error::{SqlxAction, SqlxSnafu, VentError},
     state::{db_objects::DbPerson, mail::EmailToSend, VentState},
@@ -21,9 +20,8 @@ use rand::{thread_rng, Rng};
 use serde::Deserialize;
 use snafu::ResultExt;
 use sqlx::{pool::PoolConnection, Postgres};
+use std::time::Duration;
 use tokio::time::sleep;
-use crate::auth::backend::VentAuthBackend;
-use crate::auth::PermissionsTarget;
 
 //tried to use an Option<Path<_>>, but didn't work
 #[axum::debug_handler]
@@ -238,8 +236,13 @@ pub async fn get_email_to_be_sent_for_reset_password(
     })
 }
 
-pub async fn spam_password_emails (State(state): State<VentState>) -> Result<Redirect, VentError>{
-    let ids: Vec<_> = sqlx::query!("SELECT id FROM people WHERE hashed_password IS NULL").fetch_all(&mut *state.get_connection().await?).await.context(SqlxSnafu { action: SqlxAction::FindingPeople })?;
+pub async fn spam_password_emails(State(state): State<VentState>) -> Result<Redirect, VentError> {
+    let ids: Vec<_> = sqlx::query!("SELECT id FROM people WHERE hashed_password IS NULL")
+        .fetch_all(&mut *state.get_connection().await?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingPeople,
+        })?;
 
     tokio::spawn(async move {
         for id in ids {

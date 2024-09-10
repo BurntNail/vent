@@ -34,7 +34,7 @@ pub async fn get_index(
                     other_info: _,
                     zip_file: _,
                     is_locked: _,
-                    extra_points: _
+                    extra_points: _,
                 },
                 fmt,
             ): (DbEvent, &'a str),

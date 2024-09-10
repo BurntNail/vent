@@ -41,7 +41,7 @@ async fn get_update_event(
         other_info,
         zip_file: _,
         is_locked,
-        extra_points
+        extra_points,
     } = sqlx::query_as!(
         DbEvent,
         r#"
@@ -355,7 +355,7 @@ async fn post_update_event(
         teacher,
         info,
         is_locked,
-        victory_points
+        victory_points,
     }): Form<FormEvent>,
 ) -> Result<impl IntoResponse, VentError> {
     let date = NaiveDateTime::parse_from_str(&date, "%Y-%m-%dT%H:%M").context(ParseTimeSnafu {
