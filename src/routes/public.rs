@@ -132,5 +132,4 @@ pub fn router() -> Router<VentState> {
         .route("/offline.html", get(get_offline))
         .route("/robots.txt", get(get_robots_txt))
         .nest_service("/assets/", ServeDir::new("public/"))
-    
 }

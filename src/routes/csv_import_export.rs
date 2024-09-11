@@ -115,10 +115,7 @@ pub async fn post_import_people_from_csv(
         let username = record.get(4).context(MalformedCSVSnafu {
             was_trying_to_get: PersonField::Username,
         })?;
-        let was_first_entry: bool = record
-            .get(5)
-            .and_then(|x| x.parse().ok())
-            .unwrap_or(true);
+        let was_first_entry: bool = record.get(5).and_then(|x| x.parse().ok()).unwrap_or(true);
 
         debug!("Checking if needs to be updated rather than created");
 

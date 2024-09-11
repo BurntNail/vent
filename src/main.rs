@@ -23,10 +23,10 @@ use crate::{
     error::not_found_fallback,
     liquid_utils::partials,
     routes::{
-        add_event, add_people_to_event, add_person, calendar::get_calendar_feed, edit_person,
-        edit_self, eoy_migration, give_bonus_point, images, csv_import_export, index::get_index,
-        public, rewards, show_bonus_points, show_events, show_people,
-        spreadsheets::get_spreadsheet, update_bonus_point, update_events,
+        add_event, add_people_to_event, add_person, calendar::get_calendar_feed, csv_import_export,
+        edit_person, edit_self, eoy_migration, give_bonus_point, images, index::get_index, public,
+        rewards, show_bonus_points, show_events, show_people, spreadsheets::get_spreadsheet,
+        update_bonus_point, update_events,
     },
     state::VentState,
 };
