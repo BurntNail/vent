@@ -46,6 +46,7 @@ use hyper_util::rt::TokioIo;
 use liquid_utils::partials::PARTIALS;
 use sqlx::postgres::PgPoolOptions;
 use std::{env::var, net::SocketAddr};
+use std::fs::File;
 use time::Duration;
 use tokio::{net::TcpListener, signal, sync::watch};
 use tower::{limit::ConcurrencyLimitLayer, Service};
@@ -97,14 +98,14 @@ async fn main() {
     if option_env!("DOCKER_BUILD").is_none() {
         dotenvy::dotenv().expect("unable to get env variables");
     }
-
+    
     tracing::subscriber::set_global_default(
         Registry::default()
             .with(EnvFilter::from_default_env())
-            .with(tracing_subscriber::fmt::layer().json()),
+            .with(tracing_subscriber::fmt::layer().json().with_writer(File::create("log.json").expect("unable to make log file"))),
     )
-    .unwrap();
-
+    .unwrap();  
+    
     PARTIALS.write().await.reload().await;
 
     let db_url = var("DATABASE_URL").expect("DB URL must be set");

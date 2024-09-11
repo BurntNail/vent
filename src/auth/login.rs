@@ -60,8 +60,8 @@ pub async fn get_login(
         
         
         const USERNAME: &str = "admin";
-        info!(%USERNAME, %password, "Created Admin User & Password");
-        
+
+        println!("Created admin user with password {password:?}");
         
         let hashed = hash(&password, DEFAULT_COST)?;
         sqlx::query!(

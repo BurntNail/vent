@@ -87,10 +87,10 @@ pub async fn serve_bytes_with_mime(contents: Vec<u8>, mime: &str) -> Result<Resp
 
 #[axum::debug_handler]
 pub async fn get_log() -> Result<Json<Vec<Value>>, VentError> {
-    let contents = read_to_string("./precipice-log.json")
+    let contents = read_to_string("./log.json") //TODO: work out way to sync logs between docker instances
         .await
         .context(IOSnafu {
-            action: IOAction::ReadingAndOpening(FileIdentifier::Const("./precipice-log.json")),
+            action: IOAction::ReadingAndOpening(FileIdentifier::Const("./log.json")),
         })?;
     let items = contents
         .lines()
