@@ -4,7 +4,7 @@ use crate::{
         cloudflare_turnstile::{verify_turnstile, GrabCFRemoteIP},
         get_auth_object,
     },
-    error::{ALError, LoginFailureReason, VentError},
+    error::{ALError, LoginFailureReason, SqlxAction, SqlxSnafu, VentError},
     state::VentState,
 };
 use axum::{
@@ -14,8 +14,10 @@ use axum::{
     Form, Router,
 };
 use axum_login::login_required;
+use bcrypt::{hash, DEFAULT_COST};
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
 
 #[derive(Deserialize)]
 pub struct LoginForm {
@@ -30,6 +32,32 @@ pub async fn get_login(
     auth: Auth,
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
+    if sqlx::query!("SELECT COUNT(*) FROM people")
+        .fetch_one(&mut *state.get_connection().await?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::FindingPeople,
+        })?
+        .count
+        .unwrap_or_default()
+        == 0
+    {
+        let hashed = hash("admin_password", DEFAULT_COST)?;
+        sqlx::query!(
+            r#"
+INSERT INTO public.people
+(permissions, first_name, surname, username, form, hashed_password)
+VALUES('dev', 'Admin', 'Admin', 'admin', 'Staff', $1);
+        "#,
+            hashed
+        )
+        .execute(&mut *state.get_connection().await?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::AddingPerson,
+        })?;
+    }
+
     let aa = get_auth_object(auth).await?;
     state.compile(
         "www/login.liquid",
