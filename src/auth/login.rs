@@ -16,6 +16,7 @@ use axum::{
 use axum_login::login_required;
 use bcrypt::{hash, DEFAULT_COST};
 use http::StatusCode;
+use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 
@@ -42,14 +43,34 @@ pub async fn get_login(
         .unwrap_or_default()
         == 0
     {
-        let hashed = hash("admin_password", DEFAULT_COST)?;
+        let password = {
+            const OPTIONS: &[u8] = b"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXVBNM123456789!$%^&*()-=[];#,._+{}:@<>?";
+            const LEN: usize = 24;
+            
+            let mut rng = thread_rng();
+            let mut string = String::with_capacity(LEN);
+            
+            for _ in 0..LEN {
+                let index = rng.gen_range(0..OPTIONS.len());
+                string.push(char::from(OPTIONS[index]));
+            }
+            
+            string
+        };
+        
+        
+        const USERNAME: &str = "admin";
+        info!(%USERNAME, %password, "Created Admin User & Password");
+        
+        
+        let hashed = hash(&password, DEFAULT_COST)?;
         sqlx::query!(
             r#"
 INSERT INTO public.people
 (permissions, first_name, surname, username, form, hashed_password)
-VALUES('dev', 'Admin', 'Admin', 'admin', 'Staff', $1);
+VALUES('dev', 'Admin', 'Admin', $1, 'Staff', $2);
         "#,
-            hashed
+            USERNAME, hashed
         )
         .execute(&mut *state.get_connection().await?)
         .await
