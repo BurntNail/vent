@@ -598,11 +598,6 @@ pub fn router() -> Router<VentState> {
             "/remove_participant_from_event",
             post(get_remove_participant_from_event),
         )
-        .route_layer(permission_required!(
-            VentAuthBackend,
-            login_url = "/login",
-            PermissionsTarget::EditParticipantsOnEvents
-        ))
         .route("/remove_img/:id", get(delete_image))
         .route_layer(login_required!(VentAuthBackend, login_url = "/login"))
         .route("/update_event/:id", get(get_update_event))
