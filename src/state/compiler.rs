@@ -48,9 +48,7 @@ impl VentCompiler {
         let show_bonus_points = var("HIDE_BONUS_POINTS").is_err();
         let show_different_awards = var("DISABLE_DIFFERENT_AWARD_THRESHOLDS").is_err();
         
-        let uses_ga = settings.brand.google_analytics.is_some();
-        
-        let google_analytics = match settings.brand.google_analytics.as_ref {
+        let google_analytics = match settings.brand.google_analytics.as_ref() {
             Some(x) => liquid::object!({"uses_ga": true, "ga_key": x}),
             None => liquid::object!({"uses_ga": false})
         };

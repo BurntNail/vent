@@ -17,7 +17,6 @@ use std::{
     collections::HashMap,
     ffi::{OsStr, OsString},
 };
-use std::os::unix::ffi::OsStrExt;
 use tokio::{fs::read_to_string, sync::RwLock};
 
 ///Struct to hold all the partials - then I can use a convenience function to easily get a [`PartialCompiler`]
