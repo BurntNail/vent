@@ -47,6 +47,13 @@ impl VentCompiler {
 
         let show_bonus_points = var("HIDE_BONUS_POINTS").is_err();
         let show_different_awards = var("DISABLE_DIFFERENT_AWARD_THRESHOLDS").is_err();
+        
+        let uses_ga = settings.brand.google_analytics.is_some();
+        
+        let google_analytics = match settings.brand.google_analytics.as_ref {
+            Some(x) => liquid::object!({"uses_ga": true, "ga_key": x}),
+            None => liquid::object!({"uses_ga": false})
+        };
 
         globals.insert("cft_sitekey".into(), Value::scalar(CFT_SITEKEY.as_str()));
         globals.insert(
@@ -57,7 +64,8 @@ impl VentCompiler {
                 "domain_exists": DOMAIN.0,
                 "domain": DOMAIN.1.as_str(),
                 "show_bonus_points": show_bonus_points,
-                "show_different_awards": show_different_awards
+                "show_different_awards": show_different_awards,
+                "google_analytics": google_analytics
             })),
         );
 

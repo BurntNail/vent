@@ -4,7 +4,12 @@
         <svg class="bi" width="30" height="24"><use xlink:href="#bootstrap"></use></svg>
       </a>
       <span class="mb-3 mb-md-0 text-body-secondary">© 2024 Jack Maguire</span><pre>   </pre>
-      <i>Google & Cloudflare Analytics are used - this information will never be shared with advertisers.</i>
+        
+        {% if siteinfo.google_analytics.uses_ga %}
+            <i>Google & Cloudflare Analytics are used - this information will never be shared with anyone else.</i>
+        {% else %}
+            <i>Cloudflare Analytics is used - this information will never be shared with anyone else.</i>
+        {% endif %}
     </div>
 
     <ul class="nav col-md-4 justify-content-end list-unstyled d-flex">

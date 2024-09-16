@@ -7,6 +7,7 @@ use tokio::task::spawn_blocking;
 pub struct BrandSettings {
     pub instance_name: String,
     pub domain: String,
+    pub google_analytics: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
