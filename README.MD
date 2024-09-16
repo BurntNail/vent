@@ -26,7 +26,7 @@ You need to have a `.env` file with the following variables set:
 | `RUST_LOG`                            | Logging                                                                                                       | `ERROR`, `WARN`, `INFO`, `DEBUG`, or `TRACE`. For more examples, see [the docs](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax). | No logging            |
 | `HIDE_BONUS_POINTS`                   | If your application doesn't need bonus points and this variable exists, the bonus points will not be present. | `[not set]`                                                                                                                                                                                |
 | `DISABLE_DIFFERENT_AWARD_THRESHOLDS`  | If your application doesn't need two reward thresholds, set this variable.| "well, um actually, we use the *other* system"                                                                                                                                             |                       |
-
+| `VENT_SERVER_IP`						| If you'd like to specify a different IP than `0.0.0.0:8080` for the server to run on.                         | `127.0.0.1:8080` |
 ### Configuration
 
 You should also have a TOML configuration file that follows this schema:

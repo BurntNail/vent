@@ -230,7 +230,9 @@ async fn main() {
         .layer(ConcurrencyLimitLayer::new(512)) //limit to 512 inflight reqs
         .with_state(state.clone());
 
-    let port: SocketAddr = "0.0.0.0:8080".parse().unwrap();
+    let server_ip = var("VENT_SERVER_IP").unwrap_or_else(|_| "0.0.0.0:8080".to_string());
+
+    let port: SocketAddr = server_ip.parse().unwrap();
     info!(?port, "Serving: ");
 
     serve(router, TcpListener::bind(port).await.unwrap(), state).await;
