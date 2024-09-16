@@ -39,6 +39,7 @@ niche: {
 brand: {
     instance_name: String,
     domain: String,
+    google_analytics: Option<String>
 },
 mail: {
     username: String,
@@ -56,6 +57,7 @@ tech_support_person: String
 | `niche.tech_support`     | For where user should be directed with 500-class errors.                                                                          | `"https://github.com/yourname/yourfork/issues/new"` |
 | `brand.instance_name`    | For the name of the application in the UI.`"House Events Manager"`                                                                | `House Events Manager`                              |
 | `brand.domain`           | The domain of the website - used for absolute links                                                                               | `http://localhost`                                  |
+| `brand.google_analytics` | The Google Analytics key without the leading `G-`.                                                                                | `AAABBBCCC111222333`                                |
 | `mail.username`          | This is the username for the mail account that will send password set links.                                                      | `noreply.vent@gmail.com`                            |
 | `mail.password`          | This is the password for the mail account.                                                                                        | `aaaaaaaaaaaaaaab`                                  |
 | `mail.smtp`              | This is the SMTP server for the mail account.                                                                                     | `smtp.zoho.eu`                                      |
@@ -72,7 +74,7 @@ Previously, this project had to be manually compiled, but it now has a Docker im
 3) Create a config & environment file.
 4) Get going!
 
-Example docker-compose file:
+Example docker-``compose file:
 ```yaml
 services:
   db:

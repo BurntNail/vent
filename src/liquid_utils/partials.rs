@@ -17,6 +17,7 @@ use std::{
     collections::HashMap,
     ffi::{OsStr, OsString},
 };
+use std::os::unix::ffi::OsStrExt;
 use tokio::{fs::read_to_string, sync::RwLock};
 
 ///Struct to hold all the partials - then I can use a convenience function to easily get a [`PartialCompiler`]
@@ -72,7 +73,7 @@ async fn get_partials() -> HashMap<String, String> {
     let partial_extensions = PARTIALS_EXTENSIONS
         .iter()
         .map(OsString::from) //get OsStrings from the allowed extensions
-        .collect::<Vec<_>>(); //must do outside of const as this is not const
+        .collect::<Vec<_>>();
 
     let mut in_memory_source = HashMap::new(); //make a new source
     let partials: Vec<_> = WalkDir::new(PARTIALS_DIR).collect().await;
