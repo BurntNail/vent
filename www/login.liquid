@@ -33,6 +33,10 @@
                         aria-describedby="unhashed_password"
                         name="unhashed_password">
             </div>
+            
+            {% if next.next_exists %}
+                <input type="hidden" name="next" value="{{ next.next }}">
+            {% endif %}
 
             <div class="mb-3">
                 <div class="cf-turnstile" data-sitekey="{{ cft_sitekey }}"></div>

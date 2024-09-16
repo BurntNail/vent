@@ -13,6 +13,7 @@ use axum::{
     routing::get,
     Form, Router,
 };
+use axum::extract::Query;
 use axum_login::login_required;
 use bcrypt::{hash, DEFAULT_COST};
 use http::StatusCode;
@@ -20,18 +21,25 @@ use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 
+#[derive(Debug, Deserialize)]
+pub struct NextUrl {
+    next: Option<String>
+}
+
 #[derive(Deserialize)]
 pub struct LoginForm {
     pub username: String,
     pub unhashed_password: String,
     #[serde(rename = "cf-turnstile-response")]
     pub cf_turnstile_response: String,
+    next: Option<String>,
 }
 
 #[axum::debug_handler]
 pub async fn get_login(
     auth: Auth,
     State(state): State<VentState>,
+    Query(NextUrl {next}): Query<NextUrl>,
 ) -> Result<impl IntoResponse, VentError> {
     if sqlx::query!("SELECT COUNT(*) FROM people")
         .fetch_one(&mut *state.get_connection().await?)
@@ -80,9 +88,13 @@ VALUES('dev', 'Admin', 'Admin', $1, 'Staff', $2);
     }
 
     let aa = get_auth_object(auth).await?;
+    let next = match next {
+        Some(x) => liquid::object!({"next_exists": true, "next": x}),
+        None => liquid::object!({"next_exists": false}),
+    };
     state.compile(
         "www/login.liquid",
-        liquid::object!({ "auth": aa, "tech_support_person": state.settings.tech_support_person.clone() }),
+        liquid::object!({ "auth": aa, "tech_support_person": state.settings.tech_support_person.clone(), "next": next}),
         None
     )
     .await
@@ -148,13 +160,14 @@ pub async fn post_login(
         username,
         unhashed_password,
         cf_turnstile_response,
+        next
     }): Form<LoginForm>,
 ) -> Result<impl IntoResponse, VentError> {
     if !verify_turnstile(cf_turnstile_response, remote_ip).await? {
         return Ok(Redirect::to("/login_failure/failed_turnstile"));
     }
 
-    Ok(Redirect::to(
+    Ok(Redirect::to(&
         match auth
             .authenticate(LoginCreds {
                 username: username.clone(),
@@ -164,9 +177,9 @@ pub async fn post_login(
         {
             Ok(Some(x)) => {
                 auth.login(&x).await?;
-                "/"
+                next.unwrap_or_else(|| "/".to_string())
             }
-            Ok(None) => "/login_failure/user_not_found",
+            Ok(None) => "/login_failure/user_not_found".to_string(),
             Err(error) => {
                 if let ALError::Backend(VentError::LoginFailure { reason }) = error {
                     match reason {
@@ -175,7 +188,7 @@ pub async fn post_login(
                             error!(username = ? username, "Wrong password for trying to login");
                             "/login_failure/bad_password"
                         }
-                    }
+                    }.to_string()
                 } else {
                     return Err(error.into());
                 }
