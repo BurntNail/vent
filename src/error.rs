@@ -131,7 +131,8 @@ pub enum IOAction {
     CreatingFile(FileIdentifier),
     DeletingFile(FileIdentifier),
     ReadingAndOpening(FileIdentifier),
-    WritingToFile,
+    ReadingDirectory(FileIdentifier),
+    WritingToFile(FileIdentifier),
     FlushingFile,
     WritingToZip,
 }

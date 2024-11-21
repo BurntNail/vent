@@ -37,7 +37,7 @@ async fn post_add_photo(
             action: SqlxAction::GettingEvent(event_id)
         })?
         .and_then(|x| x.zip_file) {
-        state.bucket.delete_file(old_zip_file).await?;
+        state.storage.delete_file(old_zip_file).await?;
 
         sqlx::query!(
         r#"
@@ -53,7 +53,7 @@ WHERE id = $1
                 action: SqlxAction::UpdatingEvent(event_id),
             })?;
     }
-    
+
 
     let user_id = auth.user.unwrap().id;
 
@@ -73,7 +73,7 @@ WHERE id = $1
 
         debug!("Finding file name");
         
-        let existing_names = state.bucket.list_files("uploads".into()).await?;
+        let existing_names = state.storage.list_files("uploads").await?;
         
         info!(?existing_names);
 
@@ -101,7 +101,7 @@ VALUES($1, $2, $3)"#,
             action: SqlxAction::AddingPhotos,
         })?;
         
-        state.bucket.write_file(file_name, data, format.to_mime_type()).await?;
+        state.storage.write_file(file_name, data, format.to_mime_type()).await?;
     }
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
@@ -153,7 +153,7 @@ WHERE event_id = $1"#,
     .map(|x| x.path);
 
     let file_name: String = {
-        let existing = state.bucket.list_files("zips".into()).await?;
+        let existing = state.storage.list_files("zips").await?;
 
         let mut rng = thread_rng();
         format!(
@@ -177,7 +177,7 @@ WHERE event_id = $1"#,
         let options = SimpleFileOptions::default().compression_level(None);
         writer.start_file(&file_path, options)?;
 
-        let contents = state.bucket.read_file(&file_path).await?;
+        let contents = state.storage.read_file(&file_path).await?;
         writer.write_all(&contents).context(IOSnafu {
             action: IOAction::WritingToZip
         })?;
@@ -186,7 +186,7 @@ WHERE event_id = $1"#,
     let cursor = writer.finish()?;
     drop(cursor);
 
-    state.bucket.write_file(&file_name, buffer, "application/zip").await?;
+    state.storage.write_file(&file_name, buffer, "application/zip").await?;
 
     debug!("Updating SQL");
 

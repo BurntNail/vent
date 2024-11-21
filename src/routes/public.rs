@@ -38,7 +38,7 @@ pub async fn serve_static_file_from_s3(
         what: ConvertingWhatToString::PathBuffer(path.clone()),
     })?;
 
-    let contents = state.bucket.read_file(path_str).await?;
+    let contents = state.storage.read_file(path_str).await?;
 
     let mime = from_path(path.clone())
         .first()

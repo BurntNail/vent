@@ -475,7 +475,7 @@ RETURNING path, event_id"#,
         action: SqlxAction::RemovingPhoto(img_id),
     })?;
     
-    state.bucket.delete_file(&event.path).await?;
+    state.storage.delete_file(&event.path).await?;
 
     if let Some(existing_zip_file) = sqlx::query!(
         r#"
@@ -491,7 +491,7 @@ WHERE id = $1"#,
     })?
     .and_then(|x| x.zip_file)
     {
-        state.bucket.delete_file(&existing_zip_file).await?;
+        state.storage.delete_file(&existing_zip_file).await?;
 
         sqlx::query!(
             r#"

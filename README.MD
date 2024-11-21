@@ -18,11 +18,23 @@ You need to have a `.env` file with the following variables set:
 | `DATABASE_URL`        | This is used for the postgres database                                                          | `postgres://user@127.0.0.1:1111/user` |
 | `CFT_SITEKEY`         | This is the Sitekey for [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/)    | `0x4AAAAAAAAAAAAAAAAAAAAAAAAAAA`      |
 | `CFT_SECRETKEY`       | This is the secret key for [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) | `0x4AAAAAAAAAAAAAAAAAAAAAAAAAAB`      |
+
+##### S3
+
+If you'd like to use an S3-compatible bucket for storing uploads and things like the favicon, make sure to put these environment variables in!
+
+| Name                  | Use                                                                                             | Example Contents                      |
+|-----------------------|-------------------------------------------------------------------------------------------------|---------------------------------------|
 | `AWS_ACCESS_KEY_ID`   | This is used for the S3 Bucket.                                                                 | `tid_xxxx`                            |
 | `AWS_ENDPOINT_URL_S3` | This is the endpoint for the S3 Bucket.                                                         | `https://your.s3.com`                 |
 | `AWS_REGION`          | This is the region for your S3 Bucket.                                                          | `auto`                                |
 | `AWS_SECRET_KEY`      | This is the secret key for your S3 Bucket.                                                      | `tsec_xxx`                            |
 | `BUCKET_NAME`         | This is the name of your S3 Bucket.| `my_bucket`                           |                                                                        
+
+If you aren't using S3, please ensure the following directories exist and will be writeable/readable from whatever is running vent:
+- `uploads`
+- `public`
+- `zips`
 
 ##### Optional
 

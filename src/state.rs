@@ -41,7 +41,7 @@ use tokio::sync::{
     mpsc::UnboundedSender,
     RwLock,
 };
-use crate::state::s3::S3Bucket;
+use crate::state::s3::VentStorage;
 
 #[derive(Clone, Debug)]
 pub struct VentState {
@@ -53,12 +53,12 @@ pub struct VentState {
     database: VentDatabase,
     compiler: VentCompiler,
     cache: VentCache,
-    pub bucket: S3Bucket,
+    pub storage: VentStorage,
 }
 
 impl VentState {
     pub async fn new(postgres: Pool<Postgres>) -> Self {
-        let bucket = S3Bucket::new();
+        let bucket = VentStorage::new();
         let settings = Settings::new().await.expect("unable to get settings");
         let (stop_senders_tx, stop_senders_rx1) = broadcast_channel(2);
 
@@ -99,7 +99,7 @@ impl VentState {
             settings,
             compiler,
             cache,
-            bucket
+            storage: bucket
         }
     }
 
