@@ -14,9 +14,17 @@ use std::{
     fmt::{Debug, Display, Formatter},
     path::PathBuf,
 };
+use s3::error::S3Error;
 use tower_sessions::session::Id;
 
 pub type ALError = axum_login::Error<VentAuthBackend>;
+
+#[derive(Debug)]
+pub enum S3Action {
+    PuttingFile(String),
+    GettingFile(String),
+    ListingFiles(String),
+}
 
 #[derive(Debug)]
 pub enum HttpAction {
@@ -285,107 +293,107 @@ impl std::error::Error for MissingImageFormat {}
 #[snafu(visibility(pub))]
 pub enum VentError {
     //external errors
-    #[snafu(display("Database Error: {source:?}. Cause: {action:?}"))]
+    #[snafu(display("Database Error: {source}. Cause: {action:?}"))]
     Sqlx {
         source: sqlx::Error,
         action: SqlxAction,
     },
-    #[snafu(display("Liquid Error: {source:?} caused by {attempt:?}"))]
+    #[snafu(display("Liquid Error: {source} caused by {attempt:?}"))]
     Liquid {
         source: liquid::Error,
         attempt: LiquidAction,
     },
-    #[snafu(display("IO Error: {source:?} doing {action:?}"))]
+    #[snafu(display("IO Error: {source} doing {action:?}"))]
     IO {
         source: std::io::Error,
         action: IOAction,
     },
-    #[snafu(display("Tokio Join Error: {source:?} which was started to {title:?}"))]
+    #[snafu(display("Tokio Join Error: {source} which was started to {title:?}"))]
     Join {
         source: tokio::task::JoinError,
         title: ThreadReason,
     },
-    #[snafu(display("Error Parsing Integer: {source:?} trying to get a {what_to_convert_to:?}"))]
+    #[snafu(display("Error Parsing Integer: {source} trying to get a {what_to_convert_to:?}"))]
     ParseInt {
         source: std::num::ParseIntError,
         what_to_convert_to: WhatToParse,
         how_got_in: EncodeStep,
     },
-    #[snafu(display("Error Parsing Bool: {source:?} trying to convert for {trying_to_parse:?}"))]
+    #[snafu(display("Error Parsing Bool: {source} trying to convert for {trying_to_parse:?}"))]
     ParseBool {
         source: std::str::ParseBoolError,
         trying_to_parse: WhatToParse,
         how_got_in: EncodeStep,
     },
-    #[snafu(display("Error Parsing {original:?} - {source:?}"))]
+    #[snafu(display("Error Parsing {original:?} - {source}"))]
     ParseTime {
         source: chrono::ParseError,
         original: String,
         how_got_in: EncodeStep,
     },
-    #[snafu(display("Error in Headers: {source:?}"))]
+    #[snafu(display("Error in Headers: {source}"))]
     Headers {
         source: http::header::InvalidHeaderValue,
         which_header: CommonHeaders,
     },
-    #[snafu(display("Multipart Error: {source:?}"), context(false))]
+    #[snafu(display("Multipart Error: {source}"), context(false))]
     Multipart {
         source: axum::extract::multipart::MultipartError,
     },
-    #[snafu(display("Invalid Image"))]
+    #[snafu(display("Invalid Image whilst {action:?}-ing"))]
     Image { action: ImageAction },
     #[snafu(display("Missing Image Extension: {extension:?}"))]
     NoImageExtension { extension: ImageFormat },
-    #[snafu(display("Error creating Zip File: {source:?}"), context(false))]
+    #[snafu(display("Error creating Zip File: {source}"), context(false))]
     Zip { source: async_zip::error::ZipError },
-    #[snafu(display("Error with XLSX: {source:?}"), context(false))]
+    #[snafu(display("Error with XLSX: {source}"), context(false))]
     Xlsx { source: rust_xlsxwriter::XlsxError },
-    #[snafu(display("Error with Encrypting: {source:?}"), context(false))]
+    #[snafu(display("Error with Encrypting: {source}"), context(false))]
     Bcrypt { source: bcrypt::BcryptError },
     #[snafu(display("Error converting {what:?} to string"))]
     ToStr { what: ConvertingWhatToString },
-    #[snafu(display("Error converting {header:?} to string due to {source:?}"))]
+    #[snafu(display("Error converting {header:?} to string due to {source}"))]
     HeaderToStr {
         source: http::header::ToStrError,
         header: CommonHeaders,
     },
-    #[snafu(display("Error reqwest-ing: {source:?} whilst trying to {action:?}"))]
+    #[snafu(display("Error reqwest-ing: {source} whilst trying to {action:?}"))]
     Reqwest {
         source: reqwest::Error,
         action: ReqwestAction,
     },
-    #[snafu(display("Error parsing email address: {source:?}"), context(false))]
+    #[snafu(display("Error parsing email address: {source}"), context(false))]
     LettreAddress {
         source: lettre::address::AddressError,
     },
-    #[snafu(display("Error with Emails: {source:?}"))]
+    #[snafu(display("Error with Emails: {source}"))]
     LettreEmail {
         source: lettre::error::Error,
         trying_to: LettreAction,
     },
-    #[snafu(display("Error with SMTP: {source:?}"), context(false))]
+    #[snafu(display("Error with SMTP: {source}"), context(false))]
     LettreSMTP {
         source: lettre::transport::smtp::Error,
     },
-    #[snafu(display("Error with CSV Files: {source:?}"), context(false))]
+    #[snafu(display("Error with CSV Files: {source}"), context(false))]
     Csv { source: csv_async::Error },
-    #[snafu(display("JSON error: {source:?} whilst trying to {action:?}"))]
+    #[snafu(display("JSON error: {source} whilst trying to {action:?}"))]
     SerdeJson {
         source: serde_json::Error,
         action: SerdeJsonAction,
     },
-    #[snafu(display("Error with tower_sessions: {source:?}"))]
+    #[snafu(display("Error with tower_sessions: {source}"))]
     TowerSessions {
         source: tower_sessions::session::Error,
     },
     #[snafu(display("Not able page {was_looking_for:?}"))]
     PageNotFound { was_looking_for: Uri },
-    #[snafu(display("Unable to send message {source:?} trying to {reason:?}"))]
+    #[snafu(display("Unable to send message {source} trying to {reason:?}"))]
     SendError {
         source: tokio::sync::mpsc::error::SendError<()>,
         reason: ChannelReason,
     },
-    #[snafu(display("Error with HTTP trying to {action:?} due to {source:?}"))]
+    #[snafu(display("Error with HTTP trying to {action:?} due to {source}"))]
     Http {
         source: http::Error,
         action: HttpAction,
@@ -395,8 +403,13 @@ pub enum VentError {
         source: time::error::ComponentRange,
         naive: NaiveDateTime,
     },
+    #[snafu(display("Failure with S3 due to {source}"))]
+    S3Error {
+        source: S3Error,
+        action: S3Action
+    },
 
-    // internal errors
+// internal errors
     #[snafu(display("Missing Extension on: {was_looking_for:?}"))]
     MissingExtension { was_looking_for: PathBuf },
     #[snafu(display("Unknown MIME Type for File: {path:?}"))]

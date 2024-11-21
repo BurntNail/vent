@@ -13,11 +13,16 @@ You need to have a `.env` file with the following variables set:
 
 ##### Mandatory
 
-| Name             | Use                                                                                             | Example Contents                      |
-|------------------|-------------------------------------------------------------------------------------------------|---------------------------------------|
-| `DATABASE_URL`   | This is used for the postgres database                                                          | `postgres://user@127.0.0.1:1111/user` |
-| `CFT_SITEKEY`    | This is the Sitekey for [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/)    | `0x4AAAAAAAAAAAAAAAAAAAAAAAAAAA`      |
-| `CFT_SECRETKEY`  | This is the secret key for [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) | `0x4AAAAAAAAAAAAAAAAAAAAAAAAAAB`      |
+| Name                  | Use                                                                                             | Example Contents                      |
+|-----------------------|-------------------------------------------------------------------------------------------------|---------------------------------------|
+| `DATABASE_URL`        | This is used for the postgres database                                                          | `postgres://user@127.0.0.1:1111/user` |
+| `CFT_SITEKEY`         | This is the Sitekey for [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/)    | `0x4AAAAAAAAAAAAAAAAAAAAAAAAAAA`      |
+| `CFT_SECRETKEY`       | This is the secret key for [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) | `0x4AAAAAAAAAAAAAAAAAAAAAAAAAAB`      |
+| `AWS_ACCESS_KEY_ID`   | This is used for the S3 Bucket.                                                                 | `tid_xxxx`                            |
+| `AWS_ENDPOINT_URL_S3` | This is the endpoint for the S3 Bucket.                                                         | `https://your.s3.com`                 |
+| `AWS_REGION`          | This is the region for your S3 Bucket.                                                          | `auto`                                |
+| `AWS_SECRET_KEY`      | This is the secret key for your S3 Bucket.                                                      | `tsec_xxx`                            |
+| `BUCKET_NAME`         | This is the name of your S3 Bucket.| `my_bucket`                           |                                                                        
 
 ##### Optional
 
@@ -69,12 +74,12 @@ tech_support_person: String
 
 Previously, this project had to be manually compiled, but it now has a Docker image! 
 
-1) You need to setup a Docker Compose environment (example file below) that creates a vent instance and a postgres instance at a minimum.
-2) You need to create directories for uploads, and create marketing materials and put them all into a folder. Ensure docker has adequate permissions for them.
+1) You need to create a Docker Compose environment (example file below) that creates a vent instance and a postgres instance at a minimum. You also need an S3 bucket.
+2) You need to upload your marketing materials to the bucket in a `public` directory.
 3) Create a config & environment file.
 4) Get going!
 
-Example docker-``compose file:
+Example docker-compose file:
 ```yaml
 services:
   db:

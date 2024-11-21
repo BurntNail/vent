@@ -4,6 +4,7 @@ pub mod mail;
 mod cache;
 mod compiler;
 pub mod db_objects;
+pub mod s3;
 
 use crate::{
     auth::{
@@ -40,6 +41,7 @@ use tokio::sync::{
     mpsc::UnboundedSender,
     RwLock,
 };
+use crate::state::s3::S3Bucket;
 
 #[derive(Clone, Debug)]
 pub struct VentState {
@@ -51,10 +53,12 @@ pub struct VentState {
     database: VentDatabase,
     compiler: VentCompiler,
     cache: VentCache,
+    bucket: S3Bucket,
 }
 
 impl VentState {
     pub async fn new(postgres: Pool<Postgres>) -> Self {
+        let bucket = S3Bucket::new();
         let settings = Settings::new().await.expect("unable to get settings");
         let (stop_senders_tx, stop_senders_rx1) = broadcast_channel(2);
 
@@ -95,6 +99,7 @@ impl VentState {
             settings,
             compiler,
             cache,
+            bucket
         }
     }
 
