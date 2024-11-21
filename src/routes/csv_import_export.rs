@@ -4,11 +4,10 @@ use crate::{
         get_auth_object, PermissionsRole, PermissionsTarget,
     },
     error::{
-        EncodeStep, EventField, IOAction, IOSnafu, MalformedCSVSnafu, ParseBoolSnafu,
+        EncodeStep, EventField, MalformedCSVSnafu, ParseBoolSnafu,
         ParseTimeSnafu, PersonField, SqlxAction, SqlxSnafu, TryingToGetFromCSV, VentError,
         WhatToParse,
     },
-    routes::public::serve_static_file,
     state::VentState,
 };
 use axum::{
@@ -19,12 +18,12 @@ use axum::{
 };
 use axum_login::{login_required, permission_required};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
-use csv_async::{AsyncReaderBuilder, AsyncWriterBuilder};
+use csv_async::{AsyncReaderBuilder};
 use futures::stream::StreamExt;
 use serde::Deserialize;
 use snafu::{OptionExt, ResultExt};
 use std::collections::HashMap;
-use tokio::fs::File;
+use crate::routes::public::serve_bytes_with_mime;
 
 #[axum::debug_handler]
 pub async fn get_import_export_csv(
@@ -250,13 +249,8 @@ VALUES ($1, $2, $3, $4)"#,
 pub async fn export_events_to_csv(
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
-    let mut asw = AsyncWriterBuilder::new().create_writer(
-        File::create("public/events.csv").await.context(IOSnafu {
-            action: IOAction::CreatingFile("public/events.csv".into()),
-        })?,
-    );
-    asw.write_record(&["name", "date_time", "location", "teacher", "other_info"])
-        .await?;
+    let mut csv_writer = csv::Writer::from_writer(vec![]);
+    csv_writer.write_record(&["name", "date_time", "location", "teacher", "other_info"]).unwrap();
 
     #[derive(Deserialize)]
     struct SmolEvent {
@@ -282,41 +276,31 @@ pub async fn export_events_to_csv(
     .context(SqlxSnafu {
         action: SqlxAction::FindingAllEvents,
     })? {
-        asw.write_record(&[
+        csv_writer.write_record(&[
             event_name,
             date.format("%Y-%m-%dT%H:%M").to_string(),
             location,
             teacher,
             other_info.unwrap_or_default(),
-        ])
-        .await?;
+        ]).unwrap();
     }
-
-    asw.flush().await.context(IOSnafu {
-        action: IOAction::FlushingFile,
-    })?; //flush here to ensure we get the errors
-    drop(asw);
-
-    serve_static_file("public/events.csv").await
+    
+    let contents = csv_writer.into_inner().unwrap();
+    serve_bytes_with_mime(contents, "text/csv").await
 }
 #[axum::debug_handler]
 pub async fn export_people_to_csv(
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
-    let mut asw = AsyncWriterBuilder::new().create_writer(
-        File::create("public/people.csv").await.context(IOSnafu {
-            action: IOAction::CreatingFile("public/people.csv".into()),
-        })?,
-    );
-    asw.write_record(&[
+    let mut csv_writer = csv::Writer::from_writer(vec![]);
+    csv_writer.write_record(&[
         "first_name",
         "surname",
         "form",
         "is_prefect",
         "username",
         "was_first_entry",
-    ])
-    .await?;
+    ]).unwrap();
 
     #[derive(Deserialize)]
     struct SmolPerson {
@@ -342,23 +326,18 @@ pub async fn export_people_to_csv(
     .fetch_all(&mut *state.get_connection().await?)
     .await.context(SqlxSnafu { action: SqlxAction::FindingPeople })?
     {
-        asw.write_record(&[
+        csv_writer.write_record(&[
             first_name,
             surname,
             form,
             (permissions >= PermissionsRole::Prefect).to_string(),
             username,
             was_first_entry.to_string()
-        ])
-        .await?;
+        ]).unwrap();
     }
 
-    asw.flush().await.context(IOSnafu {
-        action: IOAction::FlushingFile,
-    })?; //flush here to ensure we get the errors
-    drop(asw);
-
-    serve_static_file("public/people.csv").await
+    let contents = csv_writer.into_inner().unwrap();
+    serve_bytes_with_mime(contents, "text/csv").await
 }
 
 pub fn router() -> Router<VentState> {

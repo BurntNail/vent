@@ -53,7 +53,7 @@ pub struct VentState {
     database: VentDatabase,
     compiler: VentCompiler,
     cache: VentCache,
-    bucket: S3Bucket,
+    pub bucket: S3Bucket,
 }
 
 impl VentState {

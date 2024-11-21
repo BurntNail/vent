@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\nUPDATE events\nSET zip_file = NULL\nWHERE id = $1",
+  "query": "\nUPDATE events\nSET zip_file = NULL\nWHERE id = $1\n",
   "describe": {
     "columns": [],
     "parameters": {
@@ -10,5 +10,5 @@
     },
     "nullable": []
   },
-  "hash": "121a42b8cbe453c9b56c37e4da712216c8bfdb6e76929e32712369c7ba9e72d1"
+  "hash": "140fe3f5871890b1b4771cf8224eedfdb405cab17206c0c44df68978e3c1a6ef"
 }

@@ -1,16 +1,14 @@
 use crate::{
     auth::backend::{Auth, VentAuthBackend},
     error::{
-        ConvertingWhatToString, DatabaseIDMethod, IOAction, IOSnafu, ImageAction, ImageSnafu,
-        MissingExtensionSnafu, NoImageExtensionSnafu, SqlxAction, SqlxSnafu, ToStrSnafu,
-        UnknownMIMESnafu, VentError,
+        IOAction, IOSnafu, ImageAction, ImageSnafu,
+        NoImageExtensionSnafu, SqlxAction, SqlxSnafu,
+        VentError,
     },
     image_format::ImageFormat,
-    routes::public::{serve_read, serve_static_file},
+    routes::public::{serve_static_file_from_s3},
     state::VentState,
 };
-use async_walkdir::WalkDir;
-use async_zip::{tokio::write::ZipFileWriter, Compression, ZipEntryBuilder};
 use axum::{
     extract::{Multipart, Path, State},
     response::{IntoResponse, Redirect},
@@ -18,14 +16,11 @@ use axum::{
     Router,
 };
 use axum_login::login_required;
-use futures::StreamExt;
 use rand::{random, thread_rng, Rng};
 use snafu::{OptionExt, ResultExt};
-use std::{ffi::OsStr, path::PathBuf};
-use tokio::{
-    fs::File,
-    io::{AsyncReadExt, AsyncWriteExt},
-};
+use std::io::Write;
+use zip::ZipWriter;
+use zip::write::SimpleFileOptions;
 
 #[axum::debug_handler]
 async fn post_add_photo(
@@ -35,18 +30,30 @@ async fn post_add_photo(
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, VentError> {
     debug!("Zeroing old zip file");
-    sqlx::query!(
+    if let Some(old_zip_file) = sqlx::query!(r#"SELECT zip_file FROM events WHERE id = $1"#, event_id)
+        .fetch_optional(&mut *state.get_connection().await?)
+        .await
+        .context(SqlxSnafu {
+            action: SqlxAction::GettingEvent(event_id)
+        })?
+        .and_then(|x| x.zip_file) {
+        state.bucket.delete_file(old_zip_file).await?;
+
+        sqlx::query!(
         r#"
 UPDATE events
 SET zip_file = NULL
-WHERE id = $1"#,
+WHERE id = $1
+"#,
         event_id
     )
-    .execute(&mut *state.get_connection().await?)
-    .await
-    .context(SqlxSnafu {
-        action: SqlxAction::UpdatingEvent(event_id),
-    })?;
+            .execute(&mut *state.get_connection().await?)
+            .await
+            .context(SqlxSnafu {
+                action: SqlxAction::UpdatingEvent(event_id),
+            })?;
+    }
+    
 
     let user_id = auth.user.unwrap().id;
 
@@ -65,26 +72,16 @@ WHERE id = $1"#,
             .context(NoImageExtensionSnafu { extension: format })?;
 
         debug!("Finding file name");
+        
+        let existing_names = state.bucket.list_files("uploads".into()).await?;
+        
+        info!(?existing_names);
 
         let file_name = loop {
             let key = format!("uploads/{:x}.{ext}", random::<u128>());
-            if sqlx::query!(
-                r#"
-    SELECT * FROM photos
-    WHERE path = $1
-            "#,
-                &key
-            )
-            .fetch_optional(&mut *state.get_connection().await?)
-            .await
-            .with_context(|_| SqlxSnafu {
-                action: SqlxAction::FindingPhotos(DatabaseIDMethod::Path(key.clone().into())),
-            })?
-            .is_none()
-            {
+            if !existing_names.contains(&key) {
                 break key;
             }
-            trace!(file_name=?key, "Found");
         };
 
         debug!(?file_name, "Adding photo to DB");
@@ -103,47 +100,17 @@ VALUES($1, $2, $3)"#,
         .context(SqlxSnafu {
             action: SqlxAction::AddingPhotos,
         })?;
-
-        debug!("Writing to file");
-
-        let mut file = File::create(&file_name).await.context(IOSnafu {
-            action: IOAction::CreatingFile(file_name.into()),
-        })?;
-        file.write_all(&data).await.context(IOSnafu {
-            action: IOAction::WritingToFile,
-        })?;
+        
+        state.bucket.write_file(file_name, data, format.to_mime_type()).await?;
     }
 
     Ok(Redirect::to(&format!("/update_event/{event_id}")))
 }
 
 #[axum::debug_handler]
-async fn serve_image(Path(img_path): Path<String>) -> Result<impl IntoResponse, VentError> {
-    debug!("Getting path/ext");
-
-    let path = PathBuf::from(img_path.as_str());
-    let cloned = path.clone();
-    let ext = cloned.extension().context(MissingExtensionSnafu {
-        was_looking_for: path.clone(),
-    })?;
-    let ext = ext.to_str().context(ToStrSnafu {
-        what: ConvertingWhatToString::PathBuffer(path.clone()),
-    })?;
-    let ext = ImageFormat::from_extension(ext).context(UnknownMIMESnafu { path })?;
-
-    debug!("Getting body");
-
+async fn serve_image(Path(img_path): Path<String>, State(state): State<VentState>) -> Result<impl IntoResponse, VentError> {
     let short_path = format!("uploads/{img_path}");
-    let file = File::open(&short_path).await.context(IOSnafu {
-        action: IOAction::OpeningFile(short_path.clone().into()),
-    })?;
-
-    serve_read(
-        ext.to_mime_type(),
-        file,
-        IOAction::ReadingFile(short_path.into()),
-    )
-    .await
+    serve_static_file_from_s3(short_path, &state).await
 }
 
 #[axum::debug_handler]
@@ -162,12 +129,12 @@ WHERE id = $1"#,
     .fetch_one(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
-        action: SqlxAction::FindingEvent(event_id),
+        action: SqlxAction::GettingEvent(event_id),
     })?
     .zip_file
     {
         debug!(?file_name, %event_id, "Found existing zip file");
-        return serve_static_file(file_name).await;
+        return serve_static_file_from_s3(file_name, &state).await;
     }
     trace!(%event_id, "Creating new zip file");
 
@@ -185,31 +152,12 @@ WHERE event_id = $1"#,
     .into_iter()
     .map(|x| x.path);
 
-    let file_name = {
-        let existing = {
-            let zip_ext = OsStr::new("zip");
-            let mut files = vec![];
-
-            let des: Vec<_> = WalkDir::new("uploads").collect().await;
-            for de in des.into_iter().filter_map(Result::ok) {
-                match de.file_name().to_str().context(ToStrSnafu {
-                    what: ConvertingWhatToString::FileName(de.file_name().clone()),
-                }) {
-                    Ok(file_name) => {
-                        if de.path().extension().map_or(false, |e| e == zip_ext) {
-                            files.push(file_name.to_string());
-                        }
-                    }
-                    Err(e) => warn!("{e:?}"),
-                }
-            }
-
-            files
-        };
+    let file_name: String = {
+        let existing = state.bucket.list_files("zips".into()).await?;
 
         let mut rng = thread_rng();
         format!(
-            "uploads/{}",
+            "zips/{}",
             loop {
                 let key = format!("{}.zip", rng.gen::<u128>());
                 if !existing.contains(&key) {
@@ -222,49 +170,23 @@ WHERE event_id = $1"#,
 
     debug!("Creating FS stuff");
 
-    let mut file = File::create(&file_name).await.context(IOSnafu {
-        action: IOAction::CreatingFile(file_name.clone().into()),
-    })?;
-    let mut writer = ZipFileWriter::with_tokio(&mut file);
-
-    let mut data = vec![];
-    let mut buf = [0; 1024];
+    let mut buffer = vec![];
+    let mut writer = ZipWriter::new(std::io::Cursor::new(&mut buffer));
 
     for file_path in files_to_find {
-        debug!(?file_path, "Opening file");
-        let mut file = File::open(&file_path).await.context(IOSnafu {
-            action: IOAction::OpeningFile(file_name.clone().into()),
+        let options = SimpleFileOptions::default().compression_level(None);
+        writer.start_file(&file_path, options)?;
+
+        let contents = state.bucket.read_file(&file_path).await?;
+        writer.write_all(&contents).context(IOSnafu {
+            action: IOAction::WritingToZip
         })?;
-
-        debug!("Reading file");
-
-        loop {
-            match file.read(&mut buf).await.context(IOSnafu {
-                action: IOAction::ReadingFile(file_name.clone().into()),
-            })? {
-                0 => break,
-                n => {
-                    trace!(%n, "Got bytes");
-                    data.extend(&buf[0..n]);
-                }
-            }
-        }
-
-        debug!("Writing to zip file");
-
-        writer
-            .write_entry_whole(
-                ZipEntryBuilder::new(file_path.into(), Compression::Deflate),
-                &data,
-            )
-            .await?;
-        data.clear();
     }
+    
+    let cursor = writer.finish()?;
+    drop(cursor);
 
-    debug!("Closing file");
-
-    writer.close().await?;
-    drop(file);
+    state.bucket.write_file(&file_name, buffer, "application/zip").await?;
 
     debug!("Updating SQL");
 
@@ -284,7 +206,7 @@ WHERE id = $2"#,
 
     debug!("Serving");
 
-    serve_static_file(file_name).await
+    serve_static_file_from_s3(file_name, &state).await
 }
 
 pub fn router() -> Router<VentState> {

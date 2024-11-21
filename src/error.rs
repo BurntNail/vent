@@ -24,6 +24,7 @@ pub enum S3Action {
     PuttingFile(String),
     GettingFile(String),
     ListingFiles(String),
+    RemovingFile(String),
 }
 
 #[derive(Debug)]
@@ -132,6 +133,7 @@ pub enum IOAction {
     ReadingAndOpening(FileIdentifier),
     WritingToFile,
     FlushingFile,
+    WritingToZip,
 }
 
 #[derive(Debug)]
@@ -167,7 +169,6 @@ pub enum LiquidAction {
 pub enum ThreadReason {
     LiquidCompiler,
     FindingExistingFilesWithWalkDir,
-    BuildSpreadsheet,
 }
 
 #[derive(Debug)]
@@ -205,7 +206,7 @@ pub enum SqlxAction {
     AddingPerson,
     RemovingPerson(DatabaseIDMethod),
 
-    FindingEvent(i32),
+    GettingEvent(i32),
     UpdatingEvent(i32),
     FindingAllEvents,
     RemovingEvent(i32),
@@ -344,8 +345,8 @@ pub enum VentError {
     Image { action: ImageAction },
     #[snafu(display("Missing Image Extension: {extension:?}"))]
     NoImageExtension { extension: ImageFormat },
-    #[snafu(display("Error creating Zip File: {source}"), context(false))]
-    Zip { source: async_zip::error::ZipError },
+    #[snafu(display("Error creating Zip: {source}"), context(false))]
+    Zip { source: zip::result::ZipError },
     #[snafu(display("Error with XLSX: {source}"), context(false))]
     Xlsx { source: rust_xlsxwriter::XlsxError },
     #[snafu(display("Error with Encrypting: {source}"), context(false))]

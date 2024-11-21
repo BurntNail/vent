@@ -1,7 +1,6 @@
 use std::env;
 use s3::{Bucket, Region};
 use s3::creds::Credentials;
-use s3::error::S3Error;
 use snafu::ResultExt;
 use crate::error::{S3Action, S3Snafu, VentError};
 
@@ -38,19 +37,18 @@ impl S3Bucket {
         Ok(())
     }
 
-    pub async fn read_file (&self, file_name: impl AsRef<str>) -> Result<Option<Vec<u8>>, VentError> {
+    pub async fn read_file (&self, file_name: impl AsRef<str>) -> Result<Vec<u8>, VentError> {
         let file_name = file_name.as_ref();
-        let response = self.bucket.get_object(file_name).await;
-        match response {
-            Ok(rsp) => {
-                Ok(Some(rsp.to_vec()))
-            }
-            Err(e) => if let S3Error::HttpFailWithBody(404, _) = e {
-                Ok(None)
-            } else {
-                Err(e).context(S3Snafu { action: S3Action::GettingFile(file_name.to_string()) })
-            }
-        }
+        let response = self.bucket.get_object(file_name).await.context(S3Snafu { action: S3Action::GettingFile(file_name.to_string()) })?;
+        Ok(response.to_vec())
+    }
+    
+    pub async fn delete_file(&self, file_name: impl AsRef<str>) -> Result<(), VentError> {
+        let file_name = file_name.as_ref();
+        self.bucket.delete_object(file_name).await.context(S3Snafu {
+            action: S3Action::RemovingFile(file_name.to_string())
+        })?;
+        Ok(())
     }
     
     pub async fn list_files (&self, dir: String) -> Result<Vec<String>, VentError> {

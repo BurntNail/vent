@@ -3,7 +3,7 @@ use crate::{
         backend::{Auth, VentAuthBackend},
         get_auth_object, PermissionsRole, PermissionsTarget,
     },
-    error::{EncodeStep, IOAction, IOSnafu, ParseTimeSnafu, SqlxAction, SqlxSnafu, VentError},
+    error::{EncodeStep, ParseTimeSnafu, SqlxAction, SqlxSnafu, VentError},
     routes::FormEvent,
     state::{
         db_objects::{DbEvent, DbPerson},
@@ -22,7 +22,6 @@ use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 use std::collections::HashMap;
-use tokio::fs::remove_file;
 
 #[allow(clippy::too_many_lines)]
 #[axum::debug_handler]
@@ -52,7 +51,7 @@ SELECT * FROM events WHERE id = $1
     .fetch_one(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
-        action: SqlxAction::FindingEvent(event_id),
+        action: SqlxAction::GettingEvent(event_id),
     })?;
     let date = naive_date.to_string();
 
@@ -475,6 +474,8 @@ RETURNING path, event_id"#,
     .context(SqlxSnafu {
         action: SqlxAction::RemovingPhoto(img_id),
     })?;
+    
+    state.bucket.delete_file(&event.path).await?;
 
     if let Some(existing_zip_file) = sqlx::query!(
         r#"
@@ -483,13 +484,15 @@ FROM events
 WHERE id = $1"#,
         event.event_id
     )
-    .fetch_one(&mut *state.get_connection().await?)
+    .fetch_optional(&mut *state.get_connection().await?)
     .await
     .context(SqlxSnafu {
-        action: SqlxAction::FindingEvent(event.event_id),
+        action: SqlxAction::GettingEvent(event.event_id),
     })?
-    .zip_file
+    .and_then(|x| x.zip_file)
     {
+        state.bucket.delete_file(&existing_zip_file).await?;
+
         sqlx::query!(
             r#"
     UPDATE events
@@ -502,15 +505,7 @@ WHERE id = $1"#,
         .context(SqlxSnafu {
             action: SqlxAction::UpdatingEvent(event.event_id),
         })?;
-
-        remove_file(&existing_zip_file).await.context(IOSnafu {
-            action: IOAction::DeletingFile(existing_zip_file.into()),
-        })?;
     }
-
-    remove_file(&event.path).await.context(IOSnafu {
-        action: IOAction::DeletingFile(event.path.into()),
-    })?;
 
     Ok(Redirect::to(&format!("/update_event/{}", event.event_id)))
 }

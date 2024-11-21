@@ -47,17 +47,15 @@ use liquid_utils::partials::PARTIALS;
 use sqlx::postgres::PgPoolOptions;
 use std::{
     env::var,
-    fs::{File, OpenOptions},
-    io::Stdout,
     net::SocketAddr,
-    path::Path,
 };
+use std::io::stdout;
 use time::Duration;
 use tokio::{net::TcpListener, signal, sync::watch};
 use tower::{limit::ConcurrencyLimitLayer, Service};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{
-    fmt::MakeWriter, prelude::__tracing_subscriber_SubscriberExt, EnvFilter, Registry,
+    prelude::__tracing_subscriber_SubscriberExt, EnvFilter, Registry,
 };
 
 #[macro_use]
@@ -65,63 +63,6 @@ extern crate tracing;
 
 #[macro_use]
 extern crate async_trait;
-
-#[derive(Debug)]
-struct SyncFileAndStdoutWriter {
-    stdout: Stdout,
-    file: File,
-}
-
-impl SyncFileAndStdoutWriter {
-    pub fn new(file_name: impl AsRef<Path>) -> Result<Self, std::io::Error> {
-        Ok(Self {
-            stdout: std::io::stdout(),
-            file: OpenOptions::new().append(true).open(file_name)?,
-        })
-    }
-}
-
-impl std::io::Write for SyncFileAndStdoutWriter {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let n = self.file.write(buf)?;
-        self.stdout.write_all(&buf[..n])?;
-
-        Ok(n)
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        self.file.flush()?;
-        self.stdout.flush()?;
-
-        Ok(())
-    }
-
-    fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
-        self.file.write_all(buf)?;
-        self.stdout.write_all(buf)?;
-
-        Ok(())
-    }
-}
-
-struct WriterMaker<P: AsRef<Path>> {
-    name: P,
-}
-
-impl<P: AsRef<Path>> WriterMaker<P> {
-    fn new(name: P) -> Result<Self, std::io::Error> {
-        File::create(&name)?; //ensure file exists, clear old file
-        Ok(Self { name })
-    }
-}
-
-impl<'w, P: AsRef<Path>> MakeWriter<'w> for WriterMaker<P> {
-    type Writer = SyncFileAndStdoutWriter;
-
-    fn make_writer(&'w self) -> Self::Writer {
-        SyncFileAndStdoutWriter::new(&self.name).unwrap()
-    }
-}
 
 // https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs
 async fn shutdown_signal(state: VentState) {
@@ -169,7 +110,7 @@ async fn main() {
             .with(
                 tracing_subscriber::fmt::layer()
                     .json()
-                    .with_writer(WriterMaker::new("log.json").expect("unable to create writer")),
+                    .with_writer(stdout),
             ),
     )
     .unwrap();

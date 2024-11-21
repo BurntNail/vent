@@ -97,7 +97,7 @@ async fn post_add_participant_to_event(
             .fetch_one(&mut *state.get_connection().await?)
             .await
             .context(SqlxSnafu {
-                action: SqlxAction::FindingEvent(event_id),
+                action: SqlxAction::GettingEvent(event_id),
             })?;
 
         if record.is_locked {

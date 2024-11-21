@@ -8,6 +8,7 @@ use crate::{
 };
 use axum::{
     body::{Body, Bytes},
+    extract::State,
     http::header,
     response::{IntoResponse, Json, Response},
     routing::get,
@@ -20,32 +21,33 @@ use serde_json::{from_str, Value};
 use snafu::{OptionExt, ResultExt};
 use std::{fmt::Debug, path::PathBuf};
 use tokio::{
-    fs::{read_to_string, File},
+    fs::{
+        read_to_string
+    },
     io::{AsyncRead, AsyncReadExt},
 };
 use tower_http::services::ServeDir;
+use crate::error::{ConvertingWhatToString, ToStrSnafu};
 
-pub async fn serve_static_file(
+pub async fn serve_static_file_from_s3(
     path: impl Into<PathBuf> + Debug,
+    state: &VentState,
 ) -> Result<impl IntoResponse, VentError> {
     let path = path.into();
-
-    let file = File::open(path.clone()).await.context(IOSnafu {
-        action: IOAction::OpeningFile(path.clone().into()),
+    let path_str = path.to_str().context(ToStrSnafu {
+        what: ConvertingWhatToString::PathBuffer(path.clone()),
     })?;
+
+    let contents = state.bucket.read_file(path_str).await?;
 
     let mime = from_path(path.clone())
         .first()
         .context(UnknownMIMESnafu { path: path.clone() })?;
 
-    serve_read(
-        mime.essence_str(),
-        file,
-        IOAction::ReadingFile(path.clone().into()),
-    )
-    .await
+    serve_bytes_with_mime(contents, mime.essence_str()).await
 }
 
+#[allow(dead_code)]
 pub async fn serve_read(
     mime: &str,
     mut reader: impl AsyncRead + Unpin,
@@ -106,8 +108,8 @@ pub async fn get_log() -> Result<Json<Vec<Value>>, VentError> {
 macro_rules! get_x {
     ($func_name:ident, $path:expr) => {
         #[axum::debug_handler]
-        pub async fn $func_name() -> Result<impl IntoResponse, VentError> {
-            serve_static_file($path).await
+        pub async fn $func_name(State(state): State<VentState>) -> Result<impl IntoResponse, VentError> {
+            serve_static_file_from_s3($path, &state).await
         }
     };
 }
