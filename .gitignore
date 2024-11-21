@@ -17,5 +17,6 @@ public/*.png
 public/*.ico
 
 docker-compose.yml
+config.toml
 
 !.sqlx/*.json

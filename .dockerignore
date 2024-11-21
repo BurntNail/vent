@@ -1,0 +1,33 @@
+# flyctl launch added from .gitignore
+target
+
+# Devenv
+**/.devenv*
+**/devenv.local.nix
+
+**/.env
+**/*.ics
+**/*.csv
+**/*.xlsx
+**/uploads/*
+**/*/**/*.json
+**/*.json
+**/config
+
+**/public/*.png
+**/public/*.ico
+
+**/docker-compose.yml
+
+!**/.sqlx/*.json
+
+# flyctl launch added from .idea/.gitignore
+# Default ignored files
+.idea/shelf
+.idea/workspace.xml
+# Editor-based HTTP Client requests
+.idea/httpRequests
+# Datasource local storage ignored files
+.idea/dataSources
+.idea/dataSources.local.xml
+fly.toml
