@@ -50,14 +50,14 @@ impl VentStorage {
 
         match self {
             Self::S3(bucket) => {
-                bucket.put_object_with_content_type(file_name, contents.as_ref(), content_type).await.context(S3Snafu { action: S3Action::PuttingFile(file_name.to_string()) })?;
+                bucket.put_object_with_content_type(&file_name, contents.as_ref(), content_type).await.context(S3Snafu { action: S3Action::PuttingFile(file_name.to_string()) })?;
             }
             Self::Local => {
-                let mut file = File::create(file_name).await.context(IOSnafu {
-                    action: IOAction::CreatingFile(file_name.into())
+                let mut file = File::create(&file_name).await.context(IOSnafu {
+                    action: IOAction::CreatingFile(file_name.to_string().into())
                 })?;
                 file.write_all(contents.as_ref()).await.context(IOSnafu {
-                    action: IOAction::WritingToFile(file_name.into())
+                    action: IOAction::WritingToFile(file_name.to_string().into())
                 })?;
             }
         }
@@ -69,11 +69,11 @@ impl VentStorage {
         let file_name = file_name.as_ref();
         match self {
             Self::S3(bucket) => {
-                let response = bucket.get_object(file_name).await.context(S3Snafu { action: S3Action::GettingFile(file_name.to_string()) })?;
+                let response = bucket.get_object(&file_name).await.context(S3Snafu { action: S3Action::GettingFile(file_name.to_string()) })?;
                 Ok(response.to_vec())
             }
             Self::Local => {
-                let mut file = File::open(file_name).await.context(IOSnafu {
+                let mut file = File::open(&file_name).await.context(IOSnafu {
                     action: IOAction::CreatingFile(file_name.to_string().into())
                 })?;
 
@@ -82,7 +82,7 @@ impl VentStorage {
 
                 loop {
                     match file.read(&mut buf).await.context(IOSnafu {
-                        action: IOAction::ReadingFile(file_name.into())
+                        action: IOAction::ReadingFile(file_name.to_string().into())
                     })? {
                         0 => break,
                         n => output.extend_from_slice(&buf[0..n])
@@ -113,6 +113,7 @@ impl VentStorage {
     
     pub async fn list_files (&self, dir: impl AsRef<str>) -> Result<Vec<String>, VentError> {
         let dir = dir.as_ref();
+
         match self {
             Self::S3(bucket) => {
                 let response = bucket.list(dir.to_string(), None).await.context(S3Snafu { action: S3Action::ListingFiles(dir.to_string()) })?;
@@ -123,14 +124,15 @@ impl VentStorage {
                 }).flatten().collect())
             },
             Self::Local => {
-                let mut response = tokio::fs::read_dir(dir).await.context(IOSnafu {
-                    action: IOAction::ReadingDirectory(dir.to_string().into())
+                let dir = dir.to_string();
+                let mut response = tokio::fs::read_dir(dir.clone()).await.context(IOSnafu {
+                    action: IOAction::ReadingDirectory(dir.clone().into())
                 })?;
 
                 let mut out = vec![];
                 loop {
                     let next_entry = response.next_entry().await.context(IOSnafu {
-                        action: IOAction::ReadingDirectory(dir.into())
+                        action: IOAction::ReadingDirectory(dir.clone().into())
                     })?;
                     let Some(next_entry) = next_entry else {
                         break;

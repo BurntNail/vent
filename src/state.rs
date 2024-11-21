@@ -4,7 +4,7 @@ pub mod mail;
 mod cache;
 mod compiler;
 pub mod db_objects;
-pub mod s3;
+pub mod storage;
 
 use crate::{
     auth::{
@@ -41,7 +41,7 @@ use tokio::sync::{
     mpsc::UnboundedSender,
     RwLock,
 };
-use crate::state::s3::VentStorage;
+use crate::state::storage::VentStorage;
 
 #[derive(Clone, Debug)]
 pub struct VentState {

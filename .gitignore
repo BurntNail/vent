@@ -9,6 +9,7 @@ devenv.local.nix
 *.csv
 *.xlsx
 uploads/*
+zips/*
 */**/*.json
 *.json
 config/
