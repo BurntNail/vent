@@ -250,7 +250,7 @@ pub async fn export_events_to_csv(
     State(state): State<VentState>,
 ) -> Result<impl IntoResponse, VentError> {
     let mut csv_writer = csv::Writer::from_writer(vec![]);
-    csv_writer.write_record(&["name", "date_time", "location", "teacher", "other_info"]).unwrap();
+    csv_writer.write_record(&["date", "name", "time", "location", "teacher"]).unwrap();
 
     #[derive(Deserialize)]
     struct SmolEvent {
@@ -258,7 +258,6 @@ pub async fn export_events_to_csv(
         pub date: NaiveDateTime,
         pub location: String,
         pub teacher: String,
-        pub other_info: Option<String>,
     }
 
     for SmolEvent {
@@ -266,10 +265,9 @@ pub async fn export_events_to_csv(
         date,
         location,
         teacher,
-        other_info,
     } in sqlx::query_as!(
         SmolEvent,
-        r#"SELECT event_name, date, location, teacher, other_info FROM events"#
+        r#"SELECT event_name, date, location, teacher FROM events"#
     )
     .fetch_all(&mut *state.get_connection().await?)
     .await
@@ -277,11 +275,11 @@ pub async fn export_events_to_csv(
         action: SqlxAction::FindingAllEvents,
     })? {
         csv_writer.write_record(&[
+            date.format("%d-%m-%Y").to_string(),
             event_name,
-            date.format("%Y-%m-%dT%H:%M").to_string(),
+            date.format("%H:%M").to_string(),
             location,
             teacher,
-            other_info.unwrap_or_default(),
         ]).unwrap();
     }
     
