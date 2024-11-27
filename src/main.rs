@@ -30,19 +30,12 @@ use crate::{
     },
     state::VentState,
 };
-use axum::{
-    extract::{DefaultBodyLimit, Request},
-    response::IntoResponse,
-    routing::get,
-    Router,
-};
+use axum::{extract::{DefaultBodyLimit}, response::IntoResponse, routing::get, Router};
 use axum_login::{
     tower_sessions::{Expiry, SessionManagerLayer},
     AuthManagerLayerBuilder,
 };
 use http::StatusCode;
-use hyper::{body::Incoming, service::service_fn};
-use hyper_util::rt::TokioIo;
 use liquid_utils::partials::PARTIALS;
 use sqlx::postgres::PgPoolOptions;
 use std::{
@@ -50,9 +43,11 @@ use std::{
     net::SocketAddr,
 };
 use std::io::stdout;
+use axum::extract::connect_info::Connected;
+use axum::serve::IncomingStream;
 use time::Duration;
-use tokio::{net::TcpListener, signal, sync::watch};
-use tower::{limit::ConcurrencyLimitLayer, Service};
+use tokio::{net::TcpListener, signal};
+use tower::limit::ConcurrencyLimitLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{
     prelude::__tracing_subscriber_SubscriberExt, EnvFilter, Registry,
@@ -95,6 +90,19 @@ async fn shutdown_signal(state: VentState) {
 #[axum::debug_handler]
 async fn healthcheck() -> impl IntoResponse {
     StatusCode::OK
+}
+
+#[derive(Clone)]
+pub struct VentConnection {
+    pub remote_addr: SocketAddr
+}
+
+impl Connected<IncomingStream<'_>> for VentConnection {
+    fn connect_info(target: IncomingStream<'_>) -> Self {
+        Self {
+            remote_addr: target.remote_addr()
+        }
+    }
 }
 
 #[tokio::main]
@@ -174,60 +182,11 @@ async fn main() {
     let server_ip = var("VENT_SERVER_IP").unwrap_or_else(|_| "0.0.0.0:8080".to_string());
 
     let port: SocketAddr = server_ip.parse().unwrap();
+    let listener = TcpListener::bind(port).await.unwrap();
     info!(?port, "Serving: ");
 
-    serve(router, TcpListener::bind(port).await.unwrap(), state).await;
-}
-
-//https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs
-async fn serve(app: Router, listener: TcpListener, state: VentState) {
-    let (close_tx, close_rx) = watch::channel(());
-
-    loop {
-        let (socket, _remote_addr) = tokio::select! {
-            result = listener.accept() => {
-                result.unwrap()
-            },
-            () = shutdown_signal(state.clone()) => {
-                break;
-            }
-        };
-
-        let tower_service = app.clone();
-        let close_rx = close_rx.clone();
-        let state = state.clone();
-
-        tokio::spawn(async move {
-            let socket = TokioIo::new(socket);
-            let hyper_service =
-                service_fn(move |req: Request<Incoming>| tower_service.clone().call(req));
-
-            let conn = hyper::server::conn::http1::Builder::new()
-                .serve_connection(socket, hyper_service)
-                .with_upgrades();
-
-            let mut conn = std::pin::pin!(conn);
-
-            loop {
-                tokio::select! {
-                    result = conn.as_mut() => {
-                        if let Err(err) = result {
-                            error!(?err, "Failed to serve connection :(");
-                        }
-                        break;
-                    },
-                    () = shutdown_signal(state.clone()) => {
-                        conn.as_mut().graceful_shutdown();
-                    }
-                }
-            }
-
-            drop(close_rx);
-        });
-    }
-
-    drop(close_rx);
-    drop(listener);
-
-    close_tx.closed().await;
+    axum::serve(listener, router.into_make_service_with_connect_info::<VentConnection>())
+        .with_graceful_shutdown(shutdown_signal(state))
+        .await
+        .unwrap();
 }
